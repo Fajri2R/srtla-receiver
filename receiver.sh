@@ -457,6 +457,17 @@ download_compose_file() {
     done
     $ok || return 1
 
+    # Download mgmt-proxy nginx config (injects Live Preview button into Management UI)
+    echo -e "${INFO}Downloading mgmt-proxy config...${NC}"
+    mkdir -p mgmt-proxy
+    if curl -s -o "mgmt-proxy/nginx.conf" "${base_url}/mgmt-proxy/nginx.conf"; then
+        echo -e "${SUCCESS}  ✓ mgmt-proxy/nginx.conf${NC}"
+    else
+        echo -e "${ERROR}  ✗ Failed to download mgmt-proxy/nginx.conf${NC}"
+        ok=false
+    fi
+    $ok || return 1
+
     echo -e "${SUCCESS}All files downloaded successfully.${NC}"
     return 0
 }
