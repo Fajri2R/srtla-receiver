@@ -1,6 +1,21 @@
-# SRTla Receiver
+# SRTla Receiver + Live Preview
 
-SRTla receiver with support for multiple streams and statistics integration.
+> **Fork of [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver)** — extends the original with a **browser-based Live Preview** dashboard powered by HLS.js and a dynamic multi-stream HLS manager.
+
+SRTla receiver with support for multiple streams, statistics integration, and **in-browser live preview** for all active streams simultaneously.
+
+---
+
+## ✨ What's New in This Fork
+
+| Feature | Description |
+|---------|-------------|
+| 🎬 **Live Preview Dashboard** | Watch any active stream directly in the browser — no VLC, no extra software |
+| 🔄 **Multi-Stream HLS Manager** | Automatically starts/stops FFmpeg per active stream; zero configuration |
+| 📡 **Stats Proxy** | Built-in nginx proxy for the SLS stats API — no CORS issues |
+| 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager and preview UI |
+
+---
 
 ## Project Information
 
@@ -12,209 +27,273 @@ This project is based on the following components:
 
 ### Project Support
 
-If you'd like to support this project, please visit my GoFundMe page: [gofundme](https://gofund.me/07644414)
+If you'd like to support the original project, please visit the GoFundMe page: [gofundme](https://gofund.me/07644414)
 
-Your support helps enable further development and improvements.
+---
 
 ## Getting Started
 
+### Requirements
+
+- **OS:** Ubuntu 22.04 / Debian 12 (recommended)
+- **RAM:** 1 GB minimum (2 GB+ recommended for multiple simultaneous streams)
+- **Ports to open in your firewall:**
+
+| Port | Protocol | Service |
+|------|----------|---------|
+| `5000` | UDP | SRTla receiver input (from OBS/encoder) |
+| `4001` | UDP | SRT sender input |
+| `4000` | UDP | SRT player output |
+| `8080` | TCP | SLS Stats API |
+| `3000` | TCP | Management UI |
+| `8090` | TCP | **Live Preview** dashboard |
+
 ### Install the Receiver
 
-The Receiver provides a shell script for easy installation on Ubuntu and Debian. Complete the following steps to install
-using the shell script:
+The `receiver.sh` script handles everything — Docker, all containers, and the Live Preview service.
 
-1. Download the runtime management script (`receiver.sh`) to your machine:
-   ```shell
-   curl -Lso receiver.sh "https://raw.githubusercontent.com/OpenIRL/srtla-receiver/refs/heads/main/receiver.sh" && chmod 700 receiver.sh
-   ```
-2. Run the installer script. It will create `./data` directory and `./.apikey` file they will be created realtive to the
-   location of the `receiver.sh`
-   ```shell
-   ./receiver.sh install
-   ```
-3. Complete the prompts in the installer (most time just pressing enter)
+**1. Download the script:**
 
-### Create First Publisher
+```shell
+curl -Lso receiver.sh "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/refs/heads/main/receiver.sh" && chmod 700 receiver.sh
+```
 
-To use the started container, open the management URL (e.g., `http://127.0.0.1:3000`) shown in the console in your browser.
+**2. Run the installer:**
 
-#### Configuration Steps
+```shell
+./receiver.sh install
+```
 
-1. Click on "Configure Settings" on the welcome screen
-2. In the modal that opens, you'll find 2 input fields and one switch. Enter the API key shown in the console
-   - If you don't have the API key anymore, navigate to the directory where srtla-receiver is installed and run `cat .apikey`
-3. Click "Save" after entering the API key
-4. On the next screen, a new "Add Stream" button will appear. Click it and optionally fill in a description
-5. After adding the publisher, click the arrow icon. In the Player section, you'll find a link icon
-6. Click the link icon to get the stream URLs including the stats URLs as shown in the examples below
+The installer will:
+- Install Docker if not present
+- Download `docker-compose`, `hls-manager`, and `preview` files from this fork
+- Prompt you for port configuration (press Enter to accept defaults)
+- Build the HLS manager image and start all containers
+- Display all service URLs when done
 
-#### Sending a Stream
+**3. After install — example output:**
 
-##### SRTla
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Available Services
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🖥  Management UI  : http://YOUR-IP:3000
+  🎬  Live Preview   : http://YOUR-IP:8090
+  📡  SRTla Input    : YOUR-IP:5000/udp
+  📤  SRT Sender     : YOUR-IP:4001/udp
+  📥  SRT Player     : YOUR-IP:4000/udp
+  📊  Stats API      : http://YOUR-IP:8080/stats
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
-| Type    | URL                                                                     |
-|---------|-------------------------------------------------------------------------|
-| Schema  | `srtla://<your-ip>:5000?streamid=<publish-key>`                         |
+### Management Commands
+
+```shell
+./receiver.sh start      # Start all services (builds hls-manager if needed)
+./receiver.sh stop       # Stop all services
+./receiver.sh status     # Show container status and service URLs
+./receiver.sh update     # Pull latest images + rebuild hls-manager
+./receiver.sh restart    # Stop then start
+./receiver.sh reset      # ⚠ Delete all data and regenerate API key
+```
+
+### Manual Setup (Docker Compose)
+
+If you prefer to manage Docker Compose directly:
+
+```shell
+git clone https://github.com/Fajri2R/srtla-receiver.git
+cd srtla-receiver
+cp .env.example .env
+# Edit .env — set APP_URL to your server's public IP
+docker compose up -d --build
+```
+
+---
+
+## Create Your First Publisher
+
+1. Open the **Management UI** at `http://YOUR-IP:3000`
+2. Click **"Configure Settings"** and enter the API key (found in `.apikey` or console output)
+3. Click **"Add Stream"** and optionally fill in a description
+4. Click the arrow icon next to the stream → copy the **publish key** and **play key**
+5. Configure your encoder with the publish URL below
+
+### Sending a Stream
+
+#### SRTla (recommended — multi-path bonding)
+
+| | URL |
+|-|-----|
+| Schema | `srtla://YOUR-IP:5000?streamid=PUBLISH_KEY` |
 | Example | `srtla://127.0.0.1:5000?streamid=live_7388b95f0a6c4f69954f4519f204a554` |
 
-##### SRT
+#### SRT (standard)
 
-| Type    | URL                                                                   |
-|---------|-----------------------------------------------------------------------|
-| Schema  | `srt://<your-ip>:4001?streamid=<publish-key>`                         |
+| | URL |
+|-|-----|
+| Schema | `srt://YOUR-IP:4001?streamid=PUBLISH_KEY` |
 | Example | `srt://127.0.0.1:4001?streamid=live_7388b95f0a6c4f69954f4519f204a554` |
 
-#### Receiving a Stream
+### Receiving / Playing a Stream
 
-##### SRT
-
-| Type    | URL                                                                   |
-|---------|-----------------------------------------------------------------------|
-| Schema  | `srt://<your-ip>:4000?streamid=<play-key>`                            |
+| | URL |
+|-|-----|
+| Schema | `srt://YOUR-IP:4000?streamid=PLAY_KEY` |
 | Example | `srt://127.0.0.1:4000?streamid=play_60a0055a7fdb436d92fab3a943f5c55c` |
+
+---
+
+## 🎬 Live Preview
+
+Open `http://YOUR-IP:8090` in any browser. No configuration needed — all active streams are detected automatically.
+
+### How It Works
+
+```
+OBS/Encoder A ─── SRTla:5000 ──┐
+OBS/Encoder B ─── SRTla:5000 ──┤──▶ [receiver]
+OBS/Encoder C ─── SRTla:5000 ──┘        │
+                                         │  polls /stats every 5s
+                                         ▼
+                                   [hls-manager]
+                                   Node.js + FFmpeg
+                                   (one FFmpeg process per active stream)
+                                         │
+                          /hls/stream_A/stream.m3u8
+                          /hls/stream_B/stream.m3u8
+                                         │ shared volume
+                                         ▼
+                                  [live-preview]     ← http://YOUR-IP:8090
+                                  Nginx serves:
+                                  • Preview SPA (HLS.js dashboard)
+                                  • HLS segments at /hls/
+                                  • Stats API proxy at /api/stats
+```
+
+### Features
+
+- **Auto-detection** — streams appear/disappear on the dashboard as they go on/offline
+- **Per-stream video player** — click ▶ Preview on any stream card
+- **Real-time metrics** — bitrate, active connections, uptime, refreshed every 5s
+- **Copy HLS URL** — one-click copy of the `.m3u8` URL for use in VLC or other players
+- **Dark premium UI** — glassmorphism design, animated, mobile-friendly
+
+### Live Preview Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LIVE_PREVIEW_PORT` | `8090` | Port for the preview web UI |
+| `HLS_SEGMENT_TIME` | `2` | HLS segment duration in seconds (lower = less latency) |
+| `HLS_LIST_SIZE` | `5` | Number of segments kept in the playlist |
+| `HLS_POLL_INTERVAL` | `5` | How often hls-manager polls for new/ended streams (seconds) |
+
+### Latency
+
+| Setting | Latency |
+|---------|---------|
+| `HLS_SEGMENT_TIME=2` (default) | ~4–8 seconds |
+| `HLS_SEGMENT_TIME=1` | ~2–4 seconds (higher overhead) |
+| SRT direct via VLC | < 1 second |
+
+> **Note:** FFmpeg uses **stream copy** (`-c:v copy -c:a copy`) — no re-encoding, minimal CPU usage. Your encoder must send H.264 video and AAC audio for HLS compatibility.
+
+---
 
 ## Statistics Integration
 
-The SRTla Receiver provides a statistics interface that can be used for integration with tools like NOALBS (Node OBS Automatic Live Switching).
-
 ### Statistics Endpoint
 
-| Type    | URL                                                                 |
-|---------|---------------------------------------------------------------------|
-| Schema  | `http://<your-ip>:8080/stats/<play-id>`                             |
+| | URL |
+|-|-----|
+| Schema | `http://YOUR-IP:8080/stats/PLAY_ID` |
 | Example | `http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c` |
 
-### Statistics Endpoint Legacy (NOALBS version < 2.14.0)
+### Statistics Endpoint Legacy (NOALBS < 2.14.0)
 
-| Type             | URL                                                                          |
-|------------------|------------------------------------------------------------------------------|
-| Schema (Legacy)  | `http://<your-ip>:8080/stats/<play-id>?legacy=1`                             |
-| Example (Legacy) | `http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c?legacy=1` |
+| | URL |
+|-|-----|
+| Schema | `http://YOUR-IP:8080/stats/PLAY_ID?legacy=1` |
+| Example | `http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c?legacy=1` |
 
 ### NOALBS Integration
 
-To use the SRTla Receiver with NOALBS, you can specify the statistics endpoint in your NOALBS configuration. This allows
-for automatic scene switching based on stream metrics.
-Example NOALBS configuration:
-
 ```json
 {
-   # rest of the config ...
-      "switcher": {
-         # rest of the config ...
-            "streamServers": [
-                {
-                  "streamServer": {
-                     "type": "OpenIRL",
-                     "statsUrl": "http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c"
-                  },
-                  "name": "Stream",
-                  "priority": 0,
-                  "enabled": true
-               }
-            ]
-         # rest of the config ...
-      }
-   # rest of the config ...
+   "switcher": {
+      "streamServers": [
+         {
+           "streamServer": {
+              "type": "OpenIRL",
+              "statsUrl": "http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c"
+           },
+           "name": "Stream",
+           "priority": 0,
+           "enabled": true
+         }
+      ]
+   }
 }
 ```
+
 <details>
-<summary>NOLABS Version < 2.14.0</summary>
+<summary>NOALBS Version &lt; 2.14.0</summary>
 
 ```json
 {
-   # rest of the config ...
-      "switcher": {
-         # rest of the config ...
-            "streamServers": [
-                {
-                  "streamServer": {
-                     "type": "SrtLiveServer",
-                     "statsUrl": "http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c?legacy=1",
-                     "publisher": "live"
-                  },
-                  "name": "Stream",
-                  "priority": 0,
-                  "enabled": true
-               }
-            ]
-         # rest of the config ...
-      }
-   # rest of the config ...
+   "switcher": {
+      "streamServers": [
+         {
+           "streamServer": {
+              "type": "SrtLiveServer",
+              "statsUrl": "http://127.0.0.1:8080/stats/play_60a0055a7fdb436d92fab3a943f5c55c?legacy=1",
+              "publisher": "live"
+           },
+           "name": "Stream",
+           "priority": 0,
+           "enabled": true
+         }
+      ]
+   }
 }
 ```
 
 </details>
 
+---
+
 ## Troubleshooting
 
-If you encounter issues with the SRTla Receiver, ensure that:
-
-- All required ports (5000/udp, 4000/udp, 4001/udp, 8080/tcp) are accessible
-- Stream IDs are correctly formatted
-- Your firewall settings allow UDP traffic on the configured ports
-
-## Live Preview
-
-This fork adds a **Live Preview** feature — a browser-based dashboard that lets you watch any active SRT stream directly in the management interface, powered by [HLS.js](https://github.com/video-dev/hls.js).
-
-### Architecture
-
-```
-OBS/Encoder
-    │  SRTla (UDP 5000)
-    ▼
-[srtla-receiver]  ──SRT──▶  [live-preview-hls]  ──HLS──▶  [live-preview-nginx]
-     │                         (FFmpeg)                         (Nginx)
-     │  HTTP :8080                                          HTTP :8090
-     └─────────────────────────────────────────────────────────────┘
-                                                          Browser ◀ HLS.js
+**Containers not starting:**
+```shell
+docker compose logs receiver
+docker compose logs hls-manager
 ```
 
-### Ports
+**Live Preview not showing streams:**
+- Make sure a stream is actively being published (check Management UI)
+- Check `docker compose logs hls-manager` — FFmpeg errors will appear here
+- Confirm port `8090` is open in your firewall
 
-| Port   | Service             | Description                         |
-|--------|---------------------|-------------------------------------|
-| `8090` | Live Preview Web UI | Browser dashboard with HLS player   |
+**FFmpeg exits immediately:**
+- The stream may have ended or the stream ID does not match
+- Check that your encoder sends H.264 video + AAC audio
 
-### Setup
+**All required ports:**
 
-1. Copy `.env.example` to `.env` and configure the live preview variables:
-   ```shell
-   LIVE_PREVIEW_PORT=8090         # Port for the preview UI
-   PREVIEW_STREAM_ID=live/stream  # Stream ID to transcode (match your publisher)
-   HLS_SEGMENT_TIME=2             # HLS segment duration (lower = less latency)
-   HLS_LIST_SIZE=5                # HLS playlist window size
-   ```
+```shell
+# Ubuntu/Debian
+sudo ufw allow 5000/udp
+sudo ufw allow 4000/udp
+sudo ufw allow 4001/udp
+sudo ufw allow 8080/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 8090/tcp
+sudo ufw reload
+```
 
-2. Start the stack:
-   ```shell
-   docker compose up -d
-   ```
-
-3. Open the Live Preview UI in your browser:
-   ```
-   http://your-server:8090
-   ```
-
-4. Configure the Stats API URL and HLS Base URL in the **⚙ Config** bar:
-   - **Stats API URL**: `http://your-server:8080`
-   - **HLS Base URL**: `http://your-server:8090/hls`
-
-5. Click **▶ Preview** on any live stream card to start watching.
-
-### Latency
-
-The HLS transcoder introduces ~4–8 seconds of latency (2–4 segments). To reduce:
-- Set `HLS_SEGMENT_TIME=1` (more overhead, ~2–4s latency)
-- Use the SRT player port (`4000`) with VLC for near-zero latency monitoring
-
-### Notes
-
-- **FFmpeg copies the stream without re-encoding** (`-c:v copy -c:a copy`), so CPU usage is minimal
-- If a stream is offline, the preview player will show a "Stream unavailable" message
-- The preview UI auto-refreshes stream statistics every 5 seconds
+---
 
 ## Contributing
 
-Contributions to the project are welcome! Please open an issue or pull request on GitHub.
+Contributions are welcome! Please open an issue or pull request on [GitHub](https://github.com/Fajri2R/srtla-receiver).
