@@ -1,8 +1,8 @@
-# SRTla Receiver + Live Preview
+﻿# SRTla Receiver + Live Preview
 
-> **Fork of [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver)** — extends the original with a **browser-based Live Preview** dashboard powered by HLS.js and a dynamic multi-stream HLS manager.
+> **Fork of [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver)** — extends the original with a **browser-based Live Preview** dashboard powered by HLS.js, a dynamic multi-stream HLS manager, and an **integrated Live Preview button in Management UI**.
 
-SRTla receiver with support for multiple streams, statistics integration, and **in-browser live preview** for all active streams simultaneously.
+SRTla receiver with support for multiple streams, statistics integration, and **in-browser live preview** for all active streams simultaneously — including a per-stream 🔴 Live button injected directly into the Management UI.
 
 ---
 
@@ -10,10 +10,11 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 
 | Feature | Description |
 |---------|-------------|
-| 🎬 **Live Preview Dashboard** | Watch any active stream directly in the browser — no VLC, no extra software |
+| 🎬 **Live Preview Button** | Per-stream **🔴 Live** button injected directly into the Management UI — click to watch any stream in a full-screen HLS player modal |
+| 🎬 **Live Preview Dashboard** | Watch any active stream directly in the browser at port 8090 — no VLC, no extra software |
 | 🔄 **Multi-Stream HLS Manager** | Automatically starts/stops FFmpeg per active stream; zero configuration |
-| 📡 **Stats Proxy** | Built-in nginx proxy for the SLS stats API — no CORS issues |
-| 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager and preview UI |
+| 📡 **SLS API Integration** | Uses the correct SLS REST API endpoints: `/stats/{stream_id}` and `/api/stream-ids` — no CORS issues |
+| 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager, preview UI, and mgmt-proxy |
 
 ---
 
@@ -45,8 +46,8 @@ If you'd like to support the original project, please visit the GoFundMe page: [
 | `4001` | UDP | SRT sender input |
 | `4000` | UDP | SRT player output |
 | `8080` | TCP | SLS Stats API |
-| `3000` | TCP | Management UI |
-| `8090` | TCP | **Live Preview** dashboard |
+| `3000` | TCP | Management UI (via mgmt-proxy with Live Preview injection) |
+| `8090` | TCP | **Standalone Live Preview** dashboard |
 
 ### Install the Receiver
 
@@ -66,7 +67,7 @@ curl -Lso receiver.sh "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/
 
 The installer will:
 - Install Docker if not present
-- Download `docker-compose`, `hls-manager`, and `preview` files from this fork
+- Download `docker-compose`, `hls-manager`, `mgmt-proxy`, and `preview` files from this fork
 - Prompt you for port configuration (press Enter to accept defaults)
 - Build the HLS manager image and start all containers
 - Display all service URLs when done
@@ -144,31 +145,42 @@ docker compose up -d --build
 
 ---
 
-## 🎬 Live Preview
+## 🎬 Live Preview in Management UI
 
-Open `http://YOUR-IP:8090` in any browser. No configuration needed — all active streams are detected automatically.
+Open the **Management UI** at `http://YOUR-IP:3000`. Each stream row has a **🔴 Live** button next to the **+ Add Player** button.
+
+- Click **🔴 Live** to open a full-screen HLS player modal
+- The modal auto-loads the stream's HLS playlist
+- Press **ESC** or click outside the modal to close
+- No separate browser tab needed
+
+This is powered by `mgmt-proxy` — a lightweight reverse proxy that injects `/lp-inject.js` into the Management UI page, adding the Live button and modal player to every stream row automatically.
+
+---
+
+## 🎬 Standalone Live Preview Dashboard
+
+Open `http://YOUR-IP:8090` in any browser. No configuration needed — all active streams are detected automatically. Use this port for dedicated monitoring setups or when you need multiple streams visible at once on a separate display.
 
 ### How It Works
 
 ```
-OBS/Encoder A ─── SRTla:5000 ──┐
-OBS/Encoder B ─── SRTla:5000 ──┤──▶ [receiver]
-OBS/Encoder C ─── SRTla:5000 ──┘        │
-                                         │  polls /stats every 5s
-                                         ▼
-                                   [hls-manager]
-                                   Node.js + FFmpeg
-                                   (one FFmpeg process per active stream)
-                                         │
-                          /hls/stream_A/stream.m3u8
-                          /hls/stream_B/stream.m3u8
-                                         │ shared volume
-                                         ▼
-                                  [live-preview]     ← http://YOUR-IP:8090
-                                  Nginx serves:
-                                  • Preview SPA (HLS.js dashboard)
-                                  • HLS segments at /hls/
-                                  • Stats API proxy at /api/stats
+OBS/Encoder ─── SRTla:5000 ──▶ [receiver: SLS]
+                                      │
+                         /api/stream-ids  /stats/{id}
+                                      ▼
+                               [hls-manager]
+                               (polls every 5s)
+                               FFmpeg per stream
+                                      │
+                          /hls/{stream}/stream.m3u8
+                                      │ shared volume
+                    ┌─────────────────┴──────────────────┐
+                    ▼                                    ▼
+             [live-preview]                      [mgmt-proxy]
+             http://IP:8090                      http://IP:3000
+             Standalone HLS dashboard            Management UI +
+                                                 🔴 Live button per stream
 ```
 
 ### Features
@@ -179,14 +191,16 @@ OBS/Encoder C ─── SRTla:5000 ──┘        │
 - **Copy HLS URL** — one-click copy of the `.m3u8` URL for use in VLC or other players
 - **Dark premium UI** — glassmorphism design, animated, mobile-friendly
 
-### Live Preview Environment Variables
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LIVE_PREVIEW_PORT` | `8090` | Port for the preview web UI |
+| `LIVE_PREVIEW_PORT` | `8090` | Port for the standalone preview web UI |
 | `HLS_SEGMENT_TIME` | `2` | HLS segment duration in seconds (lower = less latency) |
 | `HLS_LIST_SIZE` | `5` | Number of segments kept in the playlist |
 | `HLS_POLL_INTERVAL` | `5` | How often hls-manager polls for new/ended streams (seconds) |
+| `HLS_MAX_RETRIES` | `10` | Max FFmpeg restart attempts on crash |
+| `SLS_API_KEY` | *(auto-set)* | SLS REST API key — auto-extracted on first start |
 
 ### Latency
 
@@ -270,7 +284,16 @@ docker compose logs receiver
 docker compose logs hls-manager
 ```
 
-**Live Preview not showing streams:**
+**Live Preview button not appearing in Management UI:**
+- Hard-refresh the Management UI page (`Ctrl+Shift+R`)
+- Check browser console for errors loading `/lp-inject.js`
+- Ensure `mgmt-proxy` container is running: `docker compose ps mgmt-proxy`
+
+**Stream detected but 'Stream not active' in modal:**
+- Wait 5–10 seconds for the first HLS segment to generate
+- Check hls-manager logs: `docker compose logs hls-manager --tail 20`
+
+**Standalone Live Preview not showing streams:**
 - Make sure a stream is actively being published (check Management UI)
 - Check `docker compose logs hls-manager` — FFmpeg errors will appear here
 - Confirm port `8090` is open in your firewall
@@ -283,12 +306,12 @@ docker compose logs hls-manager
 
 ```shell
 # Ubuntu/Debian
-sudo ufw allow 5000/udp
-sudo ufw allow 4000/udp
-sudo ufw allow 4001/udp
-sudo ufw allow 8080/tcp
-sudo ufw allow 3000/tcp
-sudo ufw allow 8090/tcp
+sudo ufw allow 5000/udp   # SRTla input
+sudo ufw allow 4000/udp   # SRT player output
+sudo ufw allow 4001/udp   # SRT sender input
+sudo ufw allow 8080/tcp   # SLS Stats API
+sudo ufw allow 3000/tcp   # Management UI
+sudo ufw allow 8090/tcp   # Standalone Live Preview
 sudo ufw reload
 ```
 

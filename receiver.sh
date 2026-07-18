@@ -504,83 +504,22 @@ http {
 }
 NGINXEOF
 
-    # Generate mgmt-proxy/lp-inject.js — Live Preview button injector
-    # LP_PORT_PLACEHOLDER is replaced with the actual live preview port.
-    cat > mgmt-proxy/lp-inject.js << 'LPEOF'
-(function(){
-  'use strict';
-  if(window.__lp)return;
-  window.__lp=true;
-  var LP_PORT=LP_PORT_PLACEHOLDER;
-  var BASE=location.protocol+'//'+location.hostname+':'+LP_PORT;
-  var hs=document.createElement('script');
-  hs.src='https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
-  document.head.appendChild(hs);
-  var st=document.createElement('style');
-  st.textContent='.lp-btn{background:linear-gradient(135deg,#dc3545,#9b1c2e)!important;border:none!important;color:#fff!important;font-size:11px!important;padding:3px 10px!important;border-radius:5px!important;cursor:pointer;margin-right:5px;vertical-align:middle;line-height:1.5;transition:opacity .2s}.lp-btn:hover{opacity:.8!important}#lp-ov{display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.82);align-items:center;justify-content:center}#lp-ov.on{display:flex}#lp-bx{background:#0d0d1a;border:1px solid #1e1e36;border-radius:16px;padding:24px;width:min(860px,95vw);box-shadow:0 0 80px rgba(0,0,0,.6)}#lp-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}#lp-tt{color:#ff4757;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}#lp-dt{width:9px;height:9px;background:#ff4757;border-radius:50%;animation:lp-blink 1s ease-in-out infinite}@keyframes lp-blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.65)}}#lp-xb{background:transparent;border:1px solid #2e2e4a;color:#777;border-radius:8px;padding:5px 14px;cursor:pointer;font-size:13px;transition:.2s}#lp-xb:hover{border-color:#ff4757;color:#ff4757}#lp-vid{width:100%;border-radius:10px;aspect-ratio:16/9;background:#000;display:block}#lp-st{color:#444;font-size:12px;margin-top:10px;text-align:center;min-height:18px}#lp-url{color:#333;font-size:11px;margin-top:4px;text-align:center;word-break:break-all}';
-  document.head.appendChild(st);
-  var ov=document.createElement('div');
-  ov.id='lp-ov';
-  ov.innerHTML='<div id="lp-bx"><div id="lp-hd"><div id="lp-tt"><span id="lp-dt"></span><span id="lp-nm">Live Preview</span></div><button id="lp-xb" type="button">\u2715 Close</button></div><video id="lp-vid" controls muted playsinline></video><div id="lp-st"></div><div id="lp-url"></div></div>';
-  document.body.appendChild(ov);
-  var hls=null;
-  function safeId(s){return s.replace(/[^a-zA-Z0-9_-]/g,'_')}
-  function openPreview(pub){
-    var url=BASE+'/hls/'+safeId(pub)+'/stream.m3u8';
-    document.getElementById('lp-nm').textContent=pub;
-    document.getElementById('lp-st').textContent='Connecting...';
-    document.getElementById('lp-url').textContent=url;
-    ov.classList.add('on');
-    var v=document.getElementById('lp-vid');
-    if(hls){hls.destroy();hls=null;}
-    v.src='';
-    function go(){
-      if(window.Hls&&Hls.isSupported()){
-        hls=new Hls({liveSyncDurationCount:3,liveMaxLatencyDurationCount:5,maxBufferLength:8});
-        hls.loadSource(url);hls.attachMedia(v);
-        hls.on(Hls.Events.MANIFEST_PARSED,function(){v.play().catch(function(){});document.getElementById('lp-st').textContent='\u25b6 Playing';});
-        hls.on(Hls.Events.ERROR,function(_,d){if(d.fatal)document.getElementById('lp-st').textContent='\u26a0 Stream not active. Waiting for publisher...';});
-      }else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;v.play().catch(function(){});}
-      else{document.getElementById('lp-st').textContent='HLS not supported.';}
-    }
-    if(window.Hls)go();else hs.addEventListener('load',go,{once:true});
-  }
-  function closePreview(){
-    ov.classList.remove('on');
-    var v=document.getElementById('lp-vid');
-    v.pause();v.src='';
-    if(hls){hls.destroy();hls=null;}
-  }
-  document.getElementById('lp-xb').onclick=closePreview;
-  ov.onclick=function(e){if(e.target===ov)closePreview();};
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')closePreview();});
-  var DONE='data-lp-injected';
-  function injectButtons(){
-    document.querySelectorAll('button[title="Add Player"]:not(['+DONE+'])').forEach(function(btn){
-      btn.setAttribute(DONE,'1');
-      var el=btn,nameEl=null;
-      for(var i=0;i<12;i++){
-        if(!el.parentElement)break;
-        el=el.parentElement;
-        nameEl=el.querySelector('.publisher-card-publisher-name');
-        if(nameEl)break;
-      }
-      var pub=nameEl&&nameEl.textContent.trim();
-      if(!pub)return;
-      var lb=document.createElement('button');
-      lb.className='btn btn-sm lp-btn';
-      lb.title='Live Preview: '+pub;
-      lb.type='button';
-      lb.innerHTML='<i class="bi bi-camera-video-fill me-1"></i>Live';
-      lb.onclick=function(e){e.stopPropagation();openPreview(pub);};
-      btn.insertAdjacentElement('beforebegin',lb);
-    });
-  }
-  new MutationObserver(injectButtons).observe(document.body,{childList:true,subtree:true});
-  [400,1200,2500,5000].forEach(function(t){setTimeout(injectButtons,t);});
-})();
+    # Download mgmt-proxy/lp-inject.js from the repo (preferred) with curl,
+    # fallback to a minimal inline version if network is unavailable.
+    echo -e "${INFO}Generating mgmt-proxy/lp-inject.js...${NC}"
+    local lp_port="${live_preview_port:-8090}"
+    if curl -sf --max-time 10 \
+        "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/main/mgmt-proxy/lp-inject.js" \
+        | sed "s/LP_PORT_PLACEHOLDER/${lp_port}/" \
+        > mgmt-proxy/lp-inject.js 2>/dev/null && [ -s mgmt-proxy/lp-inject.js ]; then
+        echo -e "${SUCCESS}  ✓ mgmt-proxy/lp-inject.js (from GitHub)${NC}"
+    else
+        # Fallback: minimal inline version
+        cat > mgmt-proxy/lp-inject.js << LPEOF
+(function(){if(window.__lp)return;window.__lp=true;var LP_PORT=${lp_port};var BASE=location.protocol+'//'+location.hostname+':'+LP_PORT;var hs=document.createElement('script');hs.src='https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';document.head.appendChild(hs);var st=document.createElement('style');st.textContent='.lp-btn{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#e53e3e,#9b2c2c)!important;border:none!important;color:#fff!important;font-size:11.5px!important;font-weight:600!important;padding:3px 11px!important;border-radius:6px!important;cursor:pointer;margin-right:6px;transition:opacity .18s,transform .18s;box-shadow:0 2px 8px rgba(229,62,62,.35)}.lp-btn:hover{opacity:.88!important;transform:translateY(-1px)}.lp-dot{width:7px;height:7px;background:#fff;border-radius:50%;animation:lp-p 1.4s ease-in-out infinite}@keyframes lp-p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}#lp-ov{display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(5,5,15,.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px}#lp-ov.on{display:flex}#lp-bx{background:#0a0a18;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 24px;width:min(880px,100%);box-shadow:0 32px 80px rgba(0,0,0,.7)}#lp-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}#lp-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.25);border-radius:20px;padding:4px 12px 4px 8px}#lp-bdot{width:8px;height:8px;background:#fc5c5c;border-radius:50%;animation:lp-p 1.2s ease-in-out infinite}#lp-btxt{font-size:11px;font-weight:700;color:#fc5c5c;letter-spacing:1px;text-transform:uppercase}#lp-nm{font-size:14px;font-weight:600;color:rgba(255,255,255,.85);font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#lp-xb{background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:13px;transition:.15s}#lp-xb:hover{border-color:rgba(229,62,62,.6);color:#fc5c5c}#lp-vw{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9}#lp-vid{width:100%;height:100%;display:block}#lp-om{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.6);color:rgba(255,255,255,.7);font-size:13px;transition:opacity .3s}#lp-om.h{opacity:0;pointer-events:none}#lp-sp{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:#fc5c5c;border-radius:50%;animation:lp-s .8s linear infinite}@keyframes lp-s{to{transform:rotate(360deg)}}#lp-ft{display:flex;justify-content:space-between;margin-top:10px}#lp-url,#lp-hint{font-size:11px;color:rgba(255,255,255,.2);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';document.head.appendChild(st);var ov=document.createElement('div');ov.id='lp-ov';ov.innerHTML='<div id="lp-bx"><div id="lp-hd"><div id="lp-badge"><span id="lp-bdot"></span><span id="lp-btxt">Live</span></div><div id="lp-nm">—</div><button id="lp-xb" type="button">✕ Close</button></div><div id="lp-vw"><video id="lp-vid" controls muted playsinline></video><div id="lp-om"><div id="lp-sp"></div><span id="lp-mt">Connecting…</span></div></div><div id="lp-ft"><span id="lp-url"></span><span id="lp-hint">ESC to close</span></div></div>';document.body.appendChild(ov);var hls=null;function sId(s){return s.replace(/[^a-zA-Z0-9_-]/g,'_')}function hide(){ov.classList.remove('on');document.body.style.overflow='';var v=document.getElementById('lp-vid');v.pause();v.src='';if(hls){hls.destroy();hls=null;}}function open(pub){var url=BASE+'/hls/'+sId(pub)+'/stream.m3u8';document.getElementById('lp-nm').textContent=pub;document.getElementById('lp-url').textContent=url;document.getElementById('lp-mt').textContent='Connecting…';document.getElementById('lp-om').classList.remove('h');ov.classList.add('on');document.body.style.overflow='hidden';var v=document.getElementById('lp-vid');if(hls){hls.destroy();hls=null;}v.src='';function go(){if(window.Hls&&Hls.isSupported()){hls=new Hls({liveSyncDurationCount:3,liveMaxLatencyDurationCount:5,maxBufferLength:8});hls.loadSource(url);hls.attachMedia(v);hls.on(Hls.Events.MANIFEST_PARSED,function(){v.play().catch(function(){});document.getElementById('lp-om').classList.add('h');});hls.on(Hls.Events.ERROR,function(_,d){if(d.fatal){document.getElementById('lp-mt').textContent='⚠ Stream not active';document.getElementById('lp-sp').style.display='none';}});}else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;v.play().catch(function(){});}else{document.getElementById('lp-mt').textContent='HLS not supported.';}}if(window.Hls)go();else hs.addEventListener('load',go,{once:true});}document.getElementById('lp-xb').onclick=hide;ov.onclick=function(e){if(e.target===ov)hide();};document.addEventListener('keydown',function(e){if(e.key==='Escape')hide();});var D='data-lp-ok';function inject(){document.querySelectorAll('button[title="Add Player"]:not(['+D+'])').forEach(function(btn){btn.setAttribute(D,'1');var el=btn,n=null;for(var i=0;i<12;i++){if(!el.parentElement)break;el=el.parentElement;n=el.querySelector('.publisher-card-publisher-name');if(n)break;}var pub=n&&n.textContent.trim();if(!pub)return;var lb=document.createElement('button');lb.type='button';lb.className='btn btn-sm lp-btn';lb.title='Watch live: '+pub;lb.innerHTML='<span class="lp-dot"></span><i class="bi bi-camera-video-fill"></i> Live';lb.onclick=function(e){e.stopPropagation();open(pub);};btn.insertAdjacentElement('beforebegin',lb);});}new MutationObserver(inject).observe(document.body,{childList:true,subtree:true});[400,1200,2500,5000].forEach(function(t){setTimeout(inject,t);});})();
 LPEOF
-    sed -i "s/LP_PORT_PLACEHOLDER/${live_preview_port:-8090}/" mgmt-proxy/lp-inject.js
+        echo -e "${SUCCESS}  ✓ mgmt-proxy/lp-inject.js (fallback inline)${NC}"
+    fi
     echo -e "${SUCCESS}  ✓ mgmt-proxy/nginx.conf${NC}"
 
     echo -e "${SUCCESS}All files downloaded successfully.${NC}"
