@@ -416,19 +416,49 @@ reset_system() {
     echo -e "${INFO}You can now run './receiver.sh start' to generate a new API key.${NC}"
 }
 
-# Function to download Docker Compose file
+# Function to download Docker Compose file and hls-manager source
 download_compose_file() {
-    local compose_url="https://raw.githubusercontent.com/OpenIRL/srtla-receiver/refs/heads/$(get_branch)/docker-compose.prod.yml"
-    
+    local base_url="https://raw.githubusercontent.com/Fajri2R/srtla-receiver/refs/heads/$(get_branch)"
+
     echo -e "${INFO}Downloading Docker Compose file ($(get_branch_display_name))...${NC}"
-    
-    if curl -s -o "docker-compose.yml" "$compose_url"; then
+
+    if curl -s -o "docker-compose.yml" "${base_url}/docker-compose.prod.yml"; then
         echo -e "${SUCCESS}Docker Compose file successfully downloaded.${NC}"
-        return 0
     else
         echo -e "${ERROR}Error downloading Docker Compose file.${NC}"
         return 1
     fi
+
+    # Download hls-manager source (needed for --build)
+    echo -e "${INFO}Downloading hls-manager source files...${NC}"
+    mkdir -p hls-manager
+    local hm_url="${base_url}/hls-manager"
+    local ok=true
+    for f in Dockerfile index.js package.json; do
+        if curl -s -o "hls-manager/${f}" "${hm_url}/${f}"; then
+            echo -e "${SUCCESS}  ✓ hls-manager/${f}${NC}"
+        else
+            echo -e "${ERROR}  ✗ Failed to download hls-manager/${f}${NC}"
+            ok=false
+        fi
+    done
+    $ok || return 1
+
+    # Download preview files (nginx + SPA)
+    echo -e "${INFO}Downloading Live Preview files...${NC}"
+    mkdir -p preview
+    for f in index.html nginx.conf; do
+        if curl -s -o "preview/${f}" "${base_url}/preview/${f}"; then
+            echo -e "${SUCCESS}  ✓ preview/${f}${NC}"
+        else
+            echo -e "${ERROR}  ✗ Failed to download preview/${f}${NC}"
+            ok=false
+        fi
+    done
+    $ok || return 1
+
+    echo -e "${SUCCESS}All files downloaded successfully.${NC}"
+    return 0
 }
 
 # Function to create .env file
@@ -439,6 +469,7 @@ create_env_file() {
     local srt_sender_port="$4"
     local sls_stats_port="$5"
     local srtla_port="$6"
+    local live_preview_port="$7"
     
     cat > .env << EOF
 # Base URL for the application
@@ -458,6 +489,14 @@ SLS_STATS_PORT=$sls_stats_port
 
 # SRTla Port
 SRTLA_PORT=$srtla_port
+
+# ── Live Preview (HLS Manager) ────────────────────────────────
+# Web dashboard to watch streams in-browser via HLS.js
+LIVE_PREVIEW_PORT=$live_preview_port
+HLS_SEGMENT_TIME=2
+HLS_LIST_SIZE=5
+HLS_POLL_INTERVAL=5
+SRTLA_LOG_LEVEL=info
 EOF
     
     echo -e "${SUCCESS}.env file created.${NC}"
@@ -529,13 +568,22 @@ start_receiver() {
         exit 1
     fi
     
-    echo -e "${INFO}Starting SRTla-Receiver...${NC}"
-    
-    # Use Docker Compose (new or old syntax)
-    if docker compose version &> /dev/null; then
-        docker compose up -d
+    echo -e "${INFO}Starting SRTla-Receiver (with Live Preview)...${NC}"
+
+    # Build hls-manager image if source is present, then start all services
+    if [ -d "hls-manager" ]; then
+        echo -e "${INFO}Building hls-manager image (first run may take a few minutes)...${NC}"
+        if docker compose version &> /dev/null; then
+            docker compose up -d --build
+        else
+            docker-compose up -d --build
+        fi
     else
-        docker-compose up -d
+        if docker compose version &> /dev/null; then
+            docker compose up -d
+        else
+            docker-compose up -d
+        fi
     fi
     
     if [ $? -eq 0 ]; then
@@ -552,16 +600,23 @@ start_receiver() {
         fi
         
         # Show status
-        echo -e "${HEADER}Available services:${NC}"
+        local public_ip
+        public_ip=$(get_public_ip)
+        echo
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${HEADER}  Available Services${NC}"
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         if [ -f ".env" ]; then
             source .env
-            echo -e "${SUCCESS}Management UI: http://$(get_public_ip):${SLS_MGNT_PORT:-3000}${NC}"
-            echo -e "${SUCCESS}Backend API: ${APP_URL}${NC}"
-            echo -e "${SUCCESS}SRTla Port: ${SRTLA_PORT:-5000}/udp${NC}"
-            echo -e "${SUCCESS}SRT Sender Port: ${SRT_SENDER_PORT:-4001}/udp${NC}"
-            echo -e "${SUCCESS}SRT Player Port: ${SRT_PLAYER_PORT:-4000}/udp${NC}"
-            echo -e "${SUCCESS}Statistics Port: ${SLS_STATS_PORT:-8080}/tcp${NC}"
+            echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
+            echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+            echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
+            echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
+            echo -e "${MUTED}  📥  SRT Player     : ${public_ip}:${SRT_PLAYER_PORT:-4000}/udp${NC}"
+            echo -e "${MUTED}  📊  Stats API      : http://${public_ip}:${SLS_STATS_PORT:-8080}/stats${NC}"
         fi
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
     else
         echo -e "${ERROR}Error starting SRTla-Receiver.${NC}"
         exit 1
@@ -592,30 +647,30 @@ stop_receiver() {
 # Function to update SRTla-Receiver
 update_receiver() {
     check_docker
-    
+
     if [ ! -f "docker-compose.yml" ]; then
         echo -e "${ERROR}docker-compose.yml file not found.${NC}"
         echo -e "Please run '${WARNING}$0 install${NC}' first."
         exit 1
     fi
-    
+
     echo -e "${INFO}Updating SRTla-Receiver ($(get_branch_display_name))...${NC}"
-    
-    # Download new Docker Compose file
+
+    # Download new Docker Compose file + hls-manager + preview files
     download_compose_file
-    
-    # Update images
+
+    # Pull updated remote images and rebuild local hls-manager image
     if docker compose version &> /dev/null; then
-        docker compose pull
+        docker compose pull --ignore-buildable
         docker compose down
-        docker compose up -d
+        docker compose up -d --build
     else
-        docker-compose pull
+        docker-compose pull --ignore-buildable
         docker-compose down
-        docker-compose up -d
+        docker-compose up -d --build
     fi
-    
-    echo -e "${SUCCESS}SRTla-Receiver successfully updated.${NC}"
+
+    echo -e "${SUCCESS}SRTla-Receiver and Live Preview successfully updated.${NC}"
 }
 
 # Function to update script
@@ -682,16 +737,23 @@ show_status() {
     fi
 
     if [ -f ".env" ]; then
-        echo -e "${HEADER}Environment settings:${NC}"
         source .env
-        echo -e "Base URL: ${APP_URL}"
-        echo -e "Management UI Port: ${SLS_MGNT_PORT}"
-        echo -e "SRTla Port: ${SRTLA_PORT}"
-        echo -e "SRT Sender Port: ${SRT_SENDER_PORT}"
-        echo -e "SRT Player Port: ${SRT_PLAYER_PORT}"
-        echo -e "Statistics Port: ${SLS_STATS_PORT}"
+        local public_ip
+        public_ip=$(get_public_ip)
+        echo
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${HEADER}  Services${NC}"
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
+        echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+        echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
+        echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
+        echo -e "${MUTED}  📥  SRT Player     : ${public_ip}:${SRT_PLAYER_PORT:-4000}/udp${NC}"
+        echo -e "${MUTED}  📊  Stats API      : http://${public_ip}:${SLS_STATS_PORT:-8080}/stats${NC}"
+        echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
     fi
-    
+
     if [ -f ".apikey" ]; then
         echo -e "${HEADER}API Key:${NC}"
         cat .apikey
@@ -834,34 +896,34 @@ configure_environment() {
 
     # Ask for ports
     echo -e "${WARNING}Port configuration:${NC}"
-    
+
     read -p "Management UI Port (default: 3000): " sls_mgnt_port
     sls_mgnt_port=${sls_mgnt_port:-3000}
-    
+
     read -p "SRTla Port (default: 5000): " srtla_port
     srtla_port=${srtla_port:-5000}
-    
+
     read -p "SRT Sender Port (default: 4001): " srt_sender_port
     srt_sender_port=${srt_sender_port:-4001}
-    
+
     read -p "SRT Player Port (default: 4000): " srt_player_port
     srt_player_port=${srt_player_port:-4000}
-    
+
     read -p "Statistics Port (default: 8080): " sls_stats_port
     sls_stats_port=${sls_stats_port:-8080}
 
+    read -p "Live Preview Port (default: 8090): " live_preview_port
+    live_preview_port=${live_preview_port:-8090}
+
     # Create APP_URL based on user input
-    # Check if user already provided a port
     if [[ "$user_input" == *":"* ]]; then
-        # Port already included
         app_url="http://$user_input"
     else
-        # No port provided, use statistics port (backend API)
         app_url="http://$user_input:$sls_stats_port"
     fi
 
-    # Create .env file
-    create_env_file "$app_url" "$sls_mgnt_port" "$srt_player_port" "$srt_sender_port" "$sls_stats_port" "$srtla_port"
+    # Create .env file (now includes live preview vars)
+    create_env_file "$app_url" "$sls_mgnt_port" "$srt_player_port" "$srt_sender_port" "$sls_stats_port" "$srtla_port" "$live_preview_port"
 }
 
 # Parse branch arguments and get filtered command line arguments
