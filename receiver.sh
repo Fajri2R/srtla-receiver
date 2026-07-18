@@ -448,25 +448,52 @@ download_compose_file() {
     echo -e "${INFO}Downloading Live Preview files...${NC}"
     mkdir -p preview
     for f in index.html nginx.conf; do
-        if curl -s -o "preview/${f}" "${base_url}/preview/${f}"; then
+        if curl -sf -o "preview/${f}" "${base_url}/preview/${f}"; then
             echo -e "${SUCCESS}  ✓ preview/${f}${NC}"
         else
             echo -e "${ERROR}  ✗ Failed to download preview/${f}${NC}"
             ok=false
         fi
     done
-    $ok || return 1
+    if [ "$ok" = "false" ]; then return 1; fi
 
-    # Download mgmt-proxy nginx config (injects Live Preview button into Management UI)
-    echo -e "${INFO}Downloading mgmt-proxy config...${NC}"
+    # Generate mgmt-proxy/nginx.conf inline (avoids CDN/network download failures)
+    # This nginx proxy sits in front of the Management UI and injects a
+    # floating "Live Preview" button into every HTML page via sub_filter.
+    echo -e "${INFO}Generating mgmt-proxy config...${NC}"
     mkdir -p mgmt-proxy
-    if curl -s -o "mgmt-proxy/nginx.conf" "${base_url}/mgmt-proxy/nginx.conf"; then
-        echo -e "${SUCCESS}  ✓ mgmt-proxy/nginx.conf${NC}"
-    else
-        echo -e "${ERROR}  ✗ Failed to download mgmt-proxy/nginx.conf${NC}"
-        ok=false
-    fi
-    $ok || return 1
+    cat > mgmt-proxy/nginx.conf << 'NGINXEOF'
+worker_processes 1;
+error_log /dev/stderr warn;
+pid       /var/run/nginx.pid;
+
+events { worker_connections 512; }
+
+http {
+    access_log /dev/stdout;
+
+    server {
+        listen 80;
+        server_name _;
+
+        location / {
+            proxy_pass         http://sls-management-ui:3000;
+            proxy_http_version 1.1;
+            proxy_set_header   Host              $host;
+            proxy_set_header   X-Real-IP         $remote_addr;
+            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header   Upgrade           $http_upgrade;
+            proxy_set_header   Connection        "upgrade";
+            proxy_read_timeout 60s;
+
+            sub_filter_once  on;
+            sub_filter_types text/html;
+            sub_filter '</body>' '<style>#__lp-fab{position:fixed;bottom:24px;right:24px;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#__lp-fab a{display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;padding:13px 22px;border-radius:50px;text-decoration:none;font-weight:700;font-size:13px;box-shadow:0 4px 22px rgba(99,102,241,.55);transition:transform .18s,box-shadow .18s}#__lp-fab a:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(99,102,241,.75)}</style><div id="__lp-fab"><a id="__lp-link__" href="#" target="_blank" title="Open SRTla Live Preview"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg><span>Live Preview</span></a></div><script>(function(){var a=document.getElementById("__lp-link__");if(a)a.href=location.protocol+"//"+location.hostname+":8090";})()</script></body>';
+        }
+    }
+}
+NGINXEOF
+    echo -e "${SUCCESS}  ✓ mgmt-proxy/nginx.conf${NC}"
 
     echo -e "${SUCCESS}All files downloaded successfully.${NC}"
     return 0
