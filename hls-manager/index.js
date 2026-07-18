@@ -44,29 +44,82 @@ function log(level, ...args) {
 }
 
 // ── Fetch active publishers from SLS stats ─────────────────────────────────────
-// SLS JSON fields confirmed from source (SLSListener.cpp):
-//   stream_name, url, remote_ip, remote_port, start_time, kbitrate, port, role
+// Handles ALL known SLS HTTP response formats:
+//   Format A: { "publishers": [{...}], "players": [{...}] }    ← object wrapper
+//   Format B: [{"role":"publisher",...}, {"role":"player",...}]  ← flat array
+//   Format C: { "data": { "publishers": [...] } }               ← nested
+// Filters by role="publisher" (most reliable) — kbitrate may be 0 at startup.
 async function fetchPublishers() {
-  try {
-    const res = await fetch(SLS_STATS_URL, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+  // Try primary URL, then fallback to root (SLS sometimes serves stats at /)
+  const urls = [SLS_STATS_URL];
+  if (!SLS_STATS_URL.endsWith('/')) urls.push(SLS_STATS_URL.replace(/\/[^/]*$/, '/'));
 
-    // Support both wrapper styles
-    const list = data.publishers || data.Publishers || [];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) {
+        log('warn', `fetchPublishers: ${url} → HTTP ${res.status}`);
+        continue;
+      }
 
-    // ✅ BUG FIX #1: SLS uses "kbitrate" (kb/s), NOT "bitrate" or "recv_bitrate"
-    // Previously all streams were filtered out because p.bitrate === undefined → 0
-    return list.filter(p => {
-      const kbr = p.kbitrate || p.bitrate || p.recv_bitrate || 0;
-      const num  = typeof kbr === 'string' ? parseFloat(kbr) : kbr;
-      return num > 0;
-    });
-  } catch (err) {
-    log('warn', 'fetchPublishers failed:', err.message);
-    return null; // null = skip this cycle, don't stop existing streams
+      const raw  = await res.text();
+      const data = JSON.parse(raw);
+
+      // ── DEBUG: log first 300 chars of raw response once every 30s ──────────
+      const now = Date.now();
+      if (!fetchPublishers._lastLog || now - fetchPublishers._lastLog > 30000) {
+        fetchPublishers._lastLog = now;
+        log('info', `[debug] stats raw (${url}): ${raw.slice(0, 300)}`);
+      }
+
+      let list = [];
+
+      if (Array.isArray(data)) {
+        // Format B: flat array — filter by role field
+        list = data.filter(p => {
+          const role = (p.role || '').toLowerCase();
+          return role === 'publisher' || role.includes('publish');
+        });
+      } else if (data && typeof data === 'object') {
+        // Format A/C: object with publishers key (try multiple paths)
+        const candidates = [
+          data.publishers, data.Publishers,
+          data.data?.publishers, data.result?.publishers,
+        ].filter(Boolean);
+        if (candidates.length > 0) {
+          list = Array.isArray(candidates[0]) ? candidates[0]
+            : Object.values(candidates[0]);
+        } else {
+          // Last resort: flatten all array values and filter by role
+          list = Object.values(data)
+            .flatMap(v => Array.isArray(v) ? v : [])
+            .filter(p => (p.role || '').toLowerCase().includes('publish'));
+        }
+      }
+
+      // ✅ BUG FIX #1: Include ALL publishers regardless of kbitrate
+      // kbitrate may be 0 during first few seconds — don't filter out new streams.
+      // We still log kbitrate for informational purposes.
+      if (list.length > 0) {
+        log('info', `  Found ${list.length} publisher(s) via ${url}`);
+        list.forEach(p => {
+          const name = p.stream_name || p.id || '?';
+          const kbr  = p.kbitrate || p.bitrate || 0;
+          log('info', `    • ${name} kbitrate=${kbr}`);
+        });
+      }
+
+      return list; // ← success, return even if empty array
+
+    } catch (err) {
+      log('warn', `fetchPublishers: ${url} failed — ${err.message}`);
+    }
   }
+
+  return null; // null = network/parse error, skip cycle
 }
+fetchPublishers._lastLog = 0;
+
 
 // ── Fetch publisher → player stream ID mapping from SLS database API ──────────
 // SLS stores separate publisher (ingest) and player (playback) stream IDs.
