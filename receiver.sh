@@ -462,6 +462,9 @@ download_compose_file() {
     # floating "Live Preview" button into every HTML page via sub_filter.
     echo -e "${INFO}Generating mgmt-proxy config...${NC}"
     mkdir -p mgmt-proxy
+    # ✅ FIX: Remove stale directory if it exists from a previous failed attempt
+    # (curl without -f creates an empty directory when the target path was mkdir'd)
+    rm -rf mgmt-proxy/nginx.conf
     cat > mgmt-proxy/nginx.conf << 'NGINXEOF'
 worker_processes 1;
 error_log /dev/stderr warn;
