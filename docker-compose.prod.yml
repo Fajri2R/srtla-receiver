@@ -22,12 +22,18 @@ services:
     container_name: srtla-receiver
     restart: unless-stopped
     ports:
-      - "${SLS_STATS_PORT}:8080/tcp"
-      - "${SRTLA_PORT}:5000/udp"
-      - "${SRT_SENDER_PORT}:4001/udp"
-      - "${SRT_PLAYER_PORT}:4000/udp"
+      - "${SLS_STATS_PORT:-8080}:8080/tcp"
+      - "${SRTLA_PORT:-5000}:5000/udp"
+      - "${SRT_SENDER_PORT:-4001}:4001/udp"
+      - "${SRT_PLAYER_PORT:-4000}:4000/udp"
     volumes:
-      - ./data:/var/lib/sls # Persistent storage for database
+      - ./data:/var/lib/sls
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -40,7 +46,8 @@ services:
     container_name: srtla-hls-manager
     restart: unless-stopped
     depends_on:
-      - receiver
+      receiver:
+        condition: service_healthy
     environment:
       SLS_STATS_URL:  "http://receiver:8080/stats"
       SRT_HOST:       "receiver"
@@ -49,8 +56,16 @@ services:
       HLS_TIME:       "${HLS_SEGMENT_TIME:-2}"
       HLS_LIST_SIZE:  "${HLS_LIST_SIZE:-5}"
       POLL_INTERVAL:  "${HLS_POLL_INTERVAL:-5}"
+      HEALTH_PORT:    "9090"
+      MAX_RETRIES:    "${HLS_MAX_RETRIES:-10}"
     volumes:
       - hls-data:/hls
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9090/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     logging:
       driver: "json-file"
       options:

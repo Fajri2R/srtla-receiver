@@ -21,14 +21,21 @@ services:
     container_name: srtla-receiver
     restart: unless-stopped
     environment:
-      SRTLA_LOG_LEVEL: "${SRTLA_LOG_LEVEL}"
+      SRTLA_LOG_LEVEL: "${SRTLA_LOG_LEVEL:-info}"
     ports:
-      - "${SLS_STATS_PORT}:8080/tcp"
-      - "${SRTLA_PORT}:5000/udp"
-      - "${SRT_SENDER_PORT}:4001/udp"
-      - "${SRT_PLAYER_PORT}:4000/udp"
+      - "${SLS_STATS_PORT:-8080}:8080/tcp"
+      - "${SRTLA_PORT:-5000}:5000/udp"
+      - "${SRT_SENDER_PORT:-4001}:4001/udp"
+      - "${SRT_PLAYER_PORT:-4000}:4000/udp"
     volumes:
-      - ./data:/var/lib/sls # Persistent storage for database
+      - ./data:/var/lib/sls
+    # ✅ FIX #11: Healthcheck so hls-manager waits for receiver to be ready
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/stats"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -36,15 +43,14 @@ services:
         max-file: "3"
 
   # ── Live Preview: Multi-stream HLS Manager ──────────────────────────────────
-  # Node.js service that polls the SLS stats API and automatically spawns a
-  # dedicated FFmpeg process for each active stream, writing HLS segments to
-  # /hls/{stream_id}/stream.m3u8
   hls-manager:
     build: ./hls-manager
     container_name: srtla-hls-manager
     restart: unless-stopped
+    # ✅ FIX #11: Wait for receiver to be healthy before starting
     depends_on:
-      - receiver
+      receiver:
+        condition: service_healthy
     environment:
       SLS_STATS_URL:  "http://receiver:8080/stats"
       SRT_HOST:       "receiver"
@@ -53,8 +59,17 @@ services:
       HLS_TIME:       "${HLS_SEGMENT_TIME:-2}"
       HLS_LIST_SIZE:  "${HLS_LIST_SIZE:-5}"
       POLL_INTERVAL:  "${HLS_POLL_INTERVAL:-5}"
+      HEALTH_PORT:    "9090"
+      MAX_RETRIES:    "${HLS_MAX_RETRIES:-10}"
     volumes:
       - hls-data:/hls
+    # ✅ FIX #15: Healthcheck via the new /health endpoint
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9090/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     logging:
       driver: "json-file"
       options:
@@ -62,8 +77,6 @@ services:
         max-file: "3"
 
   # ── Live Preview: Web Server ─────────────────────────────────────────────────
-  # Nginx serves the preview SPA at /, HLS segments at /hls/, and proxies the
-  # SLS stats API at /api/stats — all on a single port.
   live-preview:
     image: nginx:alpine
     container_name: srtla-live-preview

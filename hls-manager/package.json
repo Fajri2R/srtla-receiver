@@ -1,13 +1,10 @@
 {
   "name": "srtla-hls-manager",
-  "version": "1.0.0",
-  "description": "Dynamic HLS manager for srtla-receiver - spawns FFmpeg per active stream",
+  "version": "2.0.0",
+  "description": "Dynamic HLS manager for srtla-receiver — spawns FFmpeg per active stream",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
-  },
-  "dependencies": {
-    "node-fetch": "^3.3.2"
   }
 }

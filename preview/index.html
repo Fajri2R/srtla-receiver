@@ -647,6 +647,12 @@
         <span>Connecting…</span>
       </div>
 
+      <!-- ✅ FIX #15: HLS Manager status badge -->
+      <div class="header-badge" id="hls-status" title="HLS Manager status" style="cursor:default">
+        <div class="pulse-dot" style="background:var(--yellow)"></div>
+        <span>HLS Manager…</span>
+      </div>
+
       <button class="btn-refresh" id="btn-refresh" title="Refresh streams" onclick="refreshAll()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -691,8 +697,14 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Total Bitrate</div>
+        <!-- ✅ FIX #21: consistent Mbps unit in overview too -->
         <div class="stat-value" id="stat-bitrate">—</div>
-        <div class="stat-sub">kbps combined</div>
+        <div class="stat-sub" id="stat-bitrate-sub">Mbps combined</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Previewing</div>
+        <div class="stat-value" id="stat-previewing">0</div>
+        <div class="stat-sub">/ 4 max simultaneous</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Last Updated</div>
@@ -716,7 +728,7 @@
   </main>
 
   <footer class="footer">
-    <a href="https://github.com/OpenIRL/srtla-receiver" target="_blank">srtla-receiver</a>
+    <a href="https://github.com/Fajri2R/srtla-receiver" target="_blank">Fajri2R/srtla-receiver</a>
     &nbsp;·&nbsp; Live Preview powered by
     <a href="https://github.com/video-dev/hls.js" target="_blank">HLS.js</a>
   </footer>
@@ -758,7 +770,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('input-stats-url').value = config.statsUrl;
   document.getElementById('input-hls-base').value  = config.hlsBase;
   fetchStats();
+  fetchHlsStatus();
   startAutoRefresh();
+
+  // ✅ FIX #10: Stop polling when tab is hidden, resume when visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    } else {
+      fetchStats();
+      startAutoRefresh();
+    }
+  });
 });
 
 /* ================================================================
@@ -778,7 +801,10 @@ function saveConfig() {
 ================================================================ */
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(fetchStats, 5000);
+  refreshTimer = setInterval(() => {
+    fetchStats();
+    fetchHlsStatus();
+  }, 5000);
 }
 
 function refreshAll() {
@@ -850,12 +876,15 @@ function renderDashboard(data) {
 
   // Update overview stats
   const active = publishers.filter(p => (p.bitrate || p.recv_bitrate || 0) > 0).length;
-  const totalBitrate = publishers.reduce((sum, p) => sum + (p.bitrate || p.recv_bitrate || 0), 0);
-  document.getElementById('stat-active').textContent = active;
-  document.getElementById('stat-total').textContent  = publishers.length;
-  document.getElementById('stat-bitrate').textContent = totalBitrate > 0 ? `${(totalBitrate/1000).toFixed(1)}M` : '0';
-  document.getElementById('stat-updated').textContent = new Date().toLocaleTimeString();
+  const totalBps = publishers.reduce((sum, p) => sum + (p.bitrate || p.recv_bitrate || 0), 0);
+  document.getElementById('stat-active').textContent   = active;
+  document.getElementById('stat-total').textContent    = publishers.length;
+  // ✅ FIX #21: consistent Mbps in overview
+  document.getElementById('stat-bitrate').textContent  = totalBps > 0 ? `${(totalBps/1000000).toFixed(2)}` : '0.00';
+  document.getElementById('stat-updated').textContent  = new Date().toLocaleTimeString();
   document.getElementById('streams-count').textContent = publishers.length;
+  // ✅ FIX #13: show current preview count
+  document.getElementById('stat-previewing').textContent = playingStreams.size;
 
   const grid = document.getElementById('streams-grid');
 
@@ -888,7 +917,12 @@ function renderDashboard(data) {
     if (existing) {
       updateCard(existing, publisher);
     } else {
-      grid.appendChild(createCard(publisher));
+      const card = createCard(publisher);
+      grid.appendChild(card);
+      // ✅ FIX #17: auto-resume stream if it was playing before page refresh
+      if (sessionStorage.getItem(`playing_${id}`) === '1') {
+        setTimeout(() => startPreview(id), 500);
+      }
     }
   }
 }
@@ -907,6 +941,7 @@ function safeId(id) {
 
 /* ================================================================
    CREATE STREAM CARD
+   ✅ FIX #18: Use data attributes instead of inline onclick — safe against XSS
 ================================================================ */
 function createCard(publisher) {
   const id     = streamId(publisher);
@@ -915,20 +950,22 @@ function createCard(publisher) {
 
   const card = document.createElement('div');
   card.className = 'stream-card';
-  card.id = `card-${id}`;
+  card.id = `card-${CSS.escape(id)}`;
+  card.dataset.streamId = id; // safe data attribute
+
   card.innerHTML = `
     <div class="video-wrapper">
-      <video id="video-${id}" class="stream-video" controls playsinline muted></video>
+      <video class="stream-video" controls playsinline muted></video>
 
-      <div class="video-overlay" id="overlay-${id}">
+      <div class="video-overlay" id="overlay-${CSS.escape(id)}">
         <div class="overlay-icon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
         </div>
         <span class="overlay-text">Click ▶ Preview to start watching</span>
       </div>
 
-      ${online ? `<div class="video-badge badge-live">LIVE</div>` : ''}
-      <div class="video-badge badge-bitrate" id="badge-bitrate-${id}">
+      ${online ? '<div class="video-badge badge-live">LIVE</div>' : ''}
+      <div class="video-badge badge-bitrate" id="badge-bitrate-${CSS.escape(id)}">
         ${formatBitrate(publisher.bitrate || publisher.recv_bitrate || 0)}
       </div>
     </div>
@@ -939,35 +976,40 @@ function createCard(publisher) {
           <div class="stream-name">${escHtml(name)}</div>
           <div class="stream-id">${escHtml(id)}</div>
         </div>
-        <div class="status-chip ${online ? 'online' : 'offline'}" id="status-${id}">
+        <div class="status-chip ${online ? 'online' : 'offline'}" id="status-${CSS.escape(id)}">
           <div class="dot"></div>
           ${online ? 'Live' : 'Offline'}
         </div>
       </div>
 
-      <div class="metrics-row" id="metrics-${id}">
+      <div class="metrics-row" id="metrics-${CSS.escape(id)}">
         ${renderMetrics(publisher)}
       </div>
 
       <div class="card-actions">
-        <button class="btn-action btn-play" id="btn-play-${id}"
-                onclick="startPreview('${escAttr(id)}')">
+        <button class="btn-action btn-play" id="btn-play-${CSS.escape(id)}" data-action="preview">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           Preview
         </button>
-        <button class="btn-action btn-stop" id="btn-stop-${id}"
-                style="display:none"
-                onclick="stopPreview('${escAttr(id)}')">
+        <button class="btn-action btn-stop" id="btn-stop-${CSS.escape(id)}" data-action="stop" style="display:none">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
           Stop
         </button>
-        <button class="btn-action btn-secondary-action"
-                onclick="copyStreamUrl('${escAttr(id)}')">
+        <button class="btn-action btn-secondary-action" data-action="copy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy URL
         </button>
       </div>
     </div>`;
+
+  // ✅ FIX #18: Attach event listeners programmatically (safe, no inline handlers)
+  card.querySelector('[data-action="preview"]').addEventListener('click', () => startPreview(id));
+  card.querySelector('[data-action="stop"]').addEventListener('click',    () => stopPreview(id));
+  card.querySelector('[data-action="copy"]').addEventListener('click',    () => copyStreamUrl(id));
+
+  // Store video element reference by id
+  card.querySelector('.stream-video').id = `video-${CSS.escape(id)}`;
+
   return card;
 }
 
@@ -993,27 +1035,40 @@ function updateCard(card, publisher) {
 /* ================================================================
    HLS PLAYER
 ================================================================ */
-function startPreview(id) {
-  // Path matches hls-manager output: /hls/{safe_stream_id}/stream.m3u8
-  const hlsUrl   = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
-  const videoEl  = document.getElementById(`video-${id}`);
-  const overlay  = document.getElementById(`overlay-${id}`);
-  const btnPlay  = document.getElementById(`btn-play-${id}`);
-  const btnStop  = document.getElementById(`btn-stop-${id}`);
+const MAX_SIMULTANEOUS_PREVIEWS = 4;
+
+function startPreview(id, retryAttempt = 0) {
+  // ✅ FIX #13: Warn and block if too many streams playing simultaneously
+  if (!playingStreams.has(id) && playingStreams.size >= MAX_SIMULTANEOUS_PREVIEWS) {
+    showToast(`Max ${MAX_SIMULTANEOUS_PREVIEWS} simultaneous previews. Stop one first.`, 'error');
+    return;
+  }
+
+  const eid    = CSS.escape(id);
+  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
+  const videoEl = document.getElementById(`video-${eid}`);
+  const overlay = document.getElementById(`overlay-${eid}`);
+  const btnPlay = document.getElementById(`btn-play-${eid}`);
+  const btnStop = document.getElementById(`btn-stop-${eid}`);
 
   if (!videoEl) return;
 
-  // Show loading state
-  overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Connecting to stream…</span>`;
+  overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Connecting…</span>`;
   overlay.classList.remove('hidden');
 
-  if (hlsInstances[id]) hlsInstances[id].destroy();
+  if (hlsInstances[id]) { hlsInstances[id].destroy(); delete hlsInstances[id]; }
 
   if (Hls.isSupported()) {
+    // ✅ FIX #3: Correct HLS.js config for standard HLS (not LL-HLS)
     const hls = new Hls({
-      lowLatencyMode: true,
+      lowLatencyMode: false,
       enableWorker: true,
-      backBufferLength: 10,
+      backBufferLength: 30,
+      maxBufferLength: 10,
+      liveSyncDurationCount: 3,
+      liveMaxLatencyDurationCount: 6,
+      manifestLoadingMaxRetry: 4,
+      manifestLoadingRetryDelay: 1500,
     });
     hlsInstances[id] = hls;
 
@@ -1023,13 +1078,26 @@ function startPreview(id) {
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       overlay.classList.add('hidden');
       videoEl.play().catch(() => {});
-      btnPlay.style.display = 'none';
-      btnStop.style.display = '';
+      if (btnPlay) btnPlay.style.display = 'none';
+      if (btnStop) btnStop.style.display = '';
       playingStreams.add(id);
+      // ✅ FIX #17: persist playing state across page refreshes
+      sessionStorage.setItem(`playing_${id}`, '1');
+      updatePreviewCount();
     });
 
     hls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) {
+        hls.destroy();
+        delete hlsInstances[id];
+        // ✅ FIX #12: Auto-retry if stream is new (HLS segments not ready yet)
+        const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
+        if (isNetworkError && retryAttempt < 5) {
+          const delay = 2000 + retryAttempt * 1000;
+          overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Stream preparing… retrying in ${delay/1000}s</span>`;
+          setTimeout(() => startPreview(id, retryAttempt + 1), delay);
+          return;
+        }
         overlay.innerHTML = `
           <div class="overlay-icon">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
@@ -1042,14 +1110,16 @@ function startPreview(id) {
     });
 
   } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-    // Native HLS (Safari)
+    // Native HLS (Safari / iOS)
     videoEl.src = hlsUrl;
     videoEl.addEventListener('loadedmetadata', () => {
       overlay.classList.add('hidden');
       videoEl.play().catch(() => {});
-      btnPlay.style.display = 'none';
-      btnStop.style.display = '';
+      if (btnPlay) btnPlay.style.display = 'none';
+      if (btnStop) btnStop.style.display = '';
       playingStreams.add(id);
+      sessionStorage.setItem(`playing_${id}`, '1');
+      updatePreviewCount();
     }, { once: true });
     videoEl.addEventListener('error', () => {
       overlay.innerHTML = `<div class="overlay-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg></div><span class="overlay-text">Stream unavailable</span>`;
@@ -1065,10 +1135,11 @@ function stopPreview(id) {
     hlsInstances[id].destroy();
     delete hlsInstances[id];
   }
-  const videoEl = document.getElementById(`video-${id}`);
+  const eid     = CSS.escape(id);
+  const videoEl = document.getElementById(`video-${eid}`);
   if (videoEl) { videoEl.pause(); videoEl.src = ''; }
 
-  const overlay = document.getElementById(`overlay-${id}`);
+  const overlay = document.getElementById(`overlay-${eid}`);
   if (overlay) {
     overlay.innerHTML = `
       <div class="overlay-icon">
@@ -1078,17 +1149,25 @@ function stopPreview(id) {
     overlay.classList.remove('hidden');
   }
 
-  const btnPlay = document.getElementById(`btn-play-${id}`);
-  const btnStop = document.getElementById(`btn-stop-${id}`);
+  const btnPlay = document.getElementById(`btn-play-${eid}`);
+  const btnStop = document.getElementById(`btn-stop-${eid}`);
   if (btnPlay) btnPlay.style.display = '';
   if (btnStop) btnStop.style.display = 'none';
   playingStreams.delete(id);
+  // ✅ FIX #17: remove from sessionStorage so it won't auto-resume
+  sessionStorage.removeItem(`playing_${id}`);
+  updatePreviewCount();
 }
 
 function destroyPlayer(id) {
   stopPreview(id);
-  const card = document.getElementById(`card-${id}`);
+  const card = document.getElementById(`card-${CSS.escape(id)}`);
   if (card) card.remove();
+}
+
+function updatePreviewCount() {
+  const el = document.getElementById('stat-previewing');
+  if (el) el.textContent = playingStreams.size;
 }
 
 /* ================================================================
@@ -1096,11 +1175,34 @@ function destroyPlayer(id) {
 ================================================================ */
 function copyStreamUrl(id) {
   const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
-  navigator.clipboard.writeText(hlsUrl).then(() => {
-    showToast('HLS URL copied to clipboard!', 'ok');
-  }).catch(() => {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(hlsUrl)
+      .then(() => showToast('HLS URL copied to clipboard!', 'ok'))
+      .catch(() => showToast(`HLS URL: ${hlsUrl}`, 'ok'));
+  } else {
     showToast(`HLS URL: ${hlsUrl}`, 'ok');
-  });
+  }
+}
+
+/* ================================================================
+   HLS MANAGER STATUS
+   ✅ FIX #15: Poll /api/hls-status and update badge
+================================================================ */
+async function fetchHlsStatus() {
+  const badge = document.getElementById('hls-status');
+  if (!badge) return;
+  try {
+    const res = await fetch(`${window.location.origin}/api/hls-status`,
+      { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const running = data.running ?? data.activeStreams ?? 0;
+    badge.innerHTML = `<div class="pulse-dot" style="background:var(--green)"></div>
+      <span>HLS: ${running} active</span>`;
+  } catch (_) {
+    badge.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div>
+      <span>HLS Manager</span>`;
+  }
 }
 
 /* ================================================================
@@ -1126,11 +1228,12 @@ function renderMetrics(p) {
     </div>`;
 }
 
+// ✅ FIX #21: Consistent bitrate format — always Mbps for stream cards
 function formatBitrate(bps) {
-  if (!bps || bps === 0) return '0 kbps';
+  if (!bps || bps === 0) return '0.00 Mbps';
   if (bps >= 1000000) return `${(bps/1000000).toFixed(2)} Mbps`;
-  if (bps >= 1000) return `${(bps/1000).toFixed(0)} kbps`;
-  return `${bps} bps`;
+  if (bps >= 1000)    return `${(bps/1000).toFixed(2)} Mbps`;
+  return `${(bps/1000000).toFixed(4)} Mbps`;
 }
 
 function formatDuration(secs) {
@@ -1146,8 +1249,11 @@ function formatDuration(secs) {
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// ✅ FIX #18: escAttr kept only for backward compat but inline handlers removed
 function escAttr(str) {
-  return String(str).replace(/'/g, "\\'");
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 let toastTimer = null;
