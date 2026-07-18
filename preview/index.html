@@ -1018,17 +1018,18 @@ function createCard(publisher) {
 ================================================================ */
 function updateCard(card, publisher) {
   const id     = streamId(publisher);
+  const eid    = CSS.escape(id);
   const online = (publisher.bitrate || publisher.recv_bitrate || 0) > 0;
 
-  const statusEl = document.getElementById(`status-${id}`);
+  const statusEl = document.getElementById(`status-${eid}`);
   if (statusEl) {
     statusEl.className = `status-chip ${online ? 'online' : 'offline'}`;
     statusEl.innerHTML = `<div class="dot"></div>${online ? 'Live' : 'Offline'}`;
   }
-  const metricsEl = document.getElementById(`metrics-${id}`);
+  const metricsEl = document.getElementById(`metrics-${eid}`);
   if (metricsEl) metricsEl.innerHTML = renderMetrics(publisher);
 
-  const bitrateEl = document.getElementById(`badge-bitrate-${id}`);
+  const bitrateEl = document.getElementById(`badge-bitrate-${eid}`);
   if (bitrateEl) bitrateEl.textContent = formatBitrate(publisher.bitrate || publisher.recv_bitrate || 0);
 }
 
