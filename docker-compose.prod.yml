@@ -29,11 +29,11 @@ services:
     volumes:
       - ./data:/var/lib/sls
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/stats 2>/dev/null || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 15s
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
     depends_on:
       receiver:
-        condition: service_healthy
+        condition: service_started
     environment:
       SLS_STATS_URL:  "http://receiver:8080/stats"
       SRT_HOST:       "receiver"

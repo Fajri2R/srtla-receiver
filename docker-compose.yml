@@ -29,13 +29,14 @@ services:
       - "${SRT_PLAYER_PORT:-4000}:4000/udp"
     volumes:
       - ./data:/var/lib/sls
-    # ✅ FIX: Use wget (BusyBox, available on Alpine) instead of curl
+    # Healthcheck: use nc (netcat via BusyBox) to verify port 8080 is open
+    # Falls back gracefully — hls-manager has its own retry loop
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/stats 2>/dev/null || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 15s
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
@@ -47,10 +48,11 @@ services:
     build: ./hls-manager
     container_name: srtla-hls-manager
     restart: unless-stopped
-    # ✅ FIX #11: Wait for receiver to be healthy before starting
+    # Use service_started (not service_healthy) — hls-manager handles unavailability
+    # internally via its reconcile retry loop; no need to block startup
     depends_on:
       receiver:
-        condition: service_healthy
+        condition: service_started
     environment:
       SLS_STATS_URL:  "http://receiver:8080/stats"
       SRT_HOST:       "receiver"
