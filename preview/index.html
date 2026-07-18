@@ -729,8 +729,15 @@
 /* ================================================================
    CONFIGURATION
 ================================================================ */
-const DEFAULT_STATS_URL = 'http://localhost:8080';
-const DEFAULT_HLS_BASE  = 'http://localhost:8090/hls';
+// When the page is served by the srtla-live-preview nginx container,
+// we can use relative paths — stats are proxied at /api/stats and
+// HLS files at /hls/{stream_id}/stream.m3u8.
+// When opened standalone, fall back to explicit host:port addresses.
+const IS_SAME_ORIGIN = !(window.location.protocol === 'file:');
+const DEFAULT_STATS_URL = IS_SAME_ORIGIN ? '' : 'http://localhost:8080';
+const DEFAULT_HLS_BASE  = IS_SAME_ORIGIN
+  ? `${window.location.origin}/hls`
+  : 'http://localhost:8090/hls';
 
 let config = {
   statsUrl: localStorage.getItem('srtla_stats_url') || DEFAULT_STATS_URL,
@@ -786,17 +793,25 @@ function refreshAll() {
    SLS exposes GET /stats → JSON with publisher list
 ================================================================ */
 async function fetchStats() {
-  try {
-    const url = `${config.statsUrl}/stats`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    updateConnectionStatus(true);
-    renderDashboard(data);
-  } catch (err) {
-    console.warn('Stats fetch error:', err.message);
-    updateConnectionStatus(false, err.message);
+  // Try the nginx proxy path first (when opened via the preview container),
+  // then fall back to the configured direct stats URL.
+  const urls = [];
+  if (IS_SAME_ORIGIN) urls.push(`${window.location.origin}/api/stats`);
+  if (config.statsUrl) urls.push(`${config.statsUrl}/stats`);
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      updateConnectionStatus(true);
+      renderDashboard(data);
+      return;
+    } catch (err) {
+      console.warn(`Stats fetch failed (${url}):`, err.message);
+    }
   }
+  updateConnectionStatus(false, 'Stats API unreachable');
 }
 
 /* ================================================================
@@ -880,6 +895,14 @@ function renderDashboard(data) {
 
 function streamId(p) {
   return p.id || p.stream_id || `${p.app || 'live'}/${p.stream || p.name || 'stream'}`;
+}
+
+/**
+ * Convert a stream ID to the safe filesystem name used by the HLS manager.
+ * Must match the safeId() function in hls-manager/index.js.
+ */
+function safeId(id) {
+  return id.replace(/[^a-zA-Z0-9_\-]/g, '_');
 }
 
 /* ================================================================
@@ -971,7 +994,8 @@ function updateCard(card, publisher) {
    HLS PLAYER
 ================================================================ */
 function startPreview(id) {
-  const hlsUrl   = `${config.hlsBase}/${encodeURIComponent(id)}.m3u8`;
+  // Path matches hls-manager output: /hls/{safe_stream_id}/stream.m3u8
+  const hlsUrl   = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
   const videoEl  = document.getElementById(`video-${id}`);
   const overlay  = document.getElementById(`overlay-${id}`);
   const btnPlay  = document.getElementById(`btn-play-${id}`);
@@ -1071,7 +1095,7 @@ function destroyPlayer(id) {
    COPY STREAM URL
 ================================================================ */
 function copyStreamUrl(id) {
-  const hlsUrl = `${config.hlsBase}/${encodeURIComponent(id)}.m3u8`;
+  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
   navigator.clipboard.writeText(hlsUrl).then(() => {
     showToast('HLS URL copied to clipboard!', 'ok');
   }).catch(() => {

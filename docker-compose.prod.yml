@@ -34,51 +34,36 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ── Live Preview: HLS Transcoder ────────────────────────────────
-  live-preview-hls:
-    image: linuxserver/ffmpeg:latest
-    container_name: live-preview-hls
+  # ── Live Preview: Multi-stream HLS Manager ──────────────────────────────────
+  hls-manager:
+    build: ./hls-manager
+    container_name: srtla-hls-manager
     restart: unless-stopped
     depends_on:
       - receiver
     environment:
-      - SRT_HOST=receiver
-      - SRT_PORT=4000
-      - HLS_PATH=/hls
-      - STREAM_ID=${PREVIEW_STREAM_ID:-live/stream}
-      - HLS_TIME=${HLS_SEGMENT_TIME:-2}
-      - HLS_LIST_SIZE=${HLS_LIST_SIZE:-5}
+      SLS_STATS_URL:  "http://receiver:8080/stats"
+      SRT_HOST:       "receiver"
+      SRT_PORT:       "4000"
+      HLS_PATH:       "/hls"
+      HLS_TIME:       "${HLS_SEGMENT_TIME:-2}"
+      HLS_LIST_SIZE:  "${HLS_LIST_SIZE:-5}"
+      POLL_INTERVAL:  "${HLS_POLL_INTERVAL:-5}"
     volumes:
       - hls-data:/hls
-    entrypoint: >
-      /bin/sh -c "
-        mkdir -p /hls &&
-        echo '=== Starting HLS transcoder ===' &&
-        echo '=== SRT source: srt://receiver:4000?streamid=${PREVIEW_STREAM_ID:-live/stream} ===' &&
-        ffmpeg -re
-          -i 'srt://receiver:4000?streamid=${PREVIEW_STREAM_ID:-live/stream}&mode=caller'
-          -c:v copy
-          -c:a copy
-          -f hls
-          -hls_time ${HLS_SEGMENT_TIME:-2}
-          -hls_list_size ${HLS_LIST_SIZE:-5}
-          -hls_flags delete_segments+append_list
-          -hls_segment_filename '/hls/stream_%03d.ts'
-          /hls/stream.m3u8
-        2>&1
-      "
     logging:
       driver: "json-file"
       options:
-        max-size: "5m"
-        max-file: "2"
+        max-size: "10m"
+        max-file: "3"
 
-  # ── Live Preview: Web Server ─────────────────────────────────────
-  live-preview-nginx:
+  # ── Live Preview: Web Server ─────────────────────────────────────────────────
+  live-preview:
     image: nginx:alpine
-    container_name: live-preview-nginx
+    container_name: srtla-live-preview
     restart: unless-stopped
     depends_on:
+      - hls-manager
       - receiver
     ports:
       - "${LIVE_PREVIEW_PORT:-8090}:80"
