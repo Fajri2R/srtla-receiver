@@ -2,37 +2,35 @@
  * srtla-hls-manager — Dynamic multi-stream HLS transcoder
  *
  * Polls the SLS stats API every POLL_INTERVAL seconds.
- * For each active publisher it spawns a dedicated FFmpeg process that
- * pulls the SRT stream and writes HLS segments to:
- *   {HLS_PATH}/{safe_stream_id}/stream.m3u8
+ * Detects active publishers and spawns a dedicated FFmpeg process per stream.
+ * Uses the SLS stream-ids API to resolve publisher→player stream ID mapping.
  *
- * Fixes applied:
- *  - Removed -re flag (was throttling live stream input)
- *  - rmSync moved to proc.on('close') to avoid corrupt writes
- *  - Self-scheduling reconcile() to prevent overlap
- *  - Exponential backoff retry on FFmpeg crash
- *  - Native fetch (Node 20) — no node-fetch dependency
- *  - HTTP health endpoint at :9090/health
+ * SLS-specific field notes (confirmed from source):
+ *   - Bitrate field : "kbitrate" (kb/s) — NOT "bitrate"
+ *   - Stream ID     : "stream_name"     — NOT "id"
+ *   - Player key    : fetched from GET /stream-ids (publisher ≠ player in DB)
  */
 
-import { spawn }      from 'child_process';
-import { mkdirSync, rmSync } from 'fs';
-import { join }       from 'path';
-import { createServer } from 'http';
+import { spawn }              from 'child_process';
+import { mkdirSync, rmSync }  from 'fs';
+import { join }               from 'path';
+import { createServer }       from 'http';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-const SLS_STATS_URL = process.env.SLS_STATS_URL || 'http://receiver:8080/stats';
-const SRT_HOST      = process.env.SRT_HOST      || 'receiver';
-const SRT_PORT      = process.env.SRT_PORT      || '4000';
-const HLS_PATH      = process.env.HLS_PATH      || '/hls';
-const HLS_TIME      = process.env.HLS_TIME      || '2';
-const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || '5';
-const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || '5', 10) * 1000;
-const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || '9090', 10);
-const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || '10', 10);
+const SLS_STATS_URL   = process.env.SLS_STATS_URL   || 'http://receiver:8080/stats';
+const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || 'http://receiver:8080/stream-ids';
+const SRT_HOST        = process.env.SRT_HOST        || 'receiver';
+const SRT_PORT        = process.env.SRT_PORT        || '4000';
+const HLS_PATH        = process.env.HLS_PATH        || '/hls';
+const HLS_TIME        = process.env.HLS_TIME        || '2';
+const HLS_LIST_SIZE   = process.env.HLS_LIST_SIZE   || '5';
+const POLL_INTERVAL   = parseInt(process.env.POLL_INTERVAL || '5', 10) * 1000;
+const HEALTH_PORT     = parseInt(process.env.HEALTH_PORT   || '9090', 10);
+const MAX_RETRIES     = parseInt(process.env.MAX_RETRIES   || '10', 10);
+const SRT_LATENCY     = process.env.SRT_LATENCY     || '200';
 
 // ── State: id → { proc, dir, retryCount, retryTimer } ────────────────────────
-const activeStreams = new Map();
+const activeStreams  = new Map();
 let   isShuttingDown = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,23 +43,66 @@ function log(level, ...args) {
   console[level](`[${ts}] [hls-manager]`, ...args);
 }
 
-// ── Fetch publishers from SLS — uses Node 20 native fetch ─────────────────────
+// ── Fetch active publishers from SLS stats ─────────────────────────────────────
+// SLS JSON fields confirmed from source (SLSListener.cpp):
+//   stream_name, url, remote_ip, remote_port, start_time, kbitrate, port, role
 async function fetchPublishers() {
   try {
     const res = await fetch(SLS_STATS_URL, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+
+    // Support both wrapper styles
     const list = data.publishers || data.Publishers || [];
-    // Only truly active streams (bitrate > 0)
-    return list.filter(p => (p.bitrate || p.recv_bitrate || 0) > 0);
+
+    // ✅ BUG FIX #1: SLS uses "kbitrate" (kb/s), NOT "bitrate" or "recv_bitrate"
+    // Previously all streams were filtered out because p.bitrate === undefined → 0
+    return list.filter(p => {
+      const kbr = p.kbitrate || p.bitrate || p.recv_bitrate || 0;
+      const num  = typeof kbr === 'string' ? parseFloat(kbr) : kbr;
+      return num > 0;
+    });
   } catch (err) {
-    log('warn', 'Failed to fetch stats:', err.message);
-    return null; // null = keep current state, don't stop anything
+    log('warn', 'fetchPublishers failed:', err.message);
+    return null; // null = skip this cycle, don't stop existing streams
   }
 }
 
-// ── Start FFmpeg for one stream ───────────────────────────────────────────────
-function startStream(streamId, playKey, retryCount = 0) {
+// ── Fetch publisher → player stream ID mapping from SLS database API ──────────
+// SLS stores separate publisher (ingest) and player (playback) stream IDs.
+// FFmpeg must connect as a player using the player key, not the publisher key.
+async function fetchStreamMap() {
+  try {
+    const res = await fetch(SLS_STREAMS_URL, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) {
+      log('warn', `fetchStreamMap: HTTP ${res.status} — will use stream_name as player key`);
+      return {};
+    }
+    const data = await res.json();
+
+    // Handle both array and wrapped response
+    const list = Array.isArray(data) ? data
+      : (data.streams || data.stream_ids || data.data || []);
+
+    const map = {};
+    for (const s of list) {
+      // publisher key → player key
+      const pub = s.publisher || s.pub_stream_id || s.publisherId;
+      const plr = s.player    || s.play_stream_id || s.playerId;
+      if (pub && plr) {
+        map[pub] = plr;
+        log('info', `  Stream map: "${pub}" → "${plr}"`);
+      }
+    }
+    return map;
+  } catch (err) {
+    log('warn', 'fetchStreamMap failed:', err.message, '— using stream_name directly');
+    return {};
+  }
+}
+
+// ── Start FFmpeg HLS transcoder for one stream ────────────────────────────────
+function startStream(streamId, playerKey, retryCount = 0) {
   if (isShuttingDown) return;
 
   const safe   = safeId(streamId);
@@ -71,19 +112,20 @@ function startStream(streamId, playKey, retryCount = 0) {
 
   mkdirSync(dir, { recursive: true });
 
-  const srtId  = playKey || streamId;
-  const srtUrl = `srt://${SRT_HOST}:${SRT_PORT}?streamid=${srtId}&mode=caller&latency=200`;
+  // FFmpeg connects as a SRT PLAYER to port 4000 using the player stream ID
+  const srtUrl = `srt://${SRT_HOST}:${SRT_PORT}?streamid=${encodeURIComponent(playerKey)}&mode=caller&latency=${SRT_LATENCY}`;
 
   log('info', `▶ Starting HLS for [${streamId}]${retryCount > 0 ? ` (retry #${retryCount})` : ''}`);
+  log('info', `  Publisher key : ${streamId}`);
+  log('info', `  Player key    : ${playerKey}`);
+  log('info', `  SRT URL       : ${srtUrl}`);
+  log('info', `  HLS dir       : ${dir}`);
 
   const args = [
     '-hide_banner', '-loglevel', 'warning',
-
-    // ✅ FIX #1: NO -re flag for live input (it throttles to real-time → latency/frame-drop)
-    // Low-latency live ingest flags instead:
+    // ✅ NO -re flag (was throttling live input to real-time rate → latency/drops)
     '-fflags', '+nobuffer+genpts',
     '-flags',  'low_delay',
-
     '-i', srtUrl,
     '-c:v', 'copy',
     '-c:a', 'copy',
@@ -106,35 +148,29 @@ function startStream(streamId, playKey, retryCount = 0) {
     if (msg) log('warn', `[${streamId}] ${msg}`);
   });
 
-  // ✅ FIX #2: rmSync moved here — runs AFTER process fully exits, no corrupt writes
+  // ✅ rmSync moved here — runs AFTER process fully exits, prevents corrupt HLS writes
   proc.on('close', (code, signal) => {
     log('info', `■ FFmpeg [${streamId}] exited (code=${code}, signal=${signal})`);
-
     const entry = activeStreams.get(streamId);
-    if (!entry || entry.proc !== proc) return; // stale event, ignore
+    if (!entry || entry.proc !== proc) return;
 
-    // Safe cleanup — process has exited, safe to delete
     try {
       rmSync(entry.dir, { recursive: true, force: true });
       log('info', `  Cleaned up: ${entry.dir}`);
     } catch (err) {
-      log('warn', `  Cleanup failed for ${entry.dir}:`, err.message);
+      log('warn', `  Cleanup failed ${entry.dir}:`, err.message);
     }
 
     activeStreams.delete(streamId);
 
-    // ✅ FIX #5: Exponential backoff retry on unexpected crash
-    // Don't retry if: shutting down, killed by us (SIGTERM/SIGKILL), or max retries reached
+    // Retry on unexpected crash (not on our own SIGTERM/SIGKILL)
     const isOurKill = signal === 'SIGTERM' || signal === 'SIGKILL';
     if (!isShuttingDown && !isOurKill && code !== 0 && retryCount < MAX_RETRIES) {
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // max 30s
-      log('info', `  Will retry [${streamId}] in ${(delay / 1000).toFixed(0)}s (${retryCount + 1}/${MAX_RETRIES})`);
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+      log('info', `  Retry [${streamId}] in ${(delay/1000).toFixed(0)}s (${retryCount+1}/${MAX_RETRIES})`);
       const timer = setTimeout(() => {
-        if (!activeStreams.has(streamId)) {
-          startStream(streamId, playKey, retryCount + 1);
-        }
+        if (!activeStreams.has(streamId)) startStream(streamId, playerKey, retryCount + 1);
       }, delay);
-      // Store in map so timer can be cancelled on shutdown
       activeStreams.set(streamId, { proc: null, dir, retryCount, retryTimer: timer });
     }
   });
@@ -151,73 +187,73 @@ function startStream(streamId, playKey, retryCount = 0) {
 function stopStream(streamId) {
   const entry = activeStreams.get(streamId);
   if (!entry) return;
-
   log('info', `■ Stopping [${streamId}]`);
-
-  // Cancel any pending retry timer first
-  if (entry.retryTimer) {
-    clearTimeout(entry.retryTimer);
-  }
-
+  if (entry.retryTimer) clearTimeout(entry.retryTimer);
   if (entry.proc) {
-    // SIGTERM → proc.on('close') will handle cleanup
     entry.proc.kill('SIGTERM');
     setTimeout(() => { try { entry.proc?.kill('SIGKILL'); } catch (_) {} }, 3000);
   } else {
-    // Waiting to retry, no active proc — clean up manually
     try { rmSync(entry.dir, { recursive: true, force: true }); } catch (_) {}
     activeStreams.delete(streamId);
   }
 }
 
-// ── Reconciliation loop ───────────────────────────────────────────────────────
-// ✅ FIX #4: self-scheduling (not setInterval) — prevents overlap if fetch is slow
+// ── Main reconciliation loop — self-scheduling to prevent overlap ─────────────
 async function reconcile() {
   if (!isShuttingDown) {
     try {
-      const publishers = await fetchPublishers();
+      // Fetch both in parallel
+      const [publishers, streamMap] = await Promise.all([
+        fetchPublishers(),
+        fetchStreamMap(),
+      ]);
 
       if (publishers !== null) {
-        const liveIds  = new Set();
-        const playKeys = {};
+        const liveIds    = new Set();
+        const playerKeys = {};
 
         for (const p of publishers) {
-          const id = p.id || p.stream_id
+          // ✅ BUG FIX #2: SLS uses "stream_name", not "id"
+          const pubId = p.stream_name || p.id || p.stream_id
             || `${p.app || 'live'}/${p.stream || p.name || 'stream'}`;
-          liveIds.add(id);
-          playKeys[id] = p.play_key || p.playKey || id;
+
+          liveIds.add(pubId);
+
+          // ✅ BUG FIX #3: Use player key from DB mapping (publisher ≠ player key)
+          // Fallback to publisher key if no mapping found (simplest SLS config)
+          playerKeys[pubId] = streamMap[pubId] || p.play_key || p.playKey || pubId;
         }
 
-        // Stop streams that ended (skip entries currently in retry-wait state)
+        // Stop streams that went offline (skip retrying ones)
         for (const [id, entry] of activeStreams.entries()) {
           if (!liveIds.has(id) && entry.proc !== null) {
             stopStream(id);
           }
         }
 
-        // Start newly active streams
+        // Start newly detected streams
         for (const id of liveIds) {
           if (!activeStreams.has(id)) {
-            startStream(id, playKeys[id]);
+            startStream(id, playerKeys[id]);
           }
         }
 
         const running = [...activeStreams.entries()]
           .filter(([, e]) => e.proc !== null)
           .map(([id]) => id);
-        log('info', `Active: [${running.join(', ') || 'none'}]`);
+
+        log('info', `Live publishers: ${publishers.length} | HLS active: ${running.length} | Stream map: ${Object.keys(streamMap).length} entries`);
+        if (running.length > 0) log('info', `  Transcoding: [${running.join(', ')}]`);
       }
     } catch (err) {
       log('error', 'Reconcile error:', err.message);
     }
 
-    // Schedule next run after this one completes (not concurrent)
     setTimeout(reconcile, POLL_INTERVAL);
   }
 }
 
-// ── HTTP Health Server ────────────────────────────────────────────────────────
-// ✅ FIX #15: Expose /health endpoint for monitoring and nginx proxy
+// ── HTTP Health / Status Endpoint ─────────────────────────────────────────────
 function startHealthServer() {
   const server = createServer((req, res) => {
     if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
@@ -229,19 +265,17 @@ function startHealthServer() {
         status:     e.proc !== null ? 'running' : 'retrying',
         retryCount: e.retryCount || 0,
       }));
-      const body = JSON.stringify({
-        status: 'ok',
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status:        'ok',
         uptimeSeconds: Math.floor(process.uptime()),
-        totalManaged:  activeStreams.size,
         running:       streams.filter(s => s.status === 'running').length,
         retrying:      streams.filter(s => s.status === 'retrying').length,
         streams,
-      }, null, 2);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(body);
+      }, null, 2));
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found. Available: GET /health');
+      res.end('Available: GET /health');
     }
   });
 
@@ -255,25 +289,22 @@ function startHealthServer() {
 function shutdown() {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  log('info', 'Shutting down — stopping all FFmpeg processes...');
-  for (const id of [...activeStreams.keys()]) {
-    stopStream(id);
-  }
+  log('info', 'Shutting down...');
+  for (const id of [...activeStreams.keys()]) stopStream(id);
   setTimeout(() => process.exit(0), 4000);
 }
-
 process.on('SIGTERM', shutdown);
 process.on('SIGINT',  shutdown);
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 mkdirSync(HLS_PATH, { recursive: true });
 
-log('info', '=== SRTla HLS Manager starting ===');
-log('info', `Stats URL    : ${SLS_STATS_URL}`);
-log('info', `SRT source   : srt://${SRT_HOST}:${SRT_PORT}`);
-log('info', `HLS output   : ${HLS_PATH}`);
-log('info', `Poll interval: ${POLL_INTERVAL / 1000}s`);
-log('info', `Max retries  : ${MAX_RETRIES}`);
+log('info', '=== SRTla HLS Manager v2 starting ===');
+log('info', `Stats URL     : ${SLS_STATS_URL}`);
+log('info', `Stream IDs URL: ${SLS_STREAMS_URL}`);
+log('info', `SRT player    : srt://${SRT_HOST}:${SRT_PORT}`);
+log('info', `HLS output    : ${HLS_PATH}`);
+log('info', `Poll interval : ${POLL_INTERVAL/1000}s`);
 
 startHealthServer();
-reconcile(); // self-scheduling — no setInterval
+reconcile();

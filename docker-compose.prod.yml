@@ -1,4 +1,5 @@
 services:
+  # ── Management UI — behind mgmt-proxy for Live Preview button injection ────────
   sls-management-ui:
     image: ghcr.io/openirl/sls-management-ui:latest
     container_name: sls-management-ui
@@ -9,14 +10,32 @@ services:
       REACT_APP_SRT_SENDER_PORT: "${SRT_SENDER_PORT:-4001}"
       REACT_APP_SLS_STATS_PORT: "${SLS_STATS_PORT:-8080}"
       REACT_APP_SRTLA_PORT: "${SRTLA_PORT:-5000}"
-    ports:
-      - "${SLS_MGNT_PORT}:3000"
+    expose:
+      - "3000"
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
+  # ── Management UI Proxy — injects Live Preview floating button ────────────────
+  mgmt-proxy:
+    image: nginx:alpine
+    container_name: sls-mgmt-proxy
+    restart: unless-stopped
+    depends_on:
+      - sls-management-ui
+    ports:
+      - "${SLS_MGNT_PORT}:80"
+    volumes:
+      - ./mgmt-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── SRT Receiver (SRTla + SLS) ────────────────────────────────────────────────
   receiver:
     image: ghcr.io/openirl/srtla-receiver:latest
     container_name: srtla-receiver
@@ -40,7 +59,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ── Live Preview: Multi-stream HLS Manager ──────────────────────────────────
+  # ── HLS Manager — polls SLS stats, spawns FFmpeg per active publisher ─────────
   hls-manager:
     build: ./hls-manager
     container_name: srtla-hls-manager
@@ -49,21 +68,22 @@ services:
       receiver:
         condition: service_started
     environment:
-      SLS_STATS_URL:  "http://receiver:8080/stats"
-      SRT_HOST:       "receiver"
-      SRT_PORT:       "4000"
-      HLS_PATH:       "/hls"
-      HLS_TIME:       "${HLS_SEGMENT_TIME:-2}"
-      HLS_LIST_SIZE:  "${HLS_LIST_SIZE:-5}"
-      POLL_INTERVAL:  "${HLS_POLL_INTERVAL:-5}"
-      HEALTH_PORT:    "9090"
-      MAX_RETRIES:    "${HLS_MAX_RETRIES:-10}"
+      SLS_STATS_URL:   "http://receiver:8080/stats"
+      SLS_STREAMS_URL: "http://receiver:8080/stream-ids"
+      SRT_HOST:        "receiver"
+      SRT_PORT:        "4000"
+      HLS_PATH:        "/hls"
+      HLS_TIME:        "${HLS_SEGMENT_TIME:-2}"
+      HLS_LIST_SIZE:   "${HLS_LIST_SIZE:-5}"
+      POLL_INTERVAL:   "${HLS_POLL_INTERVAL:-5}"
+      HEALTH_PORT:     "9090"
+      MAX_RETRIES:     "${HLS_MAX_RETRIES:-10}"
     volumes:
       - hls-data:/hls
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:9090/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:9090/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 5
       start_period: 15s
     logging:
@@ -72,7 +92,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ── Live Preview: Web Server ─────────────────────────────────────────────────
+  # ── Live Preview Web Server ───────────────────────────────────────────────────
   live-preview:
     image: nginx:alpine
     container_name: srtla-live-preview
