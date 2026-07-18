@@ -154,6 +154,67 @@ If you encounter issues with the SRTla Receiver, ensure that:
 - Stream IDs are correctly formatted
 - Your firewall settings allow UDP traffic on the configured ports
 
+## Live Preview
+
+This fork adds a **Live Preview** feature — a browser-based dashboard that lets you watch any active SRT stream directly in the management interface, powered by [HLS.js](https://github.com/video-dev/hls.js).
+
+### Architecture
+
+```
+OBS/Encoder
+    │  SRTla (UDP 5000)
+    ▼
+[srtla-receiver]  ──SRT──▶  [live-preview-hls]  ──HLS──▶  [live-preview-nginx]
+     │                         (FFmpeg)                         (Nginx)
+     │  HTTP :8080                                          HTTP :8090
+     └─────────────────────────────────────────────────────────────┘
+                                                          Browser ◀ HLS.js
+```
+
+### Ports
+
+| Port   | Service             | Description                         |
+|--------|---------------------|-------------------------------------|
+| `8090` | Live Preview Web UI | Browser dashboard with HLS player   |
+
+### Setup
+
+1. Copy `.env.example` to `.env` and configure the live preview variables:
+   ```shell
+   LIVE_PREVIEW_PORT=8090         # Port for the preview UI
+   PREVIEW_STREAM_ID=live/stream  # Stream ID to transcode (match your publisher)
+   HLS_SEGMENT_TIME=2             # HLS segment duration (lower = less latency)
+   HLS_LIST_SIZE=5                # HLS playlist window size
+   ```
+
+2. Start the stack:
+   ```shell
+   docker compose up -d
+   ```
+
+3. Open the Live Preview UI in your browser:
+   ```
+   http://your-server:8090
+   ```
+
+4. Configure the Stats API URL and HLS Base URL in the **⚙ Config** bar:
+   - **Stats API URL**: `http://your-server:8080`
+   - **HLS Base URL**: `http://your-server:8090/hls`
+
+5. Click **▶ Preview** on any live stream card to start watching.
+
+### Latency
+
+The HLS transcoder introduces ~4–8 seconds of latency (2–4 segments). To reduce:
+- Set `HLS_SEGMENT_TIME=1` (more overhead, ~2–4s latency)
+- Use the SRT player port (`4000`) with VLC for near-zero latency monitoring
+
+### Notes
+
+- **FFmpeg copies the stream without re-encoding** (`-c:v copy -c:a copy`), so CPU usage is minimal
+- If a stream is offline, the preview player will show a "Stream unavailable" message
+- The preview UI auto-refreshes stream statistics every 5 seconds
+
 ## Contributing
 
 Contributions to the project are welcome! Please open an issue or pull request on GitHub.

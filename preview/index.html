@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRTla Live Preview</title>
+  <meta name="description" content="Live preview dashboard for SRTla receiver streams" />
+
+  <!-- HLS.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
+    :root {
+      --bg-base:        #0a0e1a;
+      --bg-surface:     #111827;
+      --bg-elevated:    #1a2235;
+      --bg-card:        #1e2a3d;
+      --bg-overlay:     rgba(17, 24, 39, 0.95);
+
+      --border-subtle:  rgba(255,255,255,0.06);
+      --border-default: rgba(255,255,255,0.12);
+      --border-accent:  rgba(99,102,241,0.5);
+
+      --accent:         #6366f1;
+      --accent-glow:    rgba(99,102,241,0.25);
+      --accent-light:   #818cf8;
+      --green:          #22c55e;
+      --green-dim:      rgba(34,197,94,0.15);
+      --red:            #ef4444;
+      --red-dim:        rgba(239,68,68,0.15);
+      --yellow:         #f59e0b;
+      --yellow-dim:     rgba(245,158,11,0.15);
+
+      --text-primary:   #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted:     #475569;
+
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+      --radius-xl:  20px;
+
+      --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+    }
+
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    .app { position: relative; z-index: 1; }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-overlay);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+    }
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .logo-icon svg { width: 18px; height: 18px; fill: white; }
+    .logo-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+    .logo-text span { color: var(--accent-light); }
+
+    .header-spacer { flex: 1; }
+
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      padding: 5px 12px;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-anim 2s infinite;
+    }
+    @keyframes pulse-anim {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-refresh:hover {
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+      background: var(--bg-card);
+    }
+    .btn-refresh svg { width: 14px; height: 14px; }
+    .btn-refresh.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       MAIN
+    ============================================================ */
+    .main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ============================================================
+       SETTINGS BAR
+    ============================================================ */
+    .settings-bar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .settings-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      white-space: nowrap;
+    }
+    .settings-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+    .settings-group label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .settings-input {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 6px 10px;
+      outline: none;
+      transition: var(--transition);
+      min-width: 200px;
+    }
+    .settings-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ============================================================
+       STATS OVERVIEW
+    ============================================================ */
+    .stats-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: var(--transition);
+    }
+    .stat-card:hover {
+      border-color: var(--border-default);
+      transform: translateY(-2px);
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-value.green { background: linear-gradient(135deg, var(--green), #4ade80); -webkit-background-clip: text; background-clip: text; }
+    .stat-sub { font-size: 12px; color: var(--text-muted); }
+
+    /* ============================================================
+       SECTION HEADER
+    ============================================================ */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-light);
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 100px;
+      padding: 2px 9px;
+    }
+
+    /* ============================================================
+       STREAM GRID
+    ============================================================ */
+    .streams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+      gap: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .streams-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================================
+       STREAM CARD
+    ============================================================ */
+    .stream-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      transition: var(--transition);
+      box-shadow: var(--shadow-card);
+    }
+    .stream-card:hover {
+      border-color: var(--border-accent);
+      box-shadow: var(--shadow-card), var(--shadow-glow);
+      transform: translateY(-2px);
+    }
+
+    /* Video area */
+    .video-wrapper {
+      position: relative;
+      background: #000;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+    }
+    .stream-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Offline / loading overlay */
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #0d111c, #111827);
+    }
+    .video-overlay.hidden { display: none; }
+    .overlay-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay-icon svg { width: 24px; height: 24px; opacity: 0.5; }
+    .overlay-text { font-size: 14px; color: var(--text-muted); }
+    .overlay-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border-default);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Video badges */
+    .video-badge {
+      position: absolute;
+      top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 4px 9px;
+      backdrop-filter: blur(8px);
+    }
+    .badge-live {
+      left: 10px;
+      background: rgba(239,68,68,0.85);
+      color: white;
+      border: 1px solid rgba(239,68,68,0.6);
+    }
+    .badge-live::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: white;
+      animation: pulse-anim 1.2s infinite;
+    }
+    .badge-bitrate {
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Card footer */
+    .card-body {
+      padding: 16px 20px;
+    }
+    .card-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .stream-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+    .stream-id {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 100px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-chip.online {
+      color: var(--green);
+      background: var(--green-dim);
+      border: 1px solid rgba(34,197,94,0.3);
+    }
+    .status-chip.offline {
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+    }
+    .status-chip .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-chip.online .dot { animation: pulse-anim 1.5s infinite; }
+
+    /* Metrics row */
+    .metrics-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .metric-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+    }
+    .metric-chip svg { width: 12px; height: 12px; opacity: 0.6; }
+    .metric-chip strong { color: var(--text-primary); font-weight: 600; }
+
+    /* Card actions */
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+    }
+    .btn-action svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-play {
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: white;
+    }
+    .btn-play:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+    .btn-stop {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .btn-stop:hover { background: rgba(239,68,68,0.2); }
+    .btn-secondary-action {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .btn-secondary-action:hover {
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+    }
+
+    /* ============================================================
+       EMPTY STATE
+    ============================================================ */
+    .empty-state {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .empty-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-icon svg { width: 32px; height: 32px; opacity: 0.4; }
+    .empty-title { font-size: 20px; font-weight: 700; color: var(--text-secondary); }
+    .empty-sub { font-size: 14px; color: var(--text-muted); max-width: 380px; line-height: 1.6; }
+
+    /* ============================================================
+       ERROR TOAST
+    ============================================================ */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 340px;
+      box-shadow: var(--shadow-card);
+      display: none;
+      animation: slide-in 0.3s ease;
+    }
+    .toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+    .toast.visible { display: block; }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    .footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 48px;
+    }
+    .footer a { color: var(--accent-light); text-decoration: none; }
+
+    /* ============================================================
+       SCROLLBAR
+    ============================================================ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <span class="logo-text">SRTla <span>Preview</span></span>
+      </a>
+
+      <div class="header-spacer"></div>
+
+      <div class="header-badge" id="connection-status">
+        <div class="pulse-dot"></div>
+        <span>Connecting…</span>
+      </div>
+
+      <button class="btn-refresh" id="btn-refresh" title="Refresh streams" onclick="refreshAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- SETTINGS -->
+    <div class="settings-bar" id="settings-bar">
+      <span class="settings-label">⚙ Config</span>
+      <div class="settings-group">
+        <label for="input-stats-url">Stats API URL</label>
+        <input id="input-stats-url" class="settings-input" type="text"
+               placeholder="http://your-server:8080" />
+        <label for="input-hls-base">HLS Base URL</label>
+        <input id="input-hls-base" class="settings-input" type="text"
+               placeholder="http://your-server:8090/hls" />
+        <button class="btn-primary" onclick="saveConfig()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS OVERVIEW -->
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-label">Active Streams</div>
+        <div class="stat-value green" id="stat-active">—</div>
+        <div class="stat-sub">Currently live</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Publishers</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-sub">Registered</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Bitrate</div>
+        <div class="stat-value" id="stat-bitrate">—</div>
+        <div class="stat-sub">kbps combined</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last Updated</div>
+        <div class="stat-value" id="stat-updated" style="font-size:16px;padding-top:4px;">—</div>
+        <div class="stat-sub">Auto-refresh every 5s</div>
+      </div>
+    </div>
+
+    <!-- STREAMS SECTION -->
+    <div class="section-header">
+      <div class="section-title">
+        Live Streams
+        <span class="badge" id="streams-count">0</span>
+      </div>
+    </div>
+
+    <div class="streams-grid" id="streams-grid">
+      <!-- Cards injected by JS -->
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <a href="https://github.com/OpenIRL/srtla-receiver" target="_blank">srtla-receiver</a>
+    &nbsp;·&nbsp; Live Preview powered by
+    <a href="https://github.com/video-dev/hls.js" target="_blank">HLS.js</a>
+  </footer>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIGURATION
+================================================================ */
+const DEFAULT_STATS_URL = 'http://localhost:8080';
+const DEFAULT_HLS_BASE  = 'http://localhost:8090/hls';
+
+let config = {
+  statsUrl: localStorage.getItem('srtla_stats_url') || DEFAULT_STATS_URL,
+  hlsBase:  localStorage.getItem('srtla_hls_base')  || DEFAULT_HLS_BASE,
+};
+
+// Active HLS.js instances keyed by stream id
+const hlsInstances = {};
+// Timer for auto-refresh
+let refreshTimer = null;
+// Track which streams are "playing"
+const playingStreams = new Set();
+
+/* ================================================================
+   INIT
+================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('input-stats-url').value = config.statsUrl;
+  document.getElementById('input-hls-base').value  = config.hlsBase;
+  fetchStats();
+  startAutoRefresh();
+});
+
+/* ================================================================
+   CONFIG
+================================================================ */
+function saveConfig() {
+  config.statsUrl = document.getElementById('input-stats-url').value.trim().replace(/\/$/, '');
+  config.hlsBase  = document.getElementById('input-hls-base').value.trim().replace(/\/$/, '');
+  localStorage.setItem('srtla_stats_url', config.statsUrl);
+  localStorage.setItem('srtla_hls_base',  config.hlsBase);
+  showToast('Configuration saved!', 'ok');
+  fetchStats();
+}
+
+/* ================================================================
+   AUTO REFRESH
+================================================================ */
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchStats, 5000);
+}
+
+function refreshAll() {
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('spinning');
+  setTimeout(() => btn.classList.remove('spinning'), 800);
+  fetchStats();
+}
+
+/* ================================================================
+   FETCH STATS FROM SLS HTTP API
+   SLS exposes GET /stats → JSON with publisher list
+================================================================ */
+async function fetchStats() {
+  try {
+    const url = `${config.statsUrl}/stats`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    updateConnectionStatus(true);
+    renderDashboard(data);
+  } catch (err) {
+    console.warn('Stats fetch error:', err.message);
+    updateConnectionStatus(false, err.message);
+  }
+}
+
+/* ================================================================
+   CONNECTION STATUS
+================================================================ */
+function updateConnectionStatus(online, errMsg) {
+  const el = document.getElementById('connection-status');
+  if (online) {
+    el.innerHTML = `<div class="pulse-dot"></div><span>Connected</span>`;
+    el.style.color = '';
+  } else {
+    el.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div><span>Offline</span>`;
+    if (errMsg) showToast(`Stats API unavailable: ${errMsg}`, 'error');
+  }
+}
+
+/* ================================================================
+   RENDER DASHBOARD
+   SLS stats JSON schema:
+   {
+     "Publishers": [
+       {
+         "id": "live/stream1",
+         "app": "live",
+         "stream": "stream1",
+         "bitrate": 2500,
+         "duration": 125,
+         "connections": 3,
+         "description": "My Stream"
+       }, ...
+     ]
+   }
+================================================================ */
+function renderDashboard(data) {
+  const publishers = data.publishers || data.Publishers || [];
+
+  // Update overview stats
+  const active = publishers.filter(p => (p.bitrate || p.recv_bitrate || 0) > 0).length;
+  const totalBitrate = publishers.reduce((sum, p) => sum + (p.bitrate || p.recv_bitrate || 0), 0);
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-total').textContent  = publishers.length;
+  document.getElementById('stat-bitrate').textContent = totalBitrate > 0 ? `${(totalBitrate/1000).toFixed(1)}M` : '0';
+  document.getElementById('stat-updated').textContent = new Date().toLocaleTimeString();
+  document.getElementById('streams-count').textContent = publishers.length;
+
+  const grid = document.getElementById('streams-grid');
+
+  if (publishers.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+        </div>
+        <div class="empty-title">No streams found</div>
+        <div class="empty-sub">No active publishers are registered. Send a stream to the SRTLA receiver to get started.</div>
+      </div>`;
+    return;
+  }
+
+  // Build set of current stream IDs for reconciliation
+  const currentIds = new Set(publishers.map(p => streamId(p)));
+
+  // Remove cards that no longer exist
+  for (const id of Object.keys(hlsInstances)) {
+    if (!currentIds.has(id)) {
+      destroyPlayer(id);
+    }
+  }
+
+  // Render/update each card
+  for (const publisher of publishers) {
+    const id = streamId(publisher);
+    const existing = document.getElementById(`card-${CSS.escape(id)}`);
+    if (existing) {
+      updateCard(existing, publisher);
+    } else {
+      grid.appendChild(createCard(publisher));
+    }
+  }
+}
+
+function streamId(p) {
+  return p.id || p.stream_id || `${p.app || 'live'}/${p.stream || p.name || 'stream'}`;
+}
+
+/* ================================================================
+   CREATE STREAM CARD
+================================================================ */
+function createCard(publisher) {
+  const id     = streamId(publisher);
+  const name   = publisher.description || publisher.name || publisher.stream || id;
+  const online = (publisher.bitrate || publisher.recv_bitrate || 0) > 0;
+
+  const card = document.createElement('div');
+  card.className = 'stream-card';
+  card.id = `card-${id}`;
+  card.innerHTML = `
+    <div class="video-wrapper">
+      <video id="video-${id}" class="stream-video" controls playsinline muted></video>
+
+      <div class="video-overlay" id="overlay-${id}">
+        <div class="overlay-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <span class="overlay-text">Click ▶ Preview to start watching</span>
+      </div>
+
+      ${online ? `<div class="video-badge badge-live">LIVE</div>` : ''}
+      <div class="video-badge badge-bitrate" id="badge-bitrate-${id}">
+        ${formatBitrate(publisher.bitrate || publisher.recv_bitrate || 0)}
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="card-header-row">
+        <div>
+          <div class="stream-name">${escHtml(name)}</div>
+          <div class="stream-id">${escHtml(id)}</div>
+        </div>
+        <div class="status-chip ${online ? 'online' : 'offline'}" id="status-${id}">
+          <div class="dot"></div>
+          ${online ? 'Live' : 'Offline'}
+        </div>
+      </div>
+
+      <div class="metrics-row" id="metrics-${id}">
+        ${renderMetrics(publisher)}
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-action btn-play" id="btn-play-${id}"
+                onclick="startPreview('${escAttr(id)}')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Preview
+        </button>
+        <button class="btn-action btn-stop" id="btn-stop-${id}"
+                style="display:none"
+                onclick="stopPreview('${escAttr(id)}')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+          Stop
+        </button>
+        <button class="btn-action btn-secondary-action"
+                onclick="copyStreamUrl('${escAttr(id)}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy URL
+        </button>
+      </div>
+    </div>`;
+  return card;
+}
+
+/* ================================================================
+   UPDATE EXISTING CARD (stats refresh)
+================================================================ */
+function updateCard(card, publisher) {
+  const id     = streamId(publisher);
+  const online = (publisher.bitrate || publisher.recv_bitrate || 0) > 0;
+
+  const statusEl = document.getElementById(`status-${id}`);
+  if (statusEl) {
+    statusEl.className = `status-chip ${online ? 'online' : 'offline'}`;
+    statusEl.innerHTML = `<div class="dot"></div>${online ? 'Live' : 'Offline'}`;
+  }
+  const metricsEl = document.getElementById(`metrics-${id}`);
+  if (metricsEl) metricsEl.innerHTML = renderMetrics(publisher);
+
+  const bitrateEl = document.getElementById(`badge-bitrate-${id}`);
+  if (bitrateEl) bitrateEl.textContent = formatBitrate(publisher.bitrate || publisher.recv_bitrate || 0);
+}
+
+/* ================================================================
+   HLS PLAYER
+================================================================ */
+function startPreview(id) {
+  const hlsUrl   = `${config.hlsBase}/${encodeURIComponent(id)}.m3u8`;
+  const videoEl  = document.getElementById(`video-${id}`);
+  const overlay  = document.getElementById(`overlay-${id}`);
+  const btnPlay  = document.getElementById(`btn-play-${id}`);
+  const btnStop  = document.getElementById(`btn-stop-${id}`);
+
+  if (!videoEl) return;
+
+  // Show loading state
+  overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Connecting to stream…</span>`;
+  overlay.classList.remove('hidden');
+
+  if (hlsInstances[id]) hlsInstances[id].destroy();
+
+  if (Hls.isSupported()) {
+    const hls = new Hls({
+      lowLatencyMode: true,
+      enableWorker: true,
+      backBufferLength: 10,
+    });
+    hlsInstances[id] = hls;
+
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(videoEl);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      overlay.classList.add('hidden');
+      videoEl.play().catch(() => {});
+      btnPlay.style.display = 'none';
+      btnStop.style.display = '';
+      playingStreams.add(id);
+    });
+
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        overlay.innerHTML = `
+          <div class="overlay-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
+          </div>
+          <span class="overlay-text">Stream unavailable — check HLS transcoder</span>`;
+        overlay.classList.remove('hidden');
+        showToast(`Stream error: ${data.type || 'network error'}`, 'error');
+        stopPreview(id);
+      }
+    });
+
+  } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+    // Native HLS (Safari)
+    videoEl.src = hlsUrl;
+    videoEl.addEventListener('loadedmetadata', () => {
+      overlay.classList.add('hidden');
+      videoEl.play().catch(() => {});
+      btnPlay.style.display = 'none';
+      btnStop.style.display = '';
+      playingStreams.add(id);
+    }, { once: true });
+    videoEl.addEventListener('error', () => {
+      overlay.innerHTML = `<div class="overlay-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg></div><span class="overlay-text">Stream unavailable</span>`;
+      overlay.classList.remove('hidden');
+    }, { once: true });
+  } else {
+    showToast('HLS not supported in this browser.', 'error');
+  }
+}
+
+function stopPreview(id) {
+  if (hlsInstances[id]) {
+    hlsInstances[id].destroy();
+    delete hlsInstances[id];
+  }
+  const videoEl = document.getElementById(`video-${id}`);
+  if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+
+  const overlay = document.getElementById(`overlay-${id}`);
+  if (overlay) {
+    overlay.innerHTML = `
+      <div class="overlay-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      </div>
+      <span class="overlay-text">Click ▶ Preview to start watching</span>`;
+    overlay.classList.remove('hidden');
+  }
+
+  const btnPlay = document.getElementById(`btn-play-${id}`);
+  const btnStop = document.getElementById(`btn-stop-${id}`);
+  if (btnPlay) btnPlay.style.display = '';
+  if (btnStop) btnStop.style.display = 'none';
+  playingStreams.delete(id);
+}
+
+function destroyPlayer(id) {
+  stopPreview(id);
+  const card = document.getElementById(`card-${id}`);
+  if (card) card.remove();
+}
+
+/* ================================================================
+   COPY STREAM URL
+================================================================ */
+function copyStreamUrl(id) {
+  const hlsUrl = `${config.hlsBase}/${encodeURIComponent(id)}.m3u8`;
+  navigator.clipboard.writeText(hlsUrl).then(() => {
+    showToast('HLS URL copied to clipboard!', 'ok');
+  }).catch(() => {
+    showToast(`HLS URL: ${hlsUrl}`, 'ok');
+  });
+}
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function renderMetrics(p) {
+  const bitrate     = p.bitrate || p.recv_bitrate || 0;
+  const connections = p.connections || p.client_counts || 0;
+  const duration    = p.duration || p.alive_time || 0;
+
+  return `
+    <div class="metric-chip">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+      <strong>${formatBitrate(bitrate)}</strong>
+    </div>
+    <div class="metric-chip">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <strong>${connections}</strong>&nbsp;viewers
+    </div>
+    <div class="metric-chip">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L11 13V7h1.5v5.25l4.5 2.67-.77 1.08z"/></svg>
+      <strong>${formatDuration(duration)}</strong>
+    </div>`;
+}
+
+function formatBitrate(bps) {
+  if (!bps || bps === 0) return '0 kbps';
+  if (bps >= 1000000) return `${(bps/1000000).toFixed(2)} Mbps`;
+  if (bps >= 1000) return `${(bps/1000).toFixed(0)} kbps`;
+  return `${bps} bps`;
+}
+
+function formatDuration(secs) {
+  if (!secs) return '0s';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = Math.floor(secs % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  return String(str).replace(/'/g, "\\'");
+}
+
+let toastTimer = null;
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible${type === 'error' ? ' error' : ''}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 3500);
+}
+</script>
+</body>
+</html>
