@@ -605,12 +605,22 @@ start_receiver() {
         public_ip=$(get_public_ip)
         echo
         echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${HEADER}  Available Services${NC}"
+        echo -e "${HEADER}  SRTla Receiver — Available Services${NC}"
         echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        # Show API key right at the top of the box
+        if [ -f ".apikey" ]; then
+            local apikey
+            apikey=$(cat .apikey 2>/dev/null)
+            if [ -n "$apikey" ]; then
+                echo -e "${HIGHLIGHT}  🔑  Your API Key   : ${apikey}${NC}"
+                echo -e "${HEADER}  ────────────────────────────────────────${NC}"
+            fi
+        fi
         if [ -f ".env" ]; then
             source .env
             echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
             echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+            echo -e "${INFO}  🔗  Backend API    : http://${public_ip}:${SLS_STATS_PORT:-8080}${NC}"
             echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
             echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
             echo -e "${MUTED}  📥  SRT Player     : ${public_ip}:${SRT_PLAYER_PORT:-4000}/udp${NC}"
@@ -743,23 +753,29 @@ show_status() {
         public_ip=$(get_public_ip)
         echo
         echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${HEADER}  Services${NC}"
+        echo -e "${HEADER}  SRTla Receiver — Available Services${NC}"
         echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        # API key at the top of the box
+        if [ -f ".apikey" ]; then
+            local apikey
+            apikey=$(cat .apikey 2>/dev/null)
+            if [ -n "$apikey" ]; then
+                echo -e "${HIGHLIGHT}  🔑  Your API Key   : ${apikey}${NC}"
+                echo -e "${HEADER}  ────────────────────────────────────────${NC}"
+            fi
+        else
+            echo -e "${WARNING}  ⚠   No API key found. Run './receiver.sh start' to generate one.${NC}"
+            echo -e "${HEADER}  ────────────────────────────────────────${NC}"
+        fi
         echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
         echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+        echo -e "${INFO}  🔗  Backend API    : http://${public_ip}:${SLS_STATS_PORT:-8080}${NC}"
         echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
         echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
         echo -e "${MUTED}  📥  SRT Player     : ${public_ip}:${SRT_PLAYER_PORT:-4000}/udp${NC}"
         echo -e "${MUTED}  📊  Stats API      : http://${public_ip}:${SLS_STATS_PORT:-8080}/stats${NC}"
         echo -e "${HEADER}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo
-    fi
-
-    if [ -f ".apikey" ]; then
-        echo -e "${HEADER}API Key:${NC}"
-        cat .apikey
-    else
-        echo -e "${WARNING}No API key found. Will be automatically extracted on next start.${NC}"
     fi
 }
 
