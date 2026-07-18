@@ -706,7 +706,11 @@ update_receiver() {
     echo -e "${INFO}Updating SRTla-Receiver ($(get_branch_display_name))...${NC}"
 
     # Download new Docker Compose file + hls-manager + preview files
-    download_compose_file
+    # ✅ FIX: Check return code — abort if any file failed to download
+    if ! download_compose_file; then
+        echo -e "${ERROR}Download failed. Aborting update to prevent broken state.${NC}"
+        exit 1
+    fi
 
     # Pull updated remote images and rebuild local hls-manager image
     if docker compose version &> /dev/null; then
