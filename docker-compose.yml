@@ -29,13 +29,13 @@ services:
       - "${SRT_PLAYER_PORT:-4000}:4000/udp"
     volumes:
       - ./data:/var/lib/sls
-    # ✅ FIX #11: Healthcheck so hls-manager waits for receiver to be ready
+    # ✅ FIX: Use wget (BusyBox, available on Alpine) instead of curl
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/stats"]
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/stats 2>/dev/null || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
-      start_period: 10s
+      start_period: 15s
     logging:
       driver: "json-file"
       options:

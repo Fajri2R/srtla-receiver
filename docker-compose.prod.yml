@@ -29,11 +29,11 @@ services:
     volumes:
       - ./data:/var/lib/sls
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/stats"]
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/stats 2>/dev/null || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
-      start_period: 10s
+      start_period: 15s
     logging:
       driver: "json-file"
       options:
