@@ -29,6 +29,7 @@ services:
       - "${SLS_MGNT_PORT}:80"
     volumes:
       - ./mgmt-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
     logging:
       driver: "json-file"
       options:
