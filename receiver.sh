@@ -539,6 +539,10 @@ HLS_LIST_SIZE=5
 HLS_POLL_INTERVAL=5
 HLS_MAX_RETRIES=10
 SRTLA_LOG_LEVEL=info
+
+# SLS REST API key (auto-filled by receiver.sh after first start)
+# Required for hls-manager to read stream-ids from /api/stream-ids
+SLS_API_KEY=
 EOF
     
     echo -e "${SUCCESS}.env file created.${NC}"
@@ -639,6 +643,20 @@ start_receiver() {
             extract_api_key
         else
             echo -e "${SUCCESS}API key already present in .apikey${NC}"
+        fi
+        
+        # Sync API key into .env so hls-manager picks it up on next deploy
+        if [ -f ".apikey" ] && [ -f ".env" ]; then
+            local saved_key
+            saved_key=$(cat .apikey)
+            if [ -n "$saved_key" ]; then
+                if grep -q '^SLS_API_KEY=' .env; then
+                    sed -i "s|^SLS_API_KEY=.*|SLS_API_KEY=$saved_key|" .env
+                else
+                    echo "SLS_API_KEY=$saved_key" >> .env
+                fi
+                echo -e "${SUCCESS}SLS_API_KEY synced to .env${NC}"
+            fi
         fi
         
         # Show status
