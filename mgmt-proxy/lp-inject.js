@@ -363,12 +363,7 @@
   var DONE = 'data-lp-ok';
 
   function injectHlsManagerButton() {
-    Array.prototype.slice.call(document.querySelectorAll('button, a')).forEach(function (settingsBtn) {
-      var label = (settingsBtn.textContent || '').replace(/\s+/g, ' ').trim();
-      var rect = settingsBtn.getBoundingClientRect();
-      var isSettings = /^(configure )?settings$/i.test(label);
-      if (!isSettings || rect.top < 0 || rect.top > 180 || settingsBtn.dataset.hlsManagerTarget) return;
-
+    document.querySelectorAll('button[title="Settings"]:not([data-hls-manager-target])').forEach(function (settingsBtn) {
       settingsBtn.dataset.hlsManagerTarget = '1';
       var link = document.createElement('a');
       link.className = 'btn btn-sm hls-manager-nav-btn';
