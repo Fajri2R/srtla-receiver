@@ -243,7 +243,9 @@
     '#lp-bx { background: #111827 !important; border-color: rgba(129,140,248,.30) !important; box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 32px 80px rgba(0,0,0,.7) !important; }',
     '#lp-spinner { border-top-color: #818cf8 !important; }',
     '.hls-manager-nav-btn { display: inline-flex !important; align-items: center; gap: 6px; margin-right: 8px; background: #6366f1 !important; border: 1px solid #6366f1 !important; color: #fff !important; font-weight: 600; box-shadow: 0 4px 12px rgba(99,102,241,.28); }',
-    '.hls-manager-nav-btn:hover { background: #4f46e5 !important; border-color: #4f46e5 !important; color: #fff !important; transform: translateY(-1px); }'
+    '.hls-manager-nav-btn:hover { background: #4f46e5 !important; border-color: #4f46e5 !important; color: #fff !important; transform: translateY(-1px); }',
+    '@media (max-width: 768px) { .navbar, nav, header { min-height: 56px; padding: 8px 16px !important; } .navbar > .container, .navbar > .container-fluid, nav > .container, nav > .container-fluid, header > .container, header > .container-fluid { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 6px !important; min-width: 0; } .navbar-brand, .navbar .navbar-brand { flex: 1 1 auto !important; min-width: 0; margin-right: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px !important; } .navbar-collapse, .navbar .navbar-collapse { display: flex !important; flex: 0 0 auto !important; width: auto !important; margin: 0 !important; } .hls-manager-nav-btn, button[title="Settings"] { flex: 0 0 36px !important; width: 36px !important; min-width: 36px !important; height: 36px !important; margin: 0 !important; padding: 0 !important; justify-content: center !important; gap: 0 !important; font-size: 0 !important; } .hls-manager-nav-btn i, button[title="Settings"] i { font-size: 16px !important; } .hls-manager-nav-btn svg, button[title="Settings"] svg { width: 16px !important; height: 16px !important; } }',
+    '@media (max-width: 480px) { .navbar, nav, header { padding-left: 12px !important; padding-right: 12px !important; } .navbar-brand, .navbar .navbar-brand { font-size: 13px !important; } .hls-manager-nav-btn, button[title="Settings"] { flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; } }'
   ].join('\n');
   document.head.appendChild(themeCss);
 
@@ -371,7 +373,8 @@
       link.target = '_blank';
       link.rel = 'noopener';
       link.title = 'Open HLS Manager';
-      link.innerHTML = '<i class="bi bi-activity"></i> HLS Manager';
+      link.setAttribute('aria-label', 'Open HLS Manager');
+      link.innerHTML = '<i class="bi bi-activity" aria-hidden="true"></i><span>HLS Manager</span>';
       settingsBtn.insertAdjacentElement('beforebegin', link);
     });
   }
