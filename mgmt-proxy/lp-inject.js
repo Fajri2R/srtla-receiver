@@ -217,8 +217,11 @@
   themeCss.id = 'hls-manager-theme';
   themeCss.textContent = [
     ':root { --bs-body-bg: #0a0e1a; --bs-body-color: #f1f5f9; --bs-primary: #6366f1; --bs-primary-rgb: 99,102,241; --bs-secondary-color: #94a3b8; --bs-border-color: rgba(255,255,255,.12); }',
-    'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; } #root { position: relative; z-index: 1; min-height: 100vh; background: transparent !important; color: #f1f5f9 !important; }',
+    'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; display: flex !important; flex-direction: column !important; margin: 0 !important; } #root { position: relative; z-index: 1; flex: 1 0 auto !important; min-height: 0 !important; background: transparent !important; color: #f1f5f9 !important; }',
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
+    '.mgmt-footer { text-align: center; padding: 24px; font-size: 12px; color: #475569; border-top: 1px solid rgba(255,255,255,.06); margin-top: auto; position: relative; z-index: 1; width: 100%; flex-shrink: 0; }',
+    '.mgmt-footer a { color: #818cf8; text-decoration: none; transition: .2s cubic-bezier(.4,0,.2,1); }',
+    '.mgmt-footer a:hover { color: #c7d2fe; }',
     '.navbar, nav, header { background: rgba(17,24,39,.96) !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25); }',
     '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 6px; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 0 16px rgba(99,102,241,.25); } .mgmt-brand-icon i { margin: 0 !important; font-size: 18px !important; line-height: 1; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
     '.card, .modal-content, .dropdown-menu, .accordion-item, .list-group-item { background: #111827 !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.10) !important; box-shadow: 0 4px 24px rgba(0,0,0,.24); }',
@@ -367,6 +370,15 @@
   /* ── Button injection ────────────────────────────────────────────── */
   var DONE = 'data-lp-ok';
 
+  function injectFooter() {
+    if (document.getElementById('mgmt-footer')) return;
+    var footer = document.createElement('footer');
+    footer.id = 'mgmt-footer';
+    footer.className = 'mgmt-footer';
+    footer.innerHTML = '<a href="https://github.com/Fajri2R/srtla-receiver" target="_blank" rel="noopener">Fajri2R/srtla-receiver</a> &nbsp;&middot;&nbsp; Management UI';
+    document.body.appendChild(footer);
+  }
+
   function enhanceNavbarBrand() {
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
@@ -401,6 +413,7 @@
   }
 
   function injectButtons() {
+    injectFooter();
     enhanceNavbarBrand();
     injectHlsManagerButton();
     document.querySelectorAll('button[title="Add Player"]:not([' + DONE + '])').forEach(function (btn) {
