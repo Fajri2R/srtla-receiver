@@ -1076,39 +1076,47 @@ function startPreview(id, retryAttempt = 0) {
     hls.loadSource(hlsUrl);
     hls.attachMedia(videoEl);
 
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      overlay.classList.add('hidden');
-      videoEl.play().catch(() => {});
-      if (btnPlay) btnPlay.style.display = 'none';
-      if (btnStop) btnStop.style.display = '';
-      playingStreams.add(id);
-      // ✅ FIX #17: persist playing state across page refreshes
-      sessionStorage.setItem(`playing_${id}`, '1');
-      updatePreviewCount();
-    });
+   hls.on(Hls.Events.MANIFEST_PARSED, () => {
+     overlay.classList.add('hidden');
+     videoEl.play().catch(() => {});
+     if (btnPlay) btnPlay.style.display = 'none';
+     if (btnStop) btnStop.style.display = '';
+     playingStreams.add(id);
+     // ✅ FIX #17: persist playing state across page refreshes
+     sessionStorage.setItem(`playing_${id}`, '1');
+     updatePreviewCount();
+   });
 
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      if (data.fatal) {
-        hls.destroy();
-        delete hlsInstances[id];
-        // ✅ FIX #12: Auto-retry if stream is new (HLS segments not ready yet)
-        const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
-        if (isNetworkError && retryAttempt < 5) {
-          const delay = 2000 + retryAttempt * 1000;
-          overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Stream preparing… retrying in ${delay/1000}s</span>`;
-          setTimeout(() => startPreview(id, retryAttempt + 1), delay);
+   hls.on(Hls.Events.ERROR, (event, data) => {
+     if (data.fatal) {
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
           return;
         }
-        overlay.innerHTML = `
-          <div class="overlay-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
-          </div>
-          <span class="overlay-text">Stream unavailable — check HLS transcoder</span>`;
-        overlay.classList.remove('hidden');
-        showToast(`Stream error: ${data.type || 'network error'}`, 'error');
-        stopPreview(id);
-      }
-    });
+       hls.destroy();
+       delete hlsInstances[id];
+       // ✅ FIX #12: Auto-retry if stream is new (HLS segments not ready yet)
+       const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
+       if (isNetworkError && retryAttempt < 5) {
+         const delay = 2000 + retryAttempt * 1000;
+         overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Stream preparing… retrying in ${delay/1000}s</span>`;
+         setTimeout(() => startPreview(id, retryAttempt + 1), delay);
+         return;
+       }
+       overlay.innerHTML = `
+         <div class="overlay-icon">
+           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
+         </div>
+         <span class="overlay-text">Stream unavailable — check HLS transcoder</span>`;
+       overlay.classList.remove('hidden');
+       showToast(`Stream error: ${data.type || 'network error'}`, 'error');
+        if (btnPlay) btnPlay.style.display = '';
+        if (btnStop) btnStop.style.display = 'none';
+        playingStreams.delete(id);
+        sessionStorage.removeItem(`playing_${id}`);
+        updatePreviewCount();
+     }
+   });
 
   } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
     // Native HLS (Safari / iOS)

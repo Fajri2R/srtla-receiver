@@ -23,6 +23,7 @@ const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
 const SLS_BASE_URL  = process.env.SLS_STATS_URL
   ? process.env.SLS_STATS_URL.replace(/\/[^/]+$/, "")
   : "http://receiver:8080";
+const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE_URL + "/api/stream-ids");
 
 // Read API key: from file (mounted from host) or env var
 let SLS_API_KEY = process.env.SLS_API_KEY || "";
@@ -42,13 +43,13 @@ function authHeaders() {
 // Fetch configured stream pairs from /api/stream-ids
 async function fetchStreamMap() {
   try {
-    const res = await fetch(`${SLS_BASE_URL}/api/stream-ids`, {
+    const res = await fetch(SLS_STREAMS_URL, {
       headers: authHeaders(),
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) {
       log("warn", `stream-ids: HTTP ${res.status} (check API key)`);
-      return {};
+      return null;
     }
     const body = await res.json();
     // Response: {"data":[{"publisher":"ltest","player":"ptest"}],"status":"success"}
@@ -62,7 +63,7 @@ async function fetchStreamMap() {
     return map;
   } catch (e) {
     log("warn", "fetchStreamMap:", e.message);
-    return {};
+    return null;
   }
 }
 
@@ -123,8 +124,9 @@ function startStream(streamId, playerKey, retryCount = 0) {
     if (!isShuttingDown && !ours && code !== 0 && retryCount < MAX_RETRIES) {
       const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
       log("info", `  retry in ${(delay/1000).toFixed(0)}s (${retryCount+1}/${MAX_RETRIES})`);
-      const t = setTimeout(() => { if (!activeStreams.has(streamId)) startStream(streamId, playerKey, retryCount+1); }, delay);
-      activeStreams.set(streamId, { proc: null, dir, retryCount, retryTimer: t });
+      setTimeout(() => {
+        if (!activeStreams.has(streamId)) startStream(streamId, playerKey, retryCount + 1);
+      }, delay);
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
@@ -150,10 +152,15 @@ async function reconcile() {
   if (isShuttingDown) return;
   try {
     const streamMap = await fetchStreamMap();
+    if (streamMap === null) {
+      log("warn", "Skipping reconciliation because stream mapping is unavailable");
+      return;
+    }
     const publishers = Object.keys(streamMap);
 
     if (publishers.length === 0) {
       log("info", "No configured streams in /api/stream-ids");
+      for (const id of [...activeStreams.keys()]) stopStream(id);
     } else {
       // Check each configured publisher's live status
       const checks = await Promise.all(
@@ -184,6 +191,7 @@ createServer((req, res) => {
       status: "ok", uptime: Math.floor(process.uptime()),
       slsBaseUrl: SLS_BASE_URL,
       apiKeyConfigured: !!SLS_API_KEY,
+      running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0
       }))

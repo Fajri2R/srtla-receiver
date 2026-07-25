@@ -251,7 +251,8 @@
     mt.textContent = txt;
   }
 
-  function openPreview(pub) {
+  function openPreview(pub, retryAttempt) {
+    retryAttempt = retryAttempt || 0;
     var url = BASE + '/hls/' + safeId(pub) + '/stream.m3u8';
     document.getElementById('lp-nm').textContent  = pub;
     document.getElementById('lp-url').textContent = url;
@@ -277,11 +278,25 @@
           v.play().catch(function () {});
           setMsg(null, false);
         });
-        hls.on(Hls.Events.ERROR, function (_, d) {
-          if (d.fatal) {
-            setMsg('\u26a0\ufe0f Stream not active \u2014 is the publisher connected?', false);
-          }
-        });
+       hls.on(Hls.Events.ERROR, function (_, d) {
+         if (d.fatal) {
+            if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hls.recoverMediaError();
+              return;
+            }
+            if (d.type === Hls.ErrorTypes.NETWORK_ERROR && retryAttempt < 5) {
+              var delay = 2000 + retryAttempt * 1000;
+              hls.destroy();
+              hls = null;
+              setMsg('Stream preparing\u2026 retrying in ' + (delay / 1000) + 's', true);
+              setTimeout(function () {
+                if (ov.classList.contains('on')) openPreview(pub, retryAttempt + 1);
+              }, delay);
+              return;
+            }
+            setMsg('\u26a0\ufe0f Stream unavailable \u2014 check the HLS transcoder.', false);
+         }
+       });
       } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
         v.src = url;
         v.play().catch(function () {});
