@@ -128,7 +128,7 @@ async function isPublisherActive(pubId) {
     if (!res.ok) return false;  // 404 = not streaming
     const body = await res.json();
     // Response: {"publisher":{...},"status":"ok"}
-    const active = body.status === "ok" && !!body.publisher;
+    const active = body.status === "ok" && !!body.publisher && (body.publisher.bitrate || 0) > 0;
     if (active) {
       const kbr = body.publisher.bitrate || 0;
       if (Date.now() - lastDebug > 30000) {

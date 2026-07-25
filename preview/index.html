@@ -760,6 +760,7 @@ let config = {
 const hlsInstances = {};
 // Timer for auto-refresh
 let refreshTimer = null;
+let statsRequestId = 0;
 // Track which streams are "playing"
 const playingStreams = new Set();
 
@@ -819,9 +820,10 @@ function refreshAll() {
    SLS exposes GET /stats → JSON with publisher list
 ================================================================ */
 async function fetchStats() {
+  const requestId = ++statsRequestId;
   try {
     const origin = IS_SAME_ORIGIN ? window.location.origin : (config.hlsBase ? config.hlsBase.replace(/\/hls\/?$/, "") : "");
-    const hlsRes = await fetch(origin + "/api/hls-status", { signal: AbortSignal.timeout(3000) });
+    const hlsRes = await fetch(origin + "/api/hls-status", { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (hlsRes.ok) {
       const hlsData = await hlsRes.json();
       const streams = hlsData.streams || [];
@@ -829,7 +831,7 @@ async function fetchStats() {
         const pubId = item.id;
         if (!pubId) return null;
         try {
-          const statRes = await fetch(origin + "/api/stats/" + encodeURIComponent(pubId), { signal: AbortSignal.timeout(3000) });
+          const statRes = await fetch(origin + "/api/stats/" + encodeURIComponent(pubId), { cache: "no-store", signal: AbortSignal.timeout(3000) });
           if (statRes.ok) {
             const statData = await statRes.json();
             const pub = statData.publisher || {};
@@ -846,6 +848,7 @@ async function fetchStats() {
         return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0, media: item.media || null };
       }));
       const valid = publishers.filter(Boolean);
+      if (requestId !== statsRequestId) return;
       updateConnectionStatus(true);
       renderDashboard({ publishers: valid });
       return;
@@ -853,6 +856,7 @@ async function fetchStats() {
   } catch (err) {
     console.warn("HLS status fetch failed:", err.message);
   }
+  if (requestId !== statsRequestId) return;
   updateConnectionStatus(false, "HLS Manager unreachable");
 }
 
@@ -903,6 +907,13 @@ function renderDashboard(data) {
   document.getElementById('stat-previewing').textContent = playingStreams.size;
 
   const grid = document.getElementById('streams-grid');
+  const currentIds = new Set(publishers.map(p => streamId(p)));
+
+  // Remove stale cards even when their HLS player was never opened.
+  grid.querySelectorAll('.stream-card[data-stream-id]').forEach(card => {
+    const id = card.dataset.streamId;
+    if (id && !currentIds.has(id)) destroyPlayer(id);
+  });
 
   if (publishers.length === 0) {
     grid.innerHTML = `
@@ -914,16 +925,6 @@ function renderDashboard(data) {
         <div class="empty-sub">No active publishers are registered. Send a stream to the SRTLA receiver to get started.</div>
       </div>`;
     return;
-  }
-
-  // Build set of current stream IDs for reconciliation
-  const currentIds = new Set(publishers.map(p => streamId(p)));
-
-  // Remove cards that no longer exist
-  for (const id of Object.keys(hlsInstances)) {
-    if (!currentIds.has(id)) {
-      destroyPlayer(id);
-    }
   }
 
   // Render/update each card
