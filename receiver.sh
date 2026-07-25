@@ -640,6 +640,15 @@ start_receiver() {
     
     echo -e "${INFO}Starting SRTla-Receiver (with Live Preview)...${NC}"
 
+    if [ -d ".apikey" ]; then
+        echo -e "${ERROR}.apikey is a directory. Remove it and run this command again.${NC}"
+        exit 1
+    fi
+
+    if [ ! -e ".apikey" ]; then
+        (umask 077; : > .apikey)
+    fi
+
     # Build hls-manager image if source is present, then start all services
     if [ -d "hls-manager" ]; then
         echo -e "${INFO}Building hls-manager image (first run may take a few minutes)...${NC}"
@@ -659,8 +668,8 @@ start_receiver() {
     if [ $? -eq 0 ]; then
         echo -e "${SUCCESS}SRTla-Receiver successfully started.${NC}"
         
-        # Extract API key if not present
-        if [ ! -f ".apikey" ]; then
+        # Extract API key if the placeholder has not been populated yet
+        if [ ! -s ".apikey" ]; then
             echo -e "${INFO}Waiting for containers to fully initialize...${NC}"
             sleep 5
             echo -e "${INFO}Trying to extract API key...${NC}"

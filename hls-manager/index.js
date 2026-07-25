@@ -25,9 +25,15 @@ const SLS_BASE_URL  = process.env.SLS_STATS_URL
   : "http://receiver:8080";
 const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE_URL + "/api/stream-ids");
 
-// Read API key: from file (mounted from host) or env var
+// The mounted file is the source of truth because receiver.sh writes it after
+// SLS creates the initial key. Re-read it during reconciliation so no restart is needed.
 let SLS_API_KEY = process.env.SLS_API_KEY || "";
-try { SLS_API_KEY = readFileSync("/apikey", "utf8").trim(); } catch {}
+function refreshApiKey() {
+  try {
+    SLS_API_KEY = readFileSync("/apikey", "utf8").trim();
+  } catch {}
+  return SLS_API_KEY;
+}
 
 const activeStreams  = new Map();
 let   isShuttingDown = false;
@@ -37,7 +43,8 @@ function safeId(id) { return id.replace(/[^a-zA-Z0-9_-]/g, "_"); }
 function log(l, ...a) { console[l](`[${new Date().toISOString()}] [hls-manager]`, ...a); }
 
 function authHeaders() {
-  return SLS_API_KEY ? { "Authorization": `Bearer ${SLS_API_KEY}` } : {};
+  const apiKey = refreshApiKey();
+  return apiKey ? { "Authorization": `Bearer ${apiKey}` } : {};
 }
 
 // Fetch configured stream pairs from /api/stream-ids
@@ -152,35 +159,37 @@ async function reconcile() {
   if (isShuttingDown) return;
   try {
     const streamMap = await fetchStreamMap();
-    if (streamMap === null) {
-      log("warn", "Skipping reconciliation because stream mapping is unavailable");
-      return;
-    }
-    const publishers = Object.keys(streamMap);
+    if (streamMap !== null) {
+      const publishers = Object.keys(streamMap);
+      if (publishers.length === 0) {
+        log("info", "No configured streams in /api/stream-ids");
+        for (const id of [...activeStreams.keys()]) stopStream(id);
+      } else {
+        // Check each configured publisher's live status
+        const checks = await Promise.all(
+          publishers.map(async pub => ({ pub, active: await isPublisherActive(pub) }))
+        );
+        const activeSet = new Set(checks.filter(c => c.active).map(c => c.pub));
 
-    if (publishers.length === 0) {
-      log("info", "No configured streams in /api/stream-ids");
-      for (const id of [...activeStreams.keys()]) stopStream(id);
+        // Stop streams that ended
+        for (const [id, e] of activeStreams)
+          if (!activeSet.has(id) && e.proc !== null) stopStream(id);
+
+        // Start streams that began
+        for (const pub of activeSet)
+          if (!activeStreams.has(pub)) startStream(pub, streamMap[pub]);
+
+        const running = [...activeStreams.values()].filter(e => e.proc).length;
+        log("info", `Configured:${publishers.length} Active:${activeSet.size} HLS:${running}`);
+      }
     } else {
-      // Check each configured publisher's live status
-      const checks = await Promise.all(
-        publishers.map(async pub => ({ pub, active: await isPublisherActive(pub) }))
-      );
-      const activeSet = new Set(checks.filter(c => c.active).map(c => c.pub));
-
-      // Stop streams that ended
-      for (const [id, e] of activeStreams)
-        if (!activeSet.has(id) && e.proc !== null) stopStream(id);
-
-      // Start streams that began
-      for (const pub of activeSet)
-        if (!activeStreams.has(pub)) startStream(pub, streamMap[pub]);
-
-      const running = [...activeStreams.values()].filter(e => e.proc).length;
-      log("info", `Configured:${publishers.length} Active:${activeSet.size} HLS:${running}`);
+      log("warn", "Skipping reconciliation because stream mapping is unavailable");
     }
-  } catch (e) { log("error", "reconcile:", e.message); }
-  setTimeout(reconcile, POLL_INTERVAL);
+  } catch (e) {
+    log("error", "reconcile:", e.message);
+  } finally {
+    setTimeout(reconcile, POLL_INTERVAL);
+  }
 }
 
 // Health server
@@ -190,7 +199,7 @@ createServer((req, res) => {
     res.end(JSON.stringify({
       status: "ok", uptime: Math.floor(process.uptime()),
       slsBaseUrl: SLS_BASE_URL,
-      apiKeyConfigured: !!SLS_API_KEY,
+      apiKeyConfigured: !!refreshApiKey(),
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0
@@ -211,6 +220,7 @@ process.on("SIGINT",  shutdown);
 mkdirSync(HLS_PATH, { recursive: true });
 log("info", `=== HLS Manager starting ===`);
 log("info", `SLS base: ${SLS_BASE_URL}`);
-log("info", `API key: ${SLS_API_KEY ? "configured (" + SLS_API_KEY.slice(0,8) + "...)" : "NOT SET"}`);
+const initialApiKey = refreshApiKey();
+log("info", `API key: ${initialApiKey ? "configured (" + initialApiKey.slice(0,8) + "...)" : "NOT SET"}`);
 reconcile();
 
