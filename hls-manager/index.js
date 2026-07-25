@@ -236,6 +236,27 @@ function stopStream(id) {
 }
 
 // Main reconciliation
+async function pollLiveStats() {
+  if (isShuttingDown) return;
+  try {
+    const activeIds = [...activeStreams.keys()];
+    if (activeIds.length > 0) {
+      await Promise.all(
+        activeIds.map(async id => {
+          const stats = await getPublisherStats(id);
+          const entry = activeStreams.get(id);
+          if (entry && stats) {
+            entry.publisherStats = stats;
+          }
+        })
+      );
+    }
+  } catch (_) {}
+  finally {
+    setTimeout(pollLiveStats, 1000);
+  }
+}
+
 async function reconcile() {
   if (isShuttingDown) return;
   try {
@@ -318,4 +339,5 @@ log("info", `SLS base: ${SLS_BASE_URL}`);
 const initialApiKey = refreshApiKey();
 log("info", `API key: ${initialApiKey ? "configured (" + initialApiKey.slice(0,8) + "...)" : "NOT SET"}`);
 reconcile();
+pollLiveStats();
 

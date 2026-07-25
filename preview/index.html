@@ -720,7 +720,7 @@
       <div class="stat-card">
         <div class="stat-label">Last Updated</div>
         <div class="stat-value" id="stat-updated" style="font-size:16px;padding-top:4px;">—</div>
-        <div class="stat-sub">Auto-refresh every 5s</div>
+        <div class="stat-sub">Auto-refresh every 1s</div>
       </div>
     </div>
 
@@ -829,7 +829,7 @@ function startAutoRefresh() {
   refreshTimer = setInterval(() => {
     fetchStats();
     fetchHlsStatus();
-  }, 5000);
+  }, 1000);
 }
 
 function refreshAll() {
@@ -858,7 +858,7 @@ async function fetchStats() {
         return {
           id: pubId,
           name: pubId,
-          bitrate: stats.bitrate || 0,
+          bitrate: stats.bitrate ? (stats.bitrate * 1000) : 0,
           duration: stats.uptime || 0,
           connections: stats.bitrate > 0 ? 1 : 0,
           media: item.media || null,
