@@ -11,8 +11,11 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 | Feature | Description |
 |---------|-------------|
 | 🎬 **Live Preview Button** | Per-stream **🔴 Live** button injected directly into the Management UI — click to watch any stream in a full-screen HLS player modal |
-| 🎬 **Live Preview Dashboard** | Watch any active stream directly in the browser at port 8090 — no VLC, no extra software |
+| 📊 **Real-time Management UI** | Management UI publisher stats automatically refresh every **1 second** (realtime) instead of the default 10 seconds |
+| 🎨 **Unified Design System** | Management UI typography, navbar, scrollbars, and cards fully match the sleek dark theme of the HLS Manager |
+| 🎬 **Live Preview Dashboard** | Watch any active stream directly in the browser at port 9009 — no VLC, no extra software |
 | 🔄 **Multi-Stream HLS Manager** | Automatically starts/stops FFmpeg per active stream; zero configuration |
+| 📈 **Advanced Stream Metrics** | Real-time stream stats including Transcode FPS, Uptime, Viewers, RTT, Packet Drops, and dynamic Bitrate (Mbps) |
 | 📡 **SLS API Integration** | Uses the correct SLS REST API endpoints: `/stats/{stream_id}` and `/api/stream-ids` — no CORS issues |
 | 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager, preview UI, and mgmt-proxy |
 
@@ -47,7 +50,7 @@ If you'd like to support the original project, please visit the GoFundMe page: [
 | `4000` | UDP | SRT player output |
 | `8080` | TCP | SLS Stats API |
 | `3000` | TCP | Management UI (via mgmt-proxy with Live Preview injection) |
-| `8090` | TCP | **Standalone Live Preview** dashboard |
+| `9009` | TCP | **Standalone Live Preview** dashboard (HLS Manager) |
 
 ### Install the Receiver
 
