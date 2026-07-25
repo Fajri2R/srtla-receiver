@@ -319,7 +319,11 @@
         padding: 7px;
         border-radius: var(--radius-sm);
       }
-      .header-badge span { display: none; }
+      .header-badge span {
+        display: inline;
+        font-size: 11px;
+        white-space: nowrap;
+      }
       .pulse-dot { width: 8px; height: 8px; }
       .btn-refresh, .btn-mgmt, .btn-config-toggle {
         flex: 0 0 36px;
@@ -344,7 +348,8 @@
       .header-inner { gap: 6px; }
       .logo { gap: 8px; }
       .logo-text { display: none; }
-      .header-badge { padding: 6px; }
+      .header-badge { padding: 6px 8px; gap: 4px; }
+      .header-badge span { font-size: 10px; }
       .btn-refresh, .btn-mgmt, .btn-config-toggle { flex-basis: 34px; min-width: 34px; height: 34px; }
       .stats-overview, .streams-grid { grid-template-columns: 1fr; }
       .card-actions { flex-direction: column; }
@@ -694,15 +699,10 @@
 
       <div class="header-spacer"></div>
 
-      <div class="header-badge" id="connection-status">
-        <div class="pulse-dot"></div>
-        <span>Connecting…</span>
-      </div>
-
-      <!-- ✅ FIX #15: HLS Manager status badge -->
-      <div class="header-badge" id="hls-status" title="HLS Manager status" style="cursor:default">
+      <div class="header-badge" id="hls-status" role="status" aria-live="polite"
+           title="Checking HLS service status" style="cursor:default">
         <div class="pulse-dot" style="background:var(--yellow)"></div>
-        <span>HLS Manager…</span>
+        <span>HLS: checking...</span>
       </div>
 
 
@@ -834,6 +834,7 @@ const hlsInstances = {};
 // Timer for auto-refresh
 let refreshTimer = null;
 let statsRequestId = 0;
+let hlsStatusState = null;
 // Track which streams are "playing"
 const playingStreams = new Set();
 
@@ -846,7 +847,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('input-mgmt-port').value = config.mgmtPort;
   updateMgmtLink();
   fetchStats();
-  fetchHlsStatus();
   startAutoRefresh();
 
   // ✅ FIX #10: Stop polling when tab is hidden, resume when visible
@@ -901,10 +901,7 @@ function saveConfig() {
 ================================================================ */
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => {
-    fetchStats();
-    fetchHlsStatus();
-  }, 1000);
+  refreshTimer = setInterval(fetchStats, 1000);
 }
 
 function refreshAll() {
@@ -942,7 +939,7 @@ async function fetchStats() {
         };
       }).filter(Boolean);
       if (requestId !== statsRequestId) return;
-      updateConnectionStatus(true);
+      updateHlsStatus(hlsData.running);
       renderDashboard({ publishers });
       return;
     }
@@ -950,21 +947,39 @@ async function fetchStats() {
     console.warn("HLS status fetch failed:", err.message);
   }
   if (requestId !== statsRequestId) return;
-  updateConnectionStatus(false, "HLS Manager unreachable");
+  updateHlsStatus(null, "HLS Manager unreachable");
 }
 
 /* ================================================================
-   CONNECTION STATUS
+   HLS SERVICE STATUS
 ================================================================ */
-function updateConnectionStatus(online, errMsg) {
-  const el = document.getElementById('connection-status');
-  if (online) {
-    el.innerHTML = `<div class="pulse-dot"></div><span>Connected</span>`;
-    el.style.color = '';
-  } else {
-    el.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div><span>Offline</span>`;
-    if (errMsg) showToast(`Stats API unavailable: ${errMsg}`, 'error');
+function updateHlsStatus(running, errorMessage) {
+  const badge = document.getElementById('hls-status');
+  if (!badge) return;
+
+  if (errorMessage) {
+    badge.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div><span>HLS: offline</span>`;
+    badge.title = 'HLS Manager API is unreachable';
+    badge.setAttribute('aria-label', badge.title);
+    if (hlsStatusState !== 'offline') {
+      showToast(`HLS Manager unavailable: ${errorMessage}`, 'error');
+    }
+    hlsStatusState = 'offline';
+    return;
   }
+
+  const activeStreams = Math.max(0, Number.parseInt(running, 10) || 0);
+  const isActive = activeStreams > 0;
+  hlsStatusState = isActive ? 'active' : 'ready';
+  const label = isActive ? `HLS: ${activeStreams} active` : 'HLS: ready';
+  const description = isActive
+    ? `HLS service online - ${activeStreams} stream${activeStreams === 1 ? '' : 's'} transcoding`
+    : 'HLS service online - waiting for a live stream';
+  const color = isActive ? 'var(--green)' : 'var(--yellow)';
+
+  badge.innerHTML = `<div class="pulse-dot" style="background:${color}"></div><span>${label}</span>`;
+  badge.title = description;
+  badge.setAttribute('aria-label', description);
 }
 
 /* ================================================================
@@ -1326,26 +1341,6 @@ function copyStreamUrl(id) {
   }
 }
 
-/* ================================================================
-   HLS MANAGER STATUS
-   ✅ FIX #15: Poll /api/hls-status and update badge
-================================================================ */
-async function fetchHlsStatus() {
-  const badge = document.getElementById('hls-status');
-  if (!badge) return;
-  try {
-    const res = await fetch(`${window.location.origin}/api/hls-status`,
-      { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const running = data.running ?? data.activeStreams ?? 0;
-    badge.innerHTML = `<div class="pulse-dot" style="background:var(--green)"></div>
-      <span>HLS: ${running} active</span>`;
-  } catch (_) {
-    badge.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div>
-      <span>HLS Manager</span>`;
-  }
-}
 
 /* ================================================================
    HELPERS
