@@ -16,6 +16,12 @@
   /* ── Config ──────────────────────────────────────────────────────── */
   var BASE    = location.protocol + '//' + location.host;
   var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':9009';
+  /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
+  var fontP1 = document.createElement('link'); fontP1.rel = 'preconnect'; fontP1.href = 'https://fonts.googleapis.com';
+  var fontP2 = document.createElement('link'); fontP2.rel = 'preconnect'; fontP2.href = 'https://fonts.gstatic.com'; fontP2.crossOrigin = 'anonymous';
+  var fontL = document.createElement('link'); fontL.rel = 'stylesheet'; fontL.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap';
+  document.head.append(fontP1, fontP2, fontL);
+
 
   /* ── HLS.js (lazy load) ──────────────────────────────────────────── */
   var hlsScript = document.createElement('script');
@@ -217,6 +223,8 @@
   themeCss.id = 'hls-manager-theme';
   themeCss.textContent = [
     ':root { --bs-body-bg: #0a0e1a; --bs-body-color: #f1f5f9; --bs-primary: #6366f1; --bs-primary-rgb: 99,102,241; --bs-secondary-color: #94a3b8; --bs-border-color: rgba(255,255,255,.12); }',
+    'html, body, button, input, select, textarea { font-family: "Inter", system-ui, -apple-system, sans-serif !important; }',
+    'h1, h2, h3, h4, h5, h6, .navbar-brand { letter-spacing: -0.3px; font-weight: 700 !important; }',
     'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; display: flex !important; flex-direction: column !important; margin: 0 !important; } #root { position: relative; z-index: 1; flex: 1 0 auto !important; min-height: 0 !important; background: transparent !important; color: #f1f5f9 !important; }',
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
     '.mgmt-footer { text-align: center; padding: 24px; font-size: 12px; color: #475569; border-top: 1px solid rgba(255,255,255,.06); margin-top: auto; position: relative; z-index: 1; width: 100%; flex-shrink: 0; }',
@@ -231,7 +239,7 @@
     '.form-control, .form-select, .input-group-text, textarea { background: #0f172a !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.14) !important; }',
     '.form-control:focus, .form-select:focus, textarea:focus { background: #111827 !important; color: #f1f5f9 !important; border-color: #818cf8 !important; box-shadow: 0 0 0 .2rem rgba(99,102,241,.20) !important; }',
     '.form-control::placeholder { color: #64748b !important; }',
-    '.btn-primary, .btn-outline-primary:hover { background: #6366f1 !important; border-color: #6366f1 !important; color: #fff !important; box-shadow: 0 4px 12px rgba(99,102,241,.28); }',
+    '.btn-primary, .btn-outline-primary:hover { background: linear-gradient(135deg, #6366f1, #7c3aed) !important; border: none !important; color: #fff !important; font-weight: 600 !important; box-shadow: 0 4px 12px rgba(99,102,241,.28) !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; }',
     '.btn-primary:hover { background: #4f46e5 !important; border-color: #4f46e5 !important; }',
     '.btn-outline-primary { color: #a5b4fc !important; border-color: #6366f1 !important; }',
     '.btn-secondary, .btn-outline-secondary { background: #1e293b !important; color: #cbd5e1 !important; border-color: rgba(255,255,255,.14) !important; }',
@@ -239,7 +247,8 @@
     'a { color: #a5b4fc; } a:hover { color: #c7d2fe; }',
     '.text-muted, .text-secondary, small { color: #94a3b8 !important; }',
     '.badge.bg-primary, .bg-primary { background-color: #6366f1 !important; }',
-    '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,.22) !important; }',
+    '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 16px !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; }',
+    '.publisher-card:hover { border-color: rgba(99,102,241,.5) !important; box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 0 40px rgba(99,102,241,.15) !important; transform: translateY(-2px); }',
     '.lp-btn { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important; box-shadow: 0 2px 8px rgba(99,102,241,.35) !important; }',
     '.lp-btn:hover { box-shadow: 0 4px 14px rgba(99,102,241,.52) !important; }',
     '#lp-badge { background: rgba(99,102,241,.14) !important; border-color: rgba(129,140,248,.42) !important; }',
