@@ -155,7 +155,7 @@
       50%      { opacity: 0.5; transform: scale(0.8); }
     }
 
-    .btn-refresh, .btn-mgmt {
+    .btn-refresh, .btn-mgmt, .btn-config-toggle {
       display: flex;
       align-items: center;
       gap: 7px;
@@ -169,7 +169,7 @@
       cursor: pointer;
       transition: var(--transition);
     }
-    .btn-refresh:hover, .btn-mgmt:hover {
+    .btn-refresh:hover, .btn-mgmt:hover, .btn-config-toggle:hover {
       color: var(--text-primary);
       border-color: var(--border-accent);
       background: var(--bg-card);
@@ -653,6 +653,15 @@
         <span>HLS Manager…</span>
       </div>
 
+
+      <button class="btn-refresh" id="btn-config-toggle" title="Toggle Configuration" onclick="toggleConfig()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Config
+      </button>
+
       <button class="btn-refresh" id="btn-refresh" title="Refresh streams" onclick="refreshAll()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -675,7 +684,7 @@
   <main class="main">
 
     <!-- SETTINGS -->
-    <div class="settings-bar" id="settings-bar">
+    <div class="settings-bar" id="settings-bar" style="display:none">
       <span class="settings-label">⚙ Config</span>
       <div class="settings-group">
         <label for="input-stats-url">Stats API URL</label>
@@ -802,6 +811,20 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ================================================================
    CONFIG
 ================================================================ */
+function toggleConfig() {
+  const bar = document.getElementById('settings-bar');
+  const btn = document.getElementById('btn-config-toggle');
+  if (bar.style.display === 'none' || !bar.style.display) {
+    bar.style.display = 'flex';
+    btn.style.borderColor = 'var(--border-accent)';
+    btn.style.color = 'var(--text-primary)';
+  } else {
+    bar.style.display = 'none';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
 function updateMgmtLink() {
   const btn = document.getElementById('btn-mgmt');
   if (!btn) return;
