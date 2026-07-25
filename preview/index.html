@@ -819,25 +819,40 @@ function refreshAll() {
    SLS exposes GET /stats → JSON with publisher list
 ================================================================ */
 async function fetchStats() {
-  // Try the nginx proxy path first (when opened via the preview container),
-  // then fall back to the configured direct stats URL.
-  const urls = [];
-  if (IS_SAME_ORIGIN) urls.push(`${window.location.origin}/api/stats`);
-  if (config.statsUrl) urls.push(`${config.statsUrl}/stats`);
-
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+  try {
+    const origin = IS_SAME_ORIGIN ? window.location.origin : (config.hlsBase ? config.hlsBase.replace(/\/hls\/?$/, "") : "");
+    const hlsRes = await fetch(origin + "/api/hls-status", { signal: AbortSignal.timeout(3000) });
+    if (hlsRes.ok) {
+      const hlsData = await hlsRes.json();
+      const streams = hlsData.streams || [];
+      const publishers = await Promise.all(streams.map(async (item) => {
+        const pubId = item.id;
+        if (!pubId) return null;
+        try {
+          const statRes = await fetch(origin + "/api/stats/" + encodeURIComponent(pubId), { signal: AbortSignal.timeout(3000) });
+          if (statRes.ok) {
+            const statData = await statRes.json();
+            const pub = statData.publisher || {};
+            return {
+              id: pubId,
+              name: pubId,
+              bitrate: pub.bitrate || 0,
+              duration: pub.uptime || 0,
+              connections: pub.bitrate > 0 ? 1 : 0,
+            };
+          }
+        } catch (_) {}
+        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0 };
+      }));
+      const valid = publishers.filter(Boolean);
       updateConnectionStatus(true);
-      renderDashboard(data);
+      renderDashboard({ publishers: valid });
       return;
-    } catch (err) {
-      console.warn(`Stats fetch failed (${url}):`, err.message);
     }
+  } catch (err) {
+    console.warn("HLS status fetch failed:", err.message);
   }
-  updateConnectionStatus(false, 'Stats API unreachable');
+  updateConnectionStatus(false, "HLS Manager unreachable");
 }
 
 /* ================================================================
