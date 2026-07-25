@@ -6,7 +6,7 @@
  *   GET /health          (no auth)      -> SLS health
  */
 import { spawn }             from "child_process";
-import { mkdirSync, rmSync, readFileSync } from "fs";
+import { mkdirSync, rmSync, readFileSync, existsSync, statSync, openSync, readSync, closeSync } from "fs";
 import { join }              from "path";
 import { createServer }      from "http";
 
@@ -24,6 +24,8 @@ const SLS_BASE_URL  = process.env.SLS_STATS_URL
   ? process.env.SLS_STATS_URL.replace(/\/[^/]+$/, "")
   : "http://receiver:8080";
 const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE_URL + "/api/stream-ids");
+const VIEWER_LOG_PATH = process.env.VIEWER_LOG_PATH || "/logs/hls-access.log";
+const VIEWER_WINDOW = Math.max(parseInt(process.env.VIEWER_WINDOW || "12", 10), 4) * 1000;
 
 // The mounted file is the source of truth because receiver.sh writes it after
 // SLS creates the initial key. Re-read it during reconciliation so no restart is needed.
@@ -38,8 +40,53 @@ function refreshApiKey() {
 const activeStreams  = new Map();
 let   isShuttingDown = false;
 let   lastDebug      = 0;
+let   viewerLogOffset = 0;
+let   viewerLogRemainder = "";
+const viewerSeen = new Map();
 
 function safeId(id) { return id.replace(/[^a-zA-Z0-9_-]/g, "_"); }
+function pruneViewers(now = Date.now()) {
+  for (const [streamId, viewers] of viewerSeen) {
+    for (const [address, lastSeen] of viewers) {
+      if (now - lastSeen > VIEWER_WINDOW) viewers.delete(address);
+    }
+    if (viewers.size === 0) viewerSeen.delete(streamId);
+  }
+}
+function viewerCount(streamId) {
+  pruneViewers();
+  return viewerSeen.get(safeId(streamId))?.size || 0;
+}
+function pollViewerLog() {
+  try {
+    if (existsSync(VIEWER_LOG_PATH)) {
+      const size = statSync(VIEWER_LOG_PATH).size;
+      if (size < viewerLogOffset) viewerLogOffset = 0;
+      if (size > viewerLogOffset) {
+        const fd = openSync(VIEWER_LOG_PATH, "r");
+        const buffer = Buffer.alloc(size - viewerLogOffset);
+        readSync(fd, buffer, 0, buffer.length, viewerLogOffset);
+        closeSync(fd);
+        viewerLogOffset = size;
+        const lines = (viewerLogRemainder + buffer.toString()).split("\n");
+        viewerLogRemainder = lines.pop() || "";
+        const now = Date.now();
+        for (const line of lines) {
+          const match = line.match(/^(\S+) "(?:GET|HEAD) \/hls\/([^\/?]+)\//);
+          if (!match || !/" [23]\d\d$/.test(line.trim())) continue;
+          const [, address, streamId] = match;
+          if (!viewerSeen.has(streamId)) viewerSeen.set(streamId, new Map());
+          viewerSeen.get(streamId).set(address, now);
+        }
+      }
+    }
+    pruneViewers();
+  } catch (e) {
+    log("warn", "viewer log:", e.message);
+  } finally {
+    if (!isShuttingDown) setTimeout(pollViewerLog, 1000);
+  }
+}
 function log(l, ...a) { console[l](`[${new Date().toISOString()}] [hls-manager]`, ...a); }
 function parseFrameRate(rate) {
   const [numerator, denominator] = String(rate || "0/0").split("/").map(Number);
@@ -318,7 +365,7 @@ createServer((req, res) => {
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null, ready: !!e.ready
+        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null, ready: !!e.ready, viewers: viewerCount(id)
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }
@@ -340,4 +387,5 @@ const initialApiKey = refreshApiKey();
 log("info", `API key: ${initialApiKey ? "configured (" + initialApiKey.slice(0,8) + "...)" : "NOT SET"}`);
 reconcile();
 pollLiveStats();
+pollViewerLog();
 

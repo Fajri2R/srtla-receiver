@@ -860,7 +860,7 @@ async function fetchStats() {
           name: pubId,
           bitrate: stats.bitrate ? (stats.bitrate * 1000) : 0,
           duration: stats.uptime || 0,
-          connections: stats.bitrate > 0 ? 1 : 0,
+          connections: item.viewers || 0,
           media: item.media || null,
           transcoder: item.transcoder || null,
           publisherStats: stats,
