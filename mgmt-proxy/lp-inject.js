@@ -235,7 +235,7 @@
     'a { color: #a5b4fc; } a:hover { color: #c7d2fe; }',
     '.text-muted, .text-secondary, small { color: #94a3b8 !important; }',
     '.badge.bg-primary, .bg-primary { background-color: #6366f1 !important; }',
-    '.publisher-card, [class*="publisher-card"] { background: #111827 !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,.22); }',
+    '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,.22) !important; }',
     '.lp-btn { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important; box-shadow: 0 2px 8px rgba(99,102,241,.35) !important; }',
     '.lp-btn:hover { box-shadow: 0 4px 14px rgba(99,102,241,.52) !important; }',
     '#lp-badge { background: rgba(99,102,241,.14) !important; border-color: rgba(129,140,248,.42) !important; }',
