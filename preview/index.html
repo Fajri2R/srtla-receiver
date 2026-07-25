@@ -827,31 +827,24 @@ async function fetchStats() {
     if (hlsRes.ok) {
       const hlsData = await hlsRes.json();
       const streams = hlsData.streams || [];
-      const publishers = await Promise.all(streams.map(async (item) => {
+      const publishers = streams.map((item) => {
         const pubId = item.id;
         if (!pubId) return null;
-        try {
-          const statRes = await fetch(origin + "/api/stats/" + encodeURIComponent(pubId), { cache: "no-store", signal: AbortSignal.timeout(3000) });
-          if (statRes.ok) {
-            const statData = await statRes.json();
-            const pub = statData.publisher || {};
-            return {
-              id: pubId,
-              name: pubId,
-              bitrate: pub.bitrate || 0,
-              duration: pub.uptime || 0,
-              connections: pub.bitrate > 0 ? 1 : 0,
-              media: item.media || null,
-              transcoder: item.transcoder || null,
-            };
-          }
-        } catch (_) {}
-        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0, media: item.media || null, transcoder: item.transcoder || null };
-      }));
-      const valid = publishers.filter(Boolean);
+        const stats = item.publisherStats || {};
+        return {
+          id: pubId,
+          name: pubId,
+          bitrate: stats.bitrate || 0,
+          duration: stats.uptime || 0,
+          connections: stats.bitrate > 0 ? 1 : 0,
+          media: item.media || null,
+          transcoder: item.transcoder || null,
+          publisherStats: stats,
+        };
+      }).filter(Boolean);
       if (requestId !== statsRequestId) return;
       updateConnectionStatus(true);
-      renderDashboard({ publishers: valid });
+      renderDashboard({ publishers });
       return;
     }
   } catch (err) {
@@ -1241,6 +1234,7 @@ function renderMetrics(p) {
   const duration    = p.duration || p.alive_time || 0;
   const media       = p.media || null;
   const transcoder  = p.transcoder || null;
+  const publisherStats = p.publisherStats || null;
   let mediaChips    = "";
 
   if (media && media.video) {
@@ -1282,6 +1276,18 @@ function renderMetrics(p) {
     }
     if (transcoder.droppedFrames || transcoder.duplicatedFrames) {
       mediaChips += `<div class="metric-chip" title="FFmpeg frame corrections"><strong>Drop ${transcoder.droppedFrames || 0} | Dup ${transcoder.duplicatedFrames || 0}</strong></div>`;
+    }
+  }
+  if (publisherStats) {
+    const rtt = publisherStats.rtt ? `${parseFloat(publisherStats.rtt).toFixed(1)} ms` : "";
+    const drops = publisherStats.dropped_pkts !== undefined ? `${publisherStats.dropped_pkts} drops` : "";
+    if (rtt || drops) {
+      mediaChips += `
+        <div class="metric-chip" title="SLS Stream Connection stats" style="border-color:var(--yellow);background:var(--yellow-dim)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          <strong>RTT: ${rtt || "N/A"}${drops ? " | " + drops : ""}</strong>
+        </div>
+      `;
     }
   }
   return `

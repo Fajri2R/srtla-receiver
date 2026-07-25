@@ -143,25 +143,19 @@ async function fetchStreamMap() {
 
 // Check if a specific publisher is currently streaming via /stats/{id}
 // Returns true if active, false if not
-async function isPublisherActive(pubId) {
+async function getPublisherStats(pubId) {
   try {
     const res = await fetch(`${SLS_BASE_URL}/stats/${encodeURIComponent(pubId)}`, {
       signal: AbortSignal.timeout(4000),
     });
-    if (!res.ok) return false;  // 404 = not streaming
+    if (!res.ok) return null;
     const body = await res.json();
-    // Response: {"publisher":{...},"status":"ok"}
-    const active = body.status === "ok" && !!body.publisher && (body.publisher.bitrate || 0) > 0;
-    if (active) {
-      const kbr = body.publisher.bitrate || 0;
-      if (Date.now() - lastDebug > 30000) {
-        lastDebug = Date.now();
-        log("info", `  [debug] ${pubId}: bitrate=${kbr} uptime=${body.publisher.uptime}s`);
-      }
+    if (body.status === "ok" && body.publisher) {
+      return body.publisher;
     }
-    return active;
+    return null;
   } catch (e) {
-    return false;
+    return null;
   }
 }
 
@@ -222,7 +216,7 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null });
+  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null });
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
@@ -253,7 +247,10 @@ async function reconcile() {
       } else {
         // Check each configured publisher's live status
         const checks = await Promise.all(
-          publishers.map(async pub => ({ pub, active: await isPublisherActive(pub) }))
+          publishers.map(async pub => {
+            const stats = await getPublisherStats(pub);
+            return { pub, stats, active: !!stats && (stats.bitrate || 0) > 0 };
+          })
         );
         const activeSet = new Set(checks.filter(c => c.active).map(c => c.pub));
 
@@ -264,6 +261,16 @@ async function reconcile() {
         // Start streams that began
         for (const pub of activeSet)
           if (!activeStreams.has(pub)) startStream(pub, streamMap[pub]);
+
+        // Update stats for active streams
+        for (const c of checks) {
+          if (c.active) {
+            const entry = activeStreams.get(c.pub);
+            if (entry) {
+              entry.publisherStats = c.stats;
+            }
+          }
+        }
 
         const running = [...activeStreams.values()].filter(e => e.proc).length;
         log("info", `Configured:${publishers.length} Active:${activeSet.size} HLS:${running}`);
@@ -289,7 +296,7 @@ createServer((req, res) => {
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        media: e.media || null, transcoder: e.transcoder || null
+        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }
