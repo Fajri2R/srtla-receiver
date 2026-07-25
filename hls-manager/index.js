@@ -41,6 +41,50 @@ let   lastDebug      = 0;
 
 function safeId(id) { return id.replace(/[^a-zA-Z0-9_-]/g, "_"); }
 function log(l, ...a) { console[l](`[${new Date().toISOString()}] [hls-manager]`, ...a); }
+function parseFrameRate(rate) {
+  const [numerator, denominator] = String(rate || "0/0").split("/").map(Number);
+  if (!numerator || !denominator) return 0;
+  return Math.round((numerator / denominator) * 100) / 100;
+}
+
+function probeStream(streamId, playlist, expectedProc, attempt = 0) {
+  const entry = activeStreams.get(streamId);
+  if (!entry || entry.proc !== expectedProc || isShuttingDown) return;
+
+  const probe = spawn("ffprobe", [
+    "-v", "error",
+    "-show_entries", "stream=codec_type,codec_name,profile,width,height,avg_frame_rate,r_frame_rate,pix_fmt,sample_rate,channels",
+    "-of", "json", playlist,
+  ], { stdio: ["ignore", "pipe", "ignore"] });
+  let output = "";
+  probe.stdout.on("data", data => { output += data; });
+  probe.on("close", code => {
+    const current = activeStreams.get(streamId);
+    if (!current || current.proc !== expectedProc || isShuttingDown) return;
+    try {
+      const streams = code === 0 ? (JSON.parse(output).streams || []) : [];
+      const video = streams.find(stream => stream.codec_type === "video");
+      const audio = streams.find(stream => stream.codec_type === "audio");
+      if (video) {
+        current.media = {
+          video: {
+            codec: video.codec_name || null, profile: video.profile || null,
+            width: video.width || null, height: video.height || null,
+            fps: parseFrameRate(video.avg_frame_rate || video.r_frame_rate),
+            pixelFormat: video.pix_fmt || null,
+          },
+          audio: audio ? {
+            codec: audio.codec_name || null, profile: audio.profile || null,
+            sampleRate: Number(audio.sample_rate) || null, channels: audio.channels || null,
+          } : null,
+        };
+        log("info", `  Media [${streamId}]: ${video.width}x${video.height} ${current.media.video.fps}fps ${video.codec_name}`);
+        return;
+      }
+    } catch {}
+    if (attempt < 5) setTimeout(() => probeStream(streamId, playlist, expectedProc, attempt + 1), 2000);
+  });
+}
 
 function authHeaders() {
   const apiKey = refreshApiKey();
@@ -137,7 +181,8 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null });
+  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null });
+  setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
 function stopStream(id) {
@@ -202,7 +247,7 @@ createServer((req, res) => {
       apiKeyConfigured: !!refreshApiKey(),
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
-        id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0
+        id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0, media: e.media || null
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }

@@ -839,10 +839,11 @@ async function fetchStats() {
               bitrate: pub.bitrate || 0,
               duration: pub.uptime || 0,
               connections: pub.bitrate > 0 ? 1 : 0,
+              media: item.media || null,
             };
           }
         } catch (_) {}
-        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0 };
+        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0, media: item.media || null };
       }));
       const valid = publishers.filter(Boolean);
       updateConnectionStatus(true);
@@ -1236,8 +1237,38 @@ function renderMetrics(p) {
   const bitrate     = p.bitrate || p.recv_bitrate || 0;
   const connections = p.connections || p.client_counts || 0;
   const duration    = p.duration || p.alive_time || 0;
+  const media       = p.media || null;
+  let mediaChips    = "";
+
+  if (media && media.video) {
+    const video = media.video;
+    const resolution = video.width && video.height ? `${video.width}x${video.height}` : "";
+    const frameRate = video.fps ? `${video.fps} FPS` : "";
+    const videoCodec = video.codec ? video.codec.toUpperCase() : "";
+    if (resolution || frameRate || videoCodec) {
+      mediaChips += `
+        <div class="metric-chip" title="Video settings" style="border-color:var(--border-accent);background:var(--accent-glow)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          <strong>${resolution}${frameRate ? " ? " + frameRate : ""}</strong>
+        </div>
+        <div class="metric-chip" title="Video codec"><strong>${videoCodec}${video.profile ? " " + video.profile : ""}</strong></div>
+      `;
+    }
+    if (media.audio && media.audio.codec) {
+      const audio = media.audio;
+      const audioRate = audio.sampleRate ? ` ? ${Math.round(audio.sampleRate / 1000)} kHz` : "";
+      const audioChannels = audio.channels ? ` ? ${audio.channels}ch` : "";
+      mediaChips += `
+        <div class="metric-chip" title="Audio settings">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          <strong>${audio.codec.toUpperCase()}${audioRate}${audioChannels}</strong>
+        </div>
+      `;
+    }
+  }
 
   return `
+    ${mediaChips}
     <div class="metric-chip">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
       <strong>${formatBitrate(bitrate)}</strong>
