@@ -220,6 +220,7 @@
     'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; } #root { position: relative; z-index: 1; min-height: 100vh; background: transparent !important; color: #f1f5f9 !important; }',
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
     '.navbar, nav, header { background: rgba(17,24,39,.96) !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25); }',
+    '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 6px; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 0 16px rgba(99,102,241,.25); } .mgmt-brand-icon i { margin: 0 !important; font-size: 18px !important; line-height: 1; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
     '.card, .modal-content, .dropdown-menu, .accordion-item, .list-group-item { background: #111827 !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.10) !important; box-shadow: 0 4px 24px rgba(0,0,0,.24); }',
     '.card-header, .card-footer, .modal-header, .modal-footer, .accordion-button { background: #1a2235 !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.10) !important; }',
     '.accordion-button:not(.collapsed) { color: #c7d2fe !important; box-shadow: inset 0 -1px 0 rgba(255,255,255,.10) !important; }',
@@ -247,7 +248,7 @@
     '.hls-manager-nav-btn:hover, button[title="Settings"]:hover { background: #1e2a3d !important; border-color: rgba(99,102,241,.5) !important; color: #f1f5f9 !important; transform: none !important; }',
     '.navbar .container-fluid { display: flex !important; align-items: center !important; } .navbar .ms-auto { display: flex !important; flex-flow: row nowrap !important; align-items: center !important; gap: 8px; }',
     '@media (max-width: 991.98px) { .navbar, nav, header { min-height: 56px; padding: 8px 16px !important; } .navbar > .container, .navbar > .container-fluid, nav > .container, nav > .container-fluid, header > .container, header > .container-fluid { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 8px !important; min-width: 0; } .navbar .ms-auto { flex: 0 0 auto !important; margin-left: auto !important; } .navbar-brand, .navbar .navbar-brand { flex: 1 1 auto !important; min-width: 0; margin-right: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px !important; } .navbar-collapse, .navbar .navbar-collapse { display: flex !important; flex: 0 0 auto !important; width: auto !important; margin: 0 !important; } .hls-manager-nav-btn { flex: 0 0 36px !important; width: 36px !important; min-width: 36px !important; height: 36px !important; margin: 0 !important; padding: 0 !important; justify-content: center !important; gap: 0 !important; font-size: 0 !important; } button[title="Settings"] { flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; height: 36px !important; margin: 0 !important; padding: 0 12px !important; justify-content: center !important; gap: 7px !important; font-size: 13px !important; white-space: nowrap !important; } .hls-manager-nav-btn i, button[title="Settings"] i { font-size: 16px !important; } .hls-manager-nav-btn svg, button[title="Settings"] svg { width: 16px !important; height: 16px !important; } }',
-    '@media (max-width: 600px) { .navbar, nav, header { padding-left: 12px !important; padding-right: 12px !important; } .navbar-brand, .navbar .navbar-brand { flex: 0 0 28px !important; width: 28px !important; font-size: 0 !important; } .navbar-brand i, .navbar .navbar-brand i { margin: 0 !important; font-size: 21px !important; } .hls-manager-nav-btn { flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; } button[title="Settings"] { height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } }'
+    '@media (max-width: 600px) { .navbar, nav, header { padding-left: 12px !important; padding-right: 12px !important; } .navbar-brand, .navbar .navbar-brand { flex: 0 0 34px !important; width: 34px !important; font-size: 0 !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex-basis: 32px; } .mgmt-brand-text { display: none; } .hls-manager-nav-btn { flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; } button[title="Settings"] { height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } }'
   ].join('\n');
   document.head.appendChild(themeCss);
 
@@ -366,6 +367,15 @@
   /* ── Button injection ────────────────────────────────────────────── */
   var DONE = 'data-lp-ok';
 
+  function enhanceNavbarBrand() {
+    document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
+      brand.dataset.mgmtBrand = '1';
+      brand.classList.add('mgmt-brand');
+      brand.setAttribute('aria-label', 'SRT Live Server Management');
+      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><i class="bi bi-play-fill"></i></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
+    });
+  }
+
   function injectHlsManagerButton() {
     document.querySelectorAll('button[title="Settings"]').forEach(function (settingsBtn) {
       settingsBtn.setAttribute('aria-label', 'Settings');
@@ -391,6 +401,7 @@
   }
 
   function injectButtons() {
+    enhanceNavbarBrand();
     injectHlsManagerButton();
     document.querySelectorAll('button[title="Add Player"]:not([' + DONE + '])').forEach(function (btn) {
       btn.setAttribute(DONE, '1');
