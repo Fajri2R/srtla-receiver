@@ -14,8 +14,7 @@
   window.__lp = true;
 
   /* ── Config ──────────────────────────────────────────────────────── */
-  var LP_PORT = 8090;
-  var BASE    = location.protocol + '//' + location.hostname + ':' + LP_PORT;
+  var BASE    = location.protocol + '//' + location.host;
 
   /* ── HLS.js (lazy load) ──────────────────────────────────────────── */
   var hlsScript = document.createElement('script');
