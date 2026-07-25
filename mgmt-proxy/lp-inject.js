@@ -15,7 +15,7 @@
 
   /* ── Config ──────────────────────────────────────────────────────── */
   var BASE    = location.protocol + '//' + location.host;
-  var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':9009';
+  var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':8090';
   /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
   var fontP1 = document.createElement('link'); fontP1.rel = 'preconnect'; fontP1.href = 'https://fonts.googleapis.com';
   var fontP2 = document.createElement('link'); fontP2.rel = 'preconnect'; fontP2.href = 'https://fonts.gstatic.com'; fontP2.crossOrigin = 'anonymous';
