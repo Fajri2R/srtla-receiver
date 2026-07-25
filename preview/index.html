@@ -842,10 +842,11 @@ async function fetchStats() {
               duration: pub.uptime || 0,
               connections: pub.bitrate > 0 ? 1 : 0,
               media: item.media || null,
+              transcoder: item.transcoder || null,
             };
           }
         } catch (_) {}
-        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0, media: item.media || null };
+        return { id: pubId, name: pubId, bitrate: 0, duration: 0, connections: 0, media: item.media || null, transcoder: item.transcoder || null };
       }));
       const valid = publishers.filter(Boolean);
       if (requestId !== statsRequestId) return;
@@ -1239,6 +1240,7 @@ function renderMetrics(p) {
   const connections = p.connections || p.client_counts || 0;
   const duration    = p.duration || p.alive_time || 0;
   const media       = p.media || null;
+  const transcoder  = p.transcoder || null;
   let mediaChips    = "";
 
   if (media && media.video) {
@@ -1268,6 +1270,20 @@ function renderMetrics(p) {
     }
   }
 
+  if (transcoder) {
+    const realtimeFps = transcoder.realtimeFps ? `${transcoder.realtimeFps.toFixed(2)} FPS` : "";
+    const speed = transcoder.speed ? `${transcoder.speed.toFixed(2)}x` : "";
+    const detail = [realtimeFps, speed].filter(Boolean).join(" | ");
+    if (detail) {
+      mediaChips += `<div class="metric-chip" title="FFmpeg realtime output"><strong>${detail}</strong></div>`;
+    }
+    if (transcoder.frames) {
+      mediaChips += `<div class="metric-chip" title="Frames processed by FFmpeg"><strong>${transcoder.frames.toLocaleString()} frames</strong></div>`;
+    }
+    if (transcoder.droppedFrames || transcoder.duplicatedFrames) {
+      mediaChips += `<div class="metric-chip" title="FFmpeg frame corrections"><strong>Drop ${transcoder.droppedFrames || 0} | Dup ${transcoder.duplicatedFrames || 0}</strong></div>`;
+    }
+  }
   return `
     ${mediaChips}
     <div class="metric-chip">

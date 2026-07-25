@@ -86,6 +86,29 @@ function probeStream(streamId, playlist, expectedProc, attempt = 0) {
   });
 }
 
+function parseProgressNumber(value) {
+  const number = Number.parseFloat(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function updateTranscoderStats(streamId, expectedProc, values) {
+  const entry = activeStreams.get(streamId);
+  if (!entry || entry.proc !== expectedProc || isShuttingDown) return;
+
+  const previous = entry.transcoder || {};
+  const bitrateKbps = parseProgressNumber(values.bitrate?.replace("kbits/s", ""));
+  const speed = parseProgressNumber(values.speed?.replace("x", ""));
+  entry.transcoder = {
+    ...previous,
+    frames: Number.parseInt(values.frame, 10) || previous.frames || 0,
+    realtimeFps: parseProgressNumber(values.fps) ?? previous.realtimeFps ?? null,
+    speed: speed ?? previous.speed ?? null,
+    bitrateKbps: bitrateKbps ?? previous.bitrateKbps ?? null,
+    droppedFrames: Number.parseInt(values.drop_frames, 10) || 0,
+    duplicatedFrames: Number.parseInt(values.dup_frames, 10) || 0,
+    updatedAt: new Date().toISOString(),
+  };
+}
 function authHeaders() {
   const apiKey = refreshApiKey();
   return apiKey ? { "Authorization": `Bearer ${apiKey}` } : {};
@@ -155,6 +178,7 @@ function startStream(streamId, playerKey, retryCount = 0) {
   const args = [
     "-hide_banner", "-loglevel", "warning",
     "-fflags", "+nobuffer+genpts", "-flags", "low_delay",
+    "-progress", "pipe:3", "-stats_period", "1", "-nostats",
     "-i", srtUrl,
     "-c:v", "copy", "-c:a", "copy",
     "-f", "hls",
@@ -162,9 +186,26 @@ function startStream(streamId, playerKey, retryCount = 0) {
     "-hls_flags", "delete_segments+append_list+independent_segments",
     "-hls_segment_filename", segPat, m3u8,
   ];
-  const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+  const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe", "pipe"] });
   proc.stdout.on("data", d => { const m = d.toString().trim(); if (m) log("info",  `[${streamId}] ${m}`); });
   proc.stderr.on("data", d => { const m = d.toString().trim(); if (m) log("warn",  `[${streamId}] ${m}`); });
+  let progressBuffer = "";
+  let progressValues = {};
+  proc.stdio[3].on("data", data => {
+    progressBuffer += data.toString();
+    const lines = progressBuffer.split(/\r?\n/);
+    progressBuffer = lines.pop() || "";
+    for (const line of lines) {
+      const separator = line.indexOf("=");
+      if (separator < 1) continue;
+      const key = line.slice(0, separator);
+      progressValues[key] = line.slice(separator + 1);
+      if (key === "progress") {
+        updateTranscoderStats(streamId, proc, progressValues);
+        progressValues = {};
+      }
+    }
+  });
   proc.on("close", (code, signal) => {
     log("info", `STOP [${streamId}] code=${code} sig=${signal}`);
     const e = activeStreams.get(streamId);
@@ -181,7 +222,7 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null });
+  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null });
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
@@ -247,7 +288,8 @@ createServer((req, res) => {
       apiKeyConfigured: !!refreshApiKey(),
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
-        id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0, media: e.media || null
+        id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
+        media: e.media || null, transcoder: e.transcoder || null
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }
