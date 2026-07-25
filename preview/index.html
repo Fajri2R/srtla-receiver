@@ -301,6 +301,33 @@
     .stat-sub { font-size: 12px; color: var(--text-muted); }
 
     /* ============================================================
+       RESPONSIVE & TABLET LAYOUTS
+    ============================================================ */
+    @media (max-width: 1024px) {
+      .streams-grid { grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); }
+    }
+
+    @media (max-width: 768px) {
+      .header-inner { height: auto; padding: 14px 0; flex-wrap: wrap; gap: 12px; }
+      .header-spacer { display: none; }
+      .logo { flex: 1 1 100%; justify-content: center; }
+      .header-inner > div, .header-inner > button, .header-inner > a { flex-grow: 1; justify-content: center; text-align: center; }
+      .main { padding: 20px 16px; }
+      .stats-overview { grid-template-columns: repeat(2, 1fr); }
+      .settings-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+      .settings-group { flex-direction: column; align-items: stretch; }
+      .settings-input { min-width: 0; }
+    }
+
+    @media (max-width: 480px) {
+      .header-inner { flex-direction: column; align-items: stretch; }
+      .stats-overview, .streams-grid { grid-template-columns: 1fr; }
+      .card-actions { flex-direction: column; }
+      .btn-action { width: 100%; }
+      .metric-chip { font-size: 11px; padding: 3px 8px; }
+    }
+
+    /* ============================================================
        SECTION HEADER
     ============================================================ */
     .section-header {
