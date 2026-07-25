@@ -217,8 +217,8 @@
   themeCss.id = 'hls-manager-theme';
   themeCss.textContent = [
     ':root { --bs-body-bg: #0a0e1a; --bs-body-color: #f1f5f9; --bs-primary: #6366f1; --bs-primary-rgb: 99,102,241; --bs-secondary-color: #94a3b8; --bs-border-color: rgba(255,255,255,.12); }',
-    'html, body { min-height: 100%; background: #0a0e1a !important; color: #f1f5f9 !important; } #root { min-height: 100%; background: transparent !important; color: #f1f5f9 !important; }',
-    'body { background-color: #0a0e1a !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; background-attachment: fixed !important; }',
+    'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; } #root { position: relative; z-index: 1; min-height: 100vh; background: transparent !important; color: #f1f5f9 !important; }',
+    'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
     '.navbar, nav, header { background: rgba(17,24,39,.96) !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25); }',
     '.card, .modal-content, .dropdown-menu, .accordion-item, .list-group-item { background: #111827 !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.10) !important; box-shadow: 0 4px 24px rgba(0,0,0,.24); }',
     '.card-header, .card-footer, .modal-header, .modal-footer, .accordion-button { background: #1a2235 !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,.10) !important; }',
