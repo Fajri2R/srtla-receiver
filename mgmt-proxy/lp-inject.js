@@ -15,6 +15,7 @@
 
   /* ── Config ──────────────────────────────────────────────────────── */
   var BASE    = location.protocol + '//' + location.host;
+  var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':9009';
 
   /* ── HLS.js (lazy load) ──────────────────────────────────────────── */
   var hlsScript = document.createElement('script');
@@ -240,7 +241,9 @@
     '#lp-badge { background: rgba(99,102,241,.14) !important; border-color: rgba(129,140,248,.42) !important; }',
     '#lp-badge-dot { background: #818cf8 !important; }',
     '#lp-bx { background: #111827 !important; border-color: rgba(129,140,248,.30) !important; box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 32px 80px rgba(0,0,0,.7) !important; }',
-    '#lp-spinner { border-top-color: #818cf8 !important; }'
+    '#lp-spinner { border-top-color: #818cf8 !important; }',
+    '.hls-manager-nav-btn { display: inline-flex !important; align-items: center; gap: 6px; margin-right: 8px; background: #6366f1 !important; border: 1px solid #6366f1 !important; color: #fff !important; font-weight: 600; box-shadow: 0 4px 12px rgba(99,102,241,.28); }',
+    '.hls-manager-nav-btn:hover { background: #4f46e5 !important; border-color: #4f46e5 !important; color: #fff !important; transform: translateY(-1px); }'
   ].join('\n');
   document.head.appendChild(themeCss);
 
@@ -359,7 +362,27 @@
   /* ── Button injection ────────────────────────────────────────────── */
   var DONE = 'data-lp-ok';
 
+  function injectHlsManagerButton() {
+    Array.prototype.slice.call(document.querySelectorAll('button, a')).forEach(function (settingsBtn) {
+      var label = (settingsBtn.textContent || '').replace(/\s+/g, ' ').trim();
+      var rect = settingsBtn.getBoundingClientRect();
+      var isSettings = /^(configure )?settings$/i.test(label);
+      if (!isSettings || rect.top < 0 || rect.top > 180 || settingsBtn.dataset.hlsManagerTarget) return;
+
+      settingsBtn.dataset.hlsManagerTarget = '1';
+      var link = document.createElement('a');
+      link.className = 'btn btn-sm hls-manager-nav-btn';
+      link.href = HLS_MANAGER_URL;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.title = 'Open HLS Manager';
+      link.innerHTML = '<i class="bi bi-activity"></i> HLS Manager';
+      settingsBtn.insertAdjacentElement('beforebegin', link);
+    });
+  }
+
   function injectButtons() {
+    injectHlsManagerButton();
     document.querySelectorAll('button[title="Add Player"]:not([' + DONE + '])').forEach(function (btn) {
       btn.setAttribute(DONE, '1');
 
