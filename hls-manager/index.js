@@ -78,6 +78,7 @@ function probeStream(streamId, playlist, expectedProc, attempt = 0) {
             sampleRate: Number(audio.sample_rate) || null, channels: audio.channels || null,
           } : null,
         };
+        current.ready = true;
         log("info", `  Media [${streamId}]: ${video.width}x${video.height} ${current.media.video.fps}fps ${video.codec_name}`);
         return;
       }
@@ -216,7 +217,7 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null });
+  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false });
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
@@ -296,7 +297,7 @@ createServer((req, res) => {
       running: [...activeStreams.values()].filter(e => e.proc).length,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null
+        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null, ready: !!e.ready
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }

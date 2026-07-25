@@ -850,7 +850,7 @@ async function fetchStats() {
     const hlsRes = await fetch(origin + "/api/hls-status", { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (hlsRes.ok) {
       const hlsData = await hlsRes.json();
-      const streams = hlsData.streams || [];
+      const streams = (hlsData.streams || []).filter(item => item.ready);
       const publishers = streams.map((item) => {
         const pubId = item.id;
         if (!pubId) return null;
@@ -1081,7 +1081,7 @@ function startPreview(id, retryAttempt = 0) {
   }
 
   const eid    = CSS.escape(id);
-  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
+  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8?cache=${Date.now()}`;
   const videoEl = document.getElementById(`video-${eid}`);
   const overlay = document.getElementById(`overlay-${eid}`);
   const btnPlay = document.getElementById(`btn-play-${eid}`);
@@ -1241,7 +1241,7 @@ function fallbackCopyText(text) {
 }
 
 function copyStreamUrl(id) {
-  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8`;
+  const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8?cache=${Date.now()}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(hlsUrl)
       .then(() => showToast('HLS URL copied to clipboard!', 'ok'))
