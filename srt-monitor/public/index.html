@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
     :root {
       --bg-base:        #0a0e1a;
@@ -66,10 +67,35 @@
       max-width: 1440px; margin: 0 auto; height: 64px;
       display: flex; align-items: center; gap: 16px;
     }
-    .brand { font-size: 16px; font-weight: 700; white-space: nowrap; }
-    .brand b { color: var(--accent-light); }
     
-    .selector { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .brand-text {
+      white-space: nowrap;
+    }
+    .brand-text b {
+      color: var(--accent-light);
+    }
+
+    
+    .selector { margin-left: auto; margin-right: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
     select {
       max-width: 290px; padding: 7px 10px; border: 1px solid var(--border-default);
       border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--text-primary);
@@ -126,7 +152,7 @@
     canvas { width: 100%; height: 265px; display: block; cursor: crosshair; }
     
     
-    .action-fs-main { background: rgba(99,102,241,0.15) !important; color: #818cf8 !important; border-color: rgba(99,102,241,0.3) !important; font-weight: 600; padding: 5px 12px; margin-right: 12px; }
+    .action-fs-main { background: rgba(99,102,241,0.15) !important; color: #818cf8 !important; border-color: rgba(99,102,241,0.3) !important; font-weight: 600; padding: 5px 12px; }
     .action-fs-main:hover { background: rgba(99,102,241,0.25) !important; color: #fff !important; border-color: rgba(99,102,241,0.5) !important; }
     
     /* Main Dashboard Fullscreen No-Scroll */
@@ -198,6 +224,7 @@
 
     @media(max-width: 650px) {
       .header { padding: 0 16px; }
+      .action-fs-main { display: none !important; }
       .brand { font-size: 14px; }
       .main { padding: 16px 12px; }
       .title { font-size: 18px; }
@@ -217,7 +244,7 @@
 <body>
   <header class="header">
     <div class="header-inner">
-      <div class="brand">SRT <b>Monitor</b></div>
+      <div class="brand"><div class="brand-icon"><i class="bi bi-activity"></i></div><span class="brand-text">SRT <b>Monitor</b></span></div>
       <div class="selector">
         <label>Stream</label>
         <select id="stream"></select>
@@ -526,6 +553,7 @@
   </script>
 </body>
 </html>
+
 
 
 
