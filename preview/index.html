@@ -796,6 +796,13 @@
         Refresh
       </button>
 
+      <a class="btn-mgmt" id="btn-monitor-nav" href="#" target="_blank" title="SRT Monitoring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+          <path d="M12 20V10M18 20V4M6 20v-4"/>
+        </svg>
+        SRT Monitor
+      </a>
+
       <a class="btn-mgmt" id="btn-mgmt" href="#" target="_blank" title="Open Management UI">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -954,6 +961,10 @@ function updateMgmtLink() {
   btn.href = port === '80' || port === '443'
     ? `${window.location.protocol}//${window.location.hostname}`
     : `${window.location.protocol}//${window.location.hostname}:${port}`;
+  const btnMon = document.getElementById('btn-monitor-nav');
+  if (btnMon) {
+    btnMon.href = window.location.protocol + '//' + window.location.hostname + ':9010';
+  }
 }
 
 /* ================================================================
@@ -1202,14 +1213,6 @@ function createCard(publisher) {
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
           Stop
         </button>
-        <button class="btn-action btn-secondary-action btn-monitor" data-action="graph" title="View realtime monitoring graph">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>
-          Graph
-        </button>
-        <button class="btn-action btn-secondary-action btn-monitor" data-action="logs" title="View transcoder logs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m8 9 2 2-2 2M12 15h4"/></svg>
-          Logs
-        </button>
         <button class="btn-action btn-secondary-action" data-action="copy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy URL
@@ -1220,8 +1223,6 @@ function createCard(publisher) {
   // ✅ FIX #18: Attach event listeners programmatically (safe, no inline handlers)
   card.querySelector('[data-action="preview"]').addEventListener('click', () => startPreview(id));
   card.querySelector('[data-action="stop"]').addEventListener('click',    () => stopPreview(id));
-  card.querySelector('[data-action="graph"]').addEventListener('click',   () => openStreamMonitor(id, 'graph'));
-  card.querySelector('[data-action="logs"]').addEventListener('click',    () => openStreamMonitor(id, 'logs'));
   card.querySelector('[data-action="copy"]').addEventListener('click',    () => copyStreamUrl(id));
 
   // Store video element reference by id
