@@ -38,6 +38,9 @@ function refreshApiKey() {
 }
 
 const activeStreams  = new Map();
+const publisherActivity = new Map();
+let   configuredPublishers = new Set();
+let   lastPublisherActivityAt = 0;
 let   isShuttingDown = false;
 let   lastDebug      = 0;
 let   viewerLogOffset = 0;
@@ -191,6 +194,13 @@ async function fetchStreamMap() {
 
 // Check if a specific publisher is currently streaming via /stats/{id}
 // Returns true if active, false if not
+function isPublisherActive(stats) {
+  if (!stats) return false;
+  if (stats.bitrate === undefined || stats.bitrate === null || stats.bitrate === "") return true;
+  const bitrate = Number(stats.bitrate);
+  return !Number.isFinite(bitrate) || bitrate > 0;
+}
+
 async function getPublisherStats(pubId) {
   try {
     const res = await fetch(`${SLS_BASE_URL}/stats/${encodeURIComponent(pubId)}`, {
@@ -302,17 +312,21 @@ function stopStream(id) {
 async function pollLiveStats() {
   if (isShuttingDown) return;
   try {
-    const activeIds = [...activeStreams.keys()];
-    if (activeIds.length > 0) {
+    const publisherIds = new Set([...configuredPublishers, ...activeStreams.keys()]);
+    if (publisherIds.size > 0) {
       await Promise.all(
-        activeIds.map(async id => {
+        [...publisherIds].map(async id => {
           const stats = await getPublisherStats(id);
+          publisherActivity.set(id, {
+            active: isPublisherActive(stats),
+            stats,
+            checkedAt: Date.now(),
+          });
           const entry = activeStreams.get(id);
-          if (entry && stats) {
-            entry.publisherStats = stats;
-          }
+          if (entry) entry.publisherStats = stats;
         })
       );
+      lastPublisherActivityAt = Date.now();
     }
   } catch (_) {}
   finally {
@@ -326,6 +340,10 @@ async function reconcile() {
     const streamMap = await fetchStreamMap();
     if (streamMap !== null) {
       const publishers = Object.keys(streamMap);
+      configuredPublishers = new Set(publishers);
+      for (const id of publisherActivity.keys()) {
+        if (!configuredPublishers.has(id)) publisherActivity.delete(id);
+      }
       if (publishers.length === 0) {
         log("info", "No configured streams in /api/stream-ids");
         for (const id of [...activeStreams.keys()]) stopStream(id);
@@ -334,7 +352,7 @@ async function reconcile() {
         const checks = await Promise.all(
           publishers.map(async pub => {
             const stats = await getPublisherStats(pub);
-            return { pub, stats, active: !!stats && (stats.bitrate || 0) > 0 };
+            return { pub, stats, active: isPublisherActive(stats) };
           })
         );
         const activeSet = new Set(checks.filter(c => c.active).map(c => c.pub));
@@ -355,7 +373,13 @@ async function reconcile() {
               entry.publisherStats = c.stats;
             }
           }
+          publisherActivity.set(c.pub, {
+            active: c.active,
+            stats: c.stats,
+            checkedAt: Date.now(),
+          });
         }
+        lastPublisherActivityAt = Date.now();
 
         const running = [...activeStreams.values()].filter(e => e.proc).length;
         log("info", `Configured:${publishers.length} Active:${activeSet.size} HLS:${running}`);
@@ -406,15 +430,23 @@ createServer((req, res) => {
   }
 
   if (req.url === "/health" && req.method === "GET") {
+    const publishers = [...publisherActivity.entries()].map(([id, activity]) => ({
+      id,
+      active: !!activity.active,
+      checkedAt: activity.checkedAt || null,
+    }));
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       status: "ok", uptime: Math.floor(process.uptime()),
       slsBaseUrl: SLS_BASE_URL,
       apiKeyConfigured: !!refreshApiKey(),
       running: [...activeStreams.values()].filter(e => e.proc).length,
+      activePublishers: publishers.filter(publisher => publisher.active).length,
+      publisherStatusUpdatedAt: lastPublisherActivityAt || null,
+      publishers,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || null, ready: !!e.ready, viewers: viewerCount(id)
+        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id)
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }

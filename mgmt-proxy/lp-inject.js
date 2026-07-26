@@ -252,7 +252,7 @@
     'a { color: #a5b4fc; } a:hover { color: #c7d2fe; }',
     '.text-muted, .text-secondary, small { color: #94a3b8 !important; }',
     '.badge.bg-primary, .bg-primary { background-color: #6366f1 !important; }',
-    '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 16px !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; }',
+    '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 16px !important; padding: 12px !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; overflow: visible !important; }',
     '.publisher-card:hover { border-color: rgba(99,102,241,.5) !important; box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 0 40px rgba(99,102,241,.15) !important; transform: translateY(-2px); }',
     '#lp-badge { background: rgba(99,102,241,.14) !important; border-color: rgba(129,140,248,.42) !important; }',
     '#lp-badge-dot { background: #818cf8 !important; }',
@@ -392,7 +392,7 @@
 
   /* ── Button injection ────────────────────────────────────────────── */
 
-  var lastActiveCount = -1;
+  var lastLiveStatus = "";
   function showToast(msg, isError) {
     var oldToast = document.querySelector('.mgmt-toast');
     if (oldToast) oldToast.remove();
@@ -411,15 +411,21 @@
     var badge = document.getElementById('mgmt-live-status');
     if (!badge) return;
 
-    fetch('/api/hls-health')
-      .then(function(res) { return res.json(); })
+    fetch('/api/hls-health', { cache: 'no-store' })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(function(data) {
         var activeCount = 0;
-        if (data && Array.isArray(data.streams)) {
-          activeCount = data.streams.filter(function(s) { return s.status === 'running' || s.ready; }).length;
+        if (data && Number.isFinite(data.activePublishers)) {
+          activeCount = data.activePublishers;
+        } else if (data && Array.isArray(data.streams)) {
+          activeCount = data.streams.filter(function(s) { return !!s.publisherStats; }).length;
         }
-        if (activeCount !== lastActiveCount) {
-          lastActiveCount = activeCount;
+        var statusKey = 'ok:' + activeCount;
+        if (statusKey !== lastLiveStatus) {
+          lastLiveStatus = statusKey;
           var textNode = badge.querySelector('span');
           var newText = activeCount > 0 ? ('Publishers: ' + activeCount + ' active') : 'No active stream';
           if (activeCount > 0) badge.classList.remove('error');
@@ -427,11 +433,11 @@
           textNode.textContent = newText;
         }
       })
-      .catch(function(err) {
-        if (lastActiveCount !== 0) {
-          lastActiveCount = 0;
+      .catch(function() {
+        if (lastLiveStatus !== 'error') {
+          lastLiveStatus = 'error';
           badge.classList.add('error');
-          badge.querySelector('span').textContent = 'No active stream';
+          badge.querySelector('span').textContent = 'Status unavailable';
         }
       });
   }
@@ -535,5 +541,5 @@
     subtree:   true,
   });
   [400, 1200, 2500, 5000].forEach(function (t) { setTimeout(injectButtons, t); });
-  setInterval(updateLiveStatus, 3000);
+  setInterval(updateLiveStatus, 1000);
 })();
