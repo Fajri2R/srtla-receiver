@@ -383,7 +383,7 @@
       brand.dataset.mgmtBrand = '1';
       brand.classList.add('mgmt-brand');
       brand.setAttribute('aria-label', 'SRT Live Server Management');
-      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;display:block;"><path d="M4.93 4.93a10 10 0 0 1 14.14 0"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 14v8"/></svg></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
+      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block;"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
     });
   }
 
