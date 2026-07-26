@@ -238,7 +238,7 @@
     }
 
     function toggleNativeFullscreen(k) {
-      const panel = document.querySelector(.panel[data-key="+k+"]);
+      const panel = document.querySelector('.panel[data-key="' + k + '"]');
       if (!panel) return;
       if (!document.fullscreenElement) {
         panel.requestFullscreen().catch(() => {});
@@ -270,8 +270,8 @@
       if (external) {
         statsEl.innerHTML = '';
       } else {
-        statsEl.innerHTML = m.slice(0, 4).map(d => 
-          <article class="stat" style="border-left-color:+d.color+"><div class="sl">+d.label+</div><div class="sv">+fmt(latest[d.key], d.fmt)+</div></article>
+        statsEl.innerHTML = m.slice(0, 4).map(d =>
+          '<article class="stat" style="border-left-color:' + d.color + '"><div class="sl">' + d.label + '</div><div class="sv">' + fmt(latest[d.key], d.fmt) + '</div></article>'
         ).join('');
       }
 
@@ -285,23 +285,22 @@
       const newKeys = m.map(d => d.key).join(',');
       
       if (currentKeys !== newKeys || forceRebuild) {
-        chartsEl.innerHTML = m.map(d => 
-          <article class="panel +(hidden[d.key] && !external ? 'hidden-chart' : '')+" data-key="+d.key+">
-            <div class="panel-head">
-              <i class="key" style="background:+d.color+"></i>
-              <strong class="name">+d.label+</strong>
-              <div class="actions">
-                + (external ? '' : 
-                <button class="action" onclick="toggleChart('+d.key+')">+(hidden[d.key] ? 'Show' : 'Hide')+</button>
-                <button class="action" onclick="toggleNativeFullscreen('+d.key+')" title="Native Fullscreen">Full</button>
-                <button class="action" onclick="openExternal('+d.key+')" title="External Monitor Popup">Ext Window</button>
-                ) +
-              </div>
-              <span class="current" id="current-+d.key+">Current: +fmt(latest[d.key], d.fmt)+</span>
-            </div>
-            <canvas id="canvas-+d.key+" data-key="+d.key+" data-color="+d.color+" data-fmt="+d.fmt+"></canvas>
-          </article>
-        ).join('');
+        chartsEl.innerHTML = m.map(d => {
+          const actions = external ? '' :
+            '<button class="action" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
+            '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Native Fullscreen">Full</button>' +
+            '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">Ext Window</button>';
+          const panelClass = 'panel' + (hidden[d.key] && !external ? ' hidden-chart' : '');
+          return '<article class="' + panelClass + '" data-key="' + d.key + '">' +
+            '<div class="panel-head">' +
+              '<i class="key" style="background:' + d.color + '"></i>' +
+              '<strong class="name">' + d.label + '</strong>' +
+              '<div class="actions">' + actions + '</div>' +
+              '<span class="current" id="current-' + d.key + '">Current: ' + fmt(latest[d.key], d.fmt) + '</span>' +
+            '</div>' +
+            '<canvas id="canvas-' + d.key + '" data-key="' + d.key + '" data-color="' + d.color + '" data-fmt="' + d.fmt + '"></canvas>' +
+          '</article>';
+        }).join('');
 
         chartsEl.querySelectorAll('canvas').forEach(c => {
           c.onmousemove = e => {
@@ -461,4 +460,7 @@
   </script>
 </body>
 </html>
+
+
+
 
