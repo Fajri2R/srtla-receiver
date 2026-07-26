@@ -1128,6 +1128,9 @@ function renderDashboard(data) {
     return;
   }
 
+  // Remove the empty state as soon as the next poll finds an active stream.
+  grid.querySelector('.empty-state')?.remove();
+
   // Render/update each card
   for (const publisher of publishers) {
     const id = streamId(publisher);
