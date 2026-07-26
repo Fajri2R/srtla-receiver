@@ -12,10 +12,12 @@ function refreshApiKey() {
 }
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
 const HISTORY_SIZE = Math.max(60, Number(process.env.HISTORY_SIZE || 900));
+const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 4500));
 const publicDir = join(process.cwd(), "public");
 const streams = new Map();
 let lastPoll = null;
 let lastError = null;
+let cachedStreamIds = { time: 0, list: [] };
 
 const aliases = {
   recvBitrate: ["bitrate", "recv_bitrate", "recv_rate", "receive_bitrate", "input_bitrate"],
@@ -59,13 +61,23 @@ async function poll() {
   try {
     const apiKey = refreshApiKey();
     const headers = apiKey ? { "Authorization": `Bearer ${apiKey}` } : {};
-    const streamResponse = await fetch(SLS_STREAMS_URL, { headers, signal: AbortSignal.timeout(4000) });
-    if (!streamResponse.ok) throw new Error(`HTTP ${streamResponse.status} from stream-ids`);
+    let streamList = cachedStreamIds.list;
+    const now = Date.now();
 
-    const streamBody = await streamResponse.json();
-    const streamList = Array.isArray(streamBody)
-      ? streamBody
-      : (streamBody.data || streamBody.streams || streamBody.stream_ids || []);
+    if (!streamList.length || now - cachedStreamIds.time >= STREAM_IDS_REFRESH_MS) {
+      const streamResponse = await fetch(SLS_STREAMS_URL, { headers, signal: AbortSignal.timeout(4000) });
+      if (!streamResponse.ok) {
+        if (streamResponse.status !== 429 || !streamList.length) {
+          throw new Error(`HTTP ${streamResponse.status} from stream-ids`);
+        }
+      } else {
+        const streamBody = await streamResponse.json();
+        streamList = Array.isArray(streamBody)
+          ? streamBody
+          : (streamBody.data || streamBody.streams || streamBody.stream_ids || []);
+        cachedStreamIds = { time: now, list: streamList };
+      }
+    }
     const present = new Set();
 
     await Promise.all(streamList.map(async (stream) => {
@@ -92,8 +104,8 @@ async function poll() {
       } catch {}
     }));
 
-    for (const [id, entry] of streams) {
-      if (!present.has(id) && entry.history.length > HISTORY_SIZE / 2) streams.delete(id);
+    for (const id of streams.keys()) {
+      if (!present.has(id)) streams.delete(id);
     }
     lastPoll = Date.now();
     lastError = null;
