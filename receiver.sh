@@ -525,6 +525,8 @@ http {
         location = /api/apikey {
             proxy_pass         http://hls-manager:9090/api/apikey;
             proxy_http_version 1.1;
+            proxy_set_header   Host              $host;
+            proxy_set_header   X-Real-IP         $remote_addr;
             proxy_read_timeout 10s;
         }
 
