@@ -500,6 +500,12 @@ http {
             add_header Content-Type  "application/javascript; charset=utf-8";
         }
 
+        location = /api/hls-health {
+            proxy_pass         http://hls-manager:9090/health;
+            proxy_http_version 1.1;
+            proxy_read_timeout 10s;
+        }
+
         location / {
             proxy_pass         http://sls-management-ui:3000;
             proxy_http_version 1.1;

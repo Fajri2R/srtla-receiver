@@ -388,20 +388,34 @@
 
   /* ── Button injection ────────────────────────────────────────────── */
 
+  var lastActiveCount = -1;
   function updateLiveStatus() {
     var badge = document.getElementById('mgmt-live-status');
     if (!badge) return;
 
-    // Count active publishers on screen
-    var activeCount = document.querySelectorAll('.publisher-card').length;
-    var textNode = badge.querySelector('span');
-
-    var newText = activeCount > 0 ? ('Publishers: ' + activeCount + ' active') : 'No active stream';
-    if (textNode.textContent !== newText) {
-      if (activeCount > 0) badge.classList.remove('error');
-      else badge.classList.add('error');
-      textNode.textContent = newText;
-    }
+    fetch('/api/hls-health')
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        var activeCount = 0;
+        if (data && Array.isArray(data.streams)) {
+          activeCount = data.streams.filter(function(s) { return s.status === 'running' || s.ready; }).length;
+        }
+        if (activeCount !== lastActiveCount) {
+          lastActiveCount = activeCount;
+          var textNode = badge.querySelector('span');
+          var newText = activeCount > 0 ? ('Publishers: ' + activeCount + ' active') : 'No active stream';
+          if (activeCount > 0) badge.classList.remove('error');
+          else badge.classList.add('error');
+          textNode.textContent = newText;
+        }
+      })
+      .catch(function(err) {
+        if (lastActiveCount !== 0) {
+          lastActiveCount = 0;
+          badge.classList.add('error');
+          badge.querySelector('span').textContent = 'No active stream';
+        }
+      });
   }
 
   function enhanceNavbarBrand() {
