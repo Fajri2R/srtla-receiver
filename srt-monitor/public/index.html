@@ -129,14 +129,23 @@
     .panel:fullscreen {
       background: var(--bg-base) !important;
       padding: 24px;
-      justify-content: center;
+      display: flex;
+      flex-direction: column;
       border: none;
       border-radius: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
     }
+    .panel:fullscreen .panel-head { flex: 0 0 auto; margin-bottom: 16px; }
     .panel:fullscreen canvas {
-      height: calc(100vh - 80px) !important;
+      flex: 1 1 auto;
+      height: 100% !important;
+      width: 100% !important;
       max-height: none !important;
     }
+    
 
     .empty { padding: 80px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
 
@@ -179,14 +188,14 @@
   </main>
 
   <script>
-    const defs = [
+    const summaryDefs = [
       {key: 'recvBitrate', label: 'Receive Bitrate', color: '#818cf8', fmt: 'rate'},
       {key: 'rtt', label: 'Round Trip Time (RTT)', color: '#22c55e', fmt: 'ms'},
       {key: 'droppedPackets', label: 'Packet Drops', color: '#ef4444', fmt: 'count'},
       {key: 'transcoderFps', label: 'Realtime FPS', color: '#38bdf8', fmt: 'fps'},
-      {key: 'viewers', label: 'Active Viewers', color: '#f59e0b', fmt: 'count'},
       {key: 'uptime', label: 'Stream Uptime', color: '#c084fc', fmt: 'duration'}
     ];
+    const defs = summaryDefs.slice(0, 4); // Only the first 4 for graphs
 
     const qs = new URLSearchParams(location.search);
     const external = qs.get('display') === '1';
@@ -270,7 +279,8 @@
       if (external) {
         statsEl.innerHTML = '';
       } else {
-        statsEl.innerHTML = m.slice(0, 4).map(d =>
+        let sm = summaryDefs.filter(d => history.some(p => num(p[d.key]) !== null) || num(latest[d.key]) !== null);
+        statsEl.innerHTML = sm.map(d =>
           '<article class="stat" style="border-left-color:' + d.color + '"><div class="sl">' + d.label + '</div><div class="sv">' + fmt(latest[d.key], d.fmt) + '</div></article>'
         ).join('');
       }
@@ -288,7 +298,7 @@
         chartsEl.innerHTML = m.map(d => {
           const actions = external ? '' :
             '<button class="action" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
-            '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Native Fullscreen">Full</button>' +
+            '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Fullscreen this metric">Fullscreen</button>' +
             '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">Ext Window</button>';
           const panelClass = 'panel' + (hidden[d.key] && !external ? ' hidden-chart' : '');
           return '<article class="' + panelClass + '" data-key="' + d.key + '">' +
@@ -460,6 +470,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 
