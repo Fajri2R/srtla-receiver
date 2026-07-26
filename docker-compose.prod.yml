@@ -131,6 +131,7 @@ services:
       SLS_STATS_URL: "http://receiver:8080/stats"
       SLS_STREAMS_URL: "http://receiver:8080/api/stream-ids"
       SLS_API_KEY: "${SLS_API_KEY}"
+      HLS_STATUS_URL: "http://hls-manager:9090/health"
     volumes:
       - ./.apikey:/apikey:ro
     ports:

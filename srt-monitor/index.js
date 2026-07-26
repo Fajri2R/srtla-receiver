@@ -5,6 +5,7 @@ import { join, normalize } from "path";
 const PORT = Number(process.env.PORT || 9091);
 const SLS_BASE = (process.env.SLS_STATS_URL || "http://receiver:8080/stats").replace(/\/stats\/?$/, "");
 const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE + "/api/stream-ids");
+const HLS_STATUS_URL = process.env.HLS_STATUS_URL || "http://hls-manager:9090/health";
 let SLS_API_KEY = process.env.SLS_API_KEY || "";
 function refreshApiKey() {
   try { SLS_API_KEY = readFileSync("/apikey", "utf8").trim(); } catch {}
@@ -30,6 +31,13 @@ const aliases = {
   sendBuffer: ["send_buffer", "sndbuf", "send_buffer_level"],
   linkCapacity: ["link_capacity", "estimated_bandwidth", "bandwidth", "mbps_bandwidth"],
   droppedPackets: ["dropped_pkts", "packet_drop", "dropped_packets", "pkt_drop"],
+  uptime: ["uptime", "duration", "alive_time"],
+  viewers: ["viewers", "connections", "client_counts"],
+  transcoderFps: ["transcoder_fps"],
+  transcoderSpeed: ["transcoder_speed"],
+  transcoderFrames: ["transcoder_frames"],
+  transcoderDroppedFrames: ["transcoder_dropped_frames"],
+  transcoderDuplicatedFrames: ["transcoder_duplicated_frames"],
 };
 
 function getValue(source, names) {
@@ -57,6 +65,17 @@ function snapshot(item) {
   return { at: Date.now(), ...metrics, raw };
 }
 
+async function fetchHlsStreams() {
+  try {
+    const response = await fetch(HLS_STATUS_URL, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return new Map();
+    const body = await response.json();
+    return new Map((body.streams || []).map((stream) => [stream.id, stream]));
+  } catch {
+    return new Map();
+  }
+}
+
 async function poll() {
   try {
     const apiKey = refreshApiKey();
@@ -78,6 +97,7 @@ async function poll() {
         cachedStreamIds = { time: now, list: streamList };
       }
     }
+    const hlsStreams = await fetchHlsStreams();
     const present = new Set();
 
     await Promise.all(streamList.map(async (stream) => {
@@ -94,9 +114,22 @@ async function poll() {
         const publisher = statsBody.status === "ok" ? statsBody.publisher : null;
         if (!publisher) return;
 
+        const hls = hlsStreams.get(publisherId);
+        const source = {
+          ...publisher,
+          viewers: hls?.viewers ?? publisher.viewers,
+          media: hls?.media ?? null,
+          transcoder: hls?.transcoder ?? null,
+          transcoder_fps: hls?.transcoder?.realtimeFps ?? null,
+          transcoder_speed: hls?.transcoder?.speed ?? null,
+          transcoder_frames: hls?.transcoder?.frames ?? null,
+          transcoder_dropped_frames: hls?.transcoder?.droppedFrames ?? null,
+          transcoder_duplicated_frames: hls?.transcoder?.duplicatedFrames ?? null,
+        };
+
         present.add(publisherId);
         const entry = streams.get(publisherId) || { id: publisherId, latest: null, history: [] };
-        const point = snapshot(publisher);
+        const point = snapshot(source);
         entry.latest = point;
         entry.history.push(point);
         if (entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
