@@ -607,6 +607,92 @@
     }
 
     /* ============================================================
+       STREAM MONITOR MODAL
+    ============================================================ */
+    .monitor-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(5, 8, 18, 0.78);
+      backdrop-filter: blur(10px);
+    }
+    .monitor-modal.open { display: flex; }
+    .monitor-panel {
+      width: min(780px, 100%);
+      max-height: min(680px, calc(100vh - 48px));
+      overflow: hidden;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55), var(--shadow-glow);
+      display: flex;
+      flex-direction: column;
+    }
+    .monitor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .monitor-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .monitor-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .monitor-close {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .monitor-close:hover { color: var(--text-primary); border-color: var(--border-accent); }
+    .monitor-tabs { display: flex; gap: 8px; padding: 14px 20px 0; }
+    .monitor-tab {
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .monitor-tab.active { color: #fff; background: linear-gradient(135deg, var(--accent), #7c3aed); border-color: transparent; }
+    .monitor-content { padding: 20px; overflow: auto; }
+    .monitor-view { display: none; }
+    .monitor-view.active { display: block; }
+    .monitor-chart { display: block; width: 100%; height: 270px; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+    .monitor-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--text-secondary); }
+    .monitor-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .monitor-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .monitor-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+    .monitor-summary-item { padding: 11px; border-radius: var(--radius-sm); background: var(--bg-elevated); border: 1px solid var(--border-subtle); }
+    .monitor-summary-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .monitor-summary-value { margin-top: 4px; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .monitor-logs { min-height: 280px; max-height: 420px; overflow: auto; padding: 14px; border-radius: var(--radius-lg); background: #070b14; border: 1px solid var(--border-subtle); color: #cbd5e1; font: 12px/1.55 'Courier New', monospace; white-space: pre-wrap; word-break: break-word; }
+    .monitor-log-empty { color: var(--text-muted); font-family: inherit; text-align: center; padding: 40px 12px; }
+    .btn-monitor { flex: 0 1 auto; }
+    @media (max-width: 640px) {
+      .monitor-modal { padding: 12px; }
+      .monitor-panel { max-height: calc(100vh - 24px); }
+      .monitor-header, .monitor-content { padding: 16px; }
+      .monitor-tabs { padding: 12px 16px 0; }
+      .monitor-summary { grid-template-columns: 1fr; }
+      .monitor-chart { height: 220px; }
+    }
+
+    /* ============================================================
        EMPTY STATE
     ============================================================ */
     .empty-state {
@@ -770,6 +856,37 @@
 
 </div>
 
+<!-- STREAM MONITOR -->
+<div class="monitor-modal" id="monitor-modal" aria-hidden="true">
+  <div class="monitor-panel" role="dialog" aria-modal="true" aria-labelledby="monitor-title">
+    <div class="monitor-header">
+      <div style="min-width:0">
+        <div class="monitor-title" id="monitor-title">Stream Monitor</div>
+        <div class="monitor-subtitle" id="monitor-subtitle">?</div>
+      </div>
+      <button class="monitor-close" id="monitor-close" title="Close monitoring panel" aria-label="Close monitoring panel">?</button>
+    </div>
+    <div class="monitor-tabs">
+      <button class="monitor-tab active" data-monitor-tab="graph">Graph</button>
+      <button class="monitor-tab" data-monitor-tab="logs">Logs</button>
+    </div>
+    <div class="monitor-content">
+      <section class="monitor-view active" id="monitor-graph-view">
+        <canvas class="monitor-chart" id="monitor-chart"></canvas>
+        <div class="monitor-legend">
+          <span><i style="background:#818cf8"></i>Bitrate</span>
+          <span><i style="background:#22c55e"></i>FPS</span>
+          <span><i style="background:#f59e0b"></i>Viewers</span>
+        </div>
+        <div class="monitor-summary" id="monitor-summary"></div>
+      </section>
+      <section class="monitor-view" id="monitor-logs-view">
+        <div class="monitor-logs" id="monitor-logs"><div class="monitor-log-empty">Loading transcoder logs?</div></div>
+      </section>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -800,6 +917,11 @@ let statsRequestId = 0;
 let hlsStatusState = null;
 // Track which streams are "playing"
 const playingStreams = new Set();
+const metricHistory = new Map();
+const METRIC_HISTORY_LIMIT = 60;
+let monitorStreamId = null;
+let monitorMode = 'graph';
+let monitorLogTimer = null;
 
 /* ================================================================
    INIT
@@ -937,8 +1059,30 @@ function updateHlsStatus(running, errorMessage) {
      ]
    }
 ================================================================ */
+function recordMetricHistory(publishers) {
+  publishers.forEach((publisher) => {
+    const id = streamId(publisher);
+    if (!id) return;
+    const stats = publisher.publisherStats || {};
+    const transcoder = publisher.transcoder || {};
+    const history = metricHistory.get(id) || [];
+    history.push({
+      at: Date.now(),
+      bitrate: Number(publisher.bitrate || publisher.recv_bitrate || 0),
+      fps: Number(transcoder.realtimeFps || 0),
+      viewers: Number(publisher.connections || publisher.client_counts || 0),
+      rtt: Number(stats.rtt || 0),
+      dropped: Number(stats.dropped_pkts || stats.packet_drop || 0),
+    });
+    if (history.length > METRIC_HISTORY_LIMIT) history.splice(0, history.length - METRIC_HISTORY_LIMIT);
+    metricHistory.set(id, history);
+  });
+}
+
 function renderDashboard(data) {
   const publishers = data.publishers || data.Publishers || [];
+  recordMetricHistory(publishers);
+  if (monitorStreamId) refreshStreamMonitor();
 
   // Update overview stats
   const active = publishers.filter(p => (p.bitrate || p.recv_bitrate || 0) > 0).length;
@@ -1058,6 +1202,14 @@ function createCard(publisher) {
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
           Stop
         </button>
+        <button class="btn-action btn-secondary-action btn-monitor" data-action="graph" title="View realtime monitoring graph">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>
+          Graph
+        </button>
+        <button class="btn-action btn-secondary-action btn-monitor" data-action="logs" title="View transcoder logs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m8 9 2 2-2 2M12 15h4"/></svg>
+          Logs
+        </button>
         <button class="btn-action btn-secondary-action" data-action="copy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy URL
@@ -1068,6 +1220,8 @@ function createCard(publisher) {
   // ✅ FIX #18: Attach event listeners programmatically (safe, no inline handlers)
   card.querySelector('[data-action="preview"]').addEventListener('click', () => startPreview(id));
   card.querySelector('[data-action="stop"]').addEventListener('click',    () => stopPreview(id));
+  card.querySelector('[data-action="graph"]').addEventListener('click',   () => openStreamMonitor(id, 'graph'));
+  card.querySelector('[data-action="logs"]').addEventListener('click',    () => openStreamMonitor(id, 'logs'));
   card.querySelector('[data-action="copy"]').addEventListener('click',    () => copyStreamUrl(id));
 
   // Store video element reference by id
@@ -1279,6 +1433,120 @@ function copyStreamUrl(id) {
   }
 }
 
+
+/* ================================================================
+   STREAM MONITOR
+================================================================ */
+function openStreamMonitor(id, mode) {
+  monitorStreamId = id;
+  monitorMode = mode;
+  const modal = document.getElementById('monitor-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.getElementById('monitor-subtitle').textContent = id;
+  setMonitorMode(mode);
+  refreshStreamMonitor();
+  if (monitorLogTimer) clearInterval(monitorLogTimer);
+  monitorLogTimer = setInterval(() => {
+    if (monitorStreamId && monitorMode === 'logs') loadStreamLogs(monitorStreamId);
+  }, 1000);
+}
+
+function closeStreamMonitor() {
+  const modal = document.getElementById('monitor-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  monitorStreamId = null;
+  if (monitorLogTimer) { clearInterval(monitorLogTimer); monitorLogTimer = null; }
+}
+
+function setMonitorMode(mode) {
+  monitorMode = mode;
+  document.querySelectorAll('[data-monitor-tab]').forEach((tab) => tab.classList.toggle('active', tab.dataset.monitorTab === mode));
+  document.getElementById('monitor-graph-view').classList.toggle('active', mode === 'graph');
+  document.getElementById('monitor-logs-view').classList.toggle('active', mode === 'logs');
+  if (mode === 'logs' && monitorStreamId) loadStreamLogs(monitorStreamId);
+  if (mode === 'graph') drawStreamGraph(monitorStreamId);
+}
+
+async function loadStreamLogs(id) {
+  const panel = document.getElementById('monitor-logs');
+  try {
+    const res = await fetch(`/api/stream-logs?id=${encodeURIComponent(id)}`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const logs = data.logs || [];
+    const shouldStick = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 24;
+    panel.textContent = logs.length ? logs.join('\n') : 'No transcoder logs captured for this stream yet.';
+    if (shouldStick) panel.scrollTop = panel.scrollHeight;
+  } catch (error) {
+    panel.textContent = `Unable to load stream logs: ${error.message}`;
+  }
+}
+
+function refreshStreamMonitor() {
+  if (!monitorStreamId) return;
+  if (monitorMode === 'graph') drawStreamGraph(monitorStreamId);
+  if (monitorMode === 'logs') loadStreamLogs(monitorStreamId);
+}
+
+function drawStreamGraph(id) {
+  const canvas = document.getElementById('monitor-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const width = rect.width;
+  const height = rect.height;
+  ctx.clearRect(0, 0, width, height);
+  const history = metricHistory.get(id) || [];
+  const pad = { top: 22, right: 18, bottom: 26, left: 46 };
+  const chartWidth = width - pad.left - pad.right;
+  const chartHeight = height - pad.top - pad.bottom;
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (chartHeight / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke();
+  }
+  if (!history.length) {
+    ctx.fillStyle = '#475569'; ctx.font = '13px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Collecting realtime data?', width / 2, height / 2); return;
+  }
+  const maxBitrate = Math.max(1, ...history.map((point) => point.bitrate));
+  const maxFps = Math.max(1, ...history.map((point) => point.fps));
+  const maxViewers = Math.max(1, ...history.map((point) => point.viewers));
+  const drawLine = (key, max, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    history.forEach((point, index) => {
+      const x = pad.left + (history.length === 1 ? chartWidth : (index / (history.length - 1)) * chartWidth);
+      const y = pad.top + chartHeight - (Math.min(point[key], max) / max) * chartHeight;
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  };
+  drawLine('bitrate', maxBitrate, '#818cf8');
+  drawLine('fps', maxFps, '#22c55e');
+  drawLine('viewers', maxViewers, '#f59e0b');
+  ctx.fillStyle = '#64748b'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(`0`, 4, pad.top + chartHeight + 3);
+  ctx.fillText(`${formatBitrate(maxBitrate)}`, 4, pad.top + 4);
+  const last = history[history.length - 1];
+  document.getElementById('monitor-summary').innerHTML = `
+    <div class="monitor-summary-item"><div class="monitor-summary-label">Bitrate</div><div class="monitor-summary-value">${formatBitrate(last.bitrate)}</div></div>
+    <div class="monitor-summary-item"><div class="monitor-summary-label">FPS</div><div class="monitor-summary-value">${last.fps ? `${last.fps.toFixed(1)} FPS` : '?'}</div></div>
+    <div class="monitor-summary-item"><div class="monitor-summary-label">Viewers</div><div class="monitor-summary-value">${last.viewers}</div></div>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('monitor-close').addEventListener('click', closeStreamMonitor);
+  document.getElementById('monitor-modal').addEventListener('click', (event) => { if (event.target.id === 'monitor-modal') closeStreamMonitor(); });
+  document.querySelectorAll('[data-monitor-tab]').forEach((tab) => tab.addEventListener('click', () => setMonitorMode(tab.dataset.monitorTab)));
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && monitorStreamId) closeStreamMonitor(); });
+});
 
 /* ================================================================
    HELPERS

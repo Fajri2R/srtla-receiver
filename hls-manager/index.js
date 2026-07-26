@@ -229,8 +229,24 @@ function startStream(streamId, playerKey, retryCount = 0) {
     "-hls_segment_filename", segPat, m3u8,
   ];
   const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe", "pipe"] });
-  proc.stdout.on("data", d => { const m = d.toString().trim(); if (m) log("info",  `[${streamId}] ${m}`); });
-  proc.stderr.on("data", d => { const m = d.toString().trim(); if (m) log("warn",  `[${streamId}] ${m}`); });
+
+  const addStreamLog = (m, level) => {
+    if (!m) return;
+    const e = activeStreams.get(streamId);
+    if (e && e.logs) {
+      e.logs.push(`[${new Date().toISOString()}] [${level}] ${m}`);
+      if (e.logs.length > 50) e.logs.shift();
+    }
+  };
+
+  proc.stdout.on("data", d => {
+    const m = d.toString().trim();
+    if (m) { log("info",  `[${streamId}] ${m}`); addStreamLog(m, "info"); }
+  });
+  proc.stderr.on("data", d => {
+    const m = d.toString().trim();
+    if (m) { log("warn",  `[${streamId}] ${m}`); addStreamLog(m, "warn"); }
+  });
   let progressBuffer = "";
   let progressValues = {};
   proc.stdio[3].on("data", data => {
@@ -264,7 +280,7 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false });
+  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`] });
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
@@ -356,6 +372,18 @@ async function reconcile() {
 
 // Health server
 createServer((req, res) => {
+  if (req.url.startsWith("/stream-logs?id=") && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    const id = new URL(req.url, `http://${req.headers.host}`).searchParams.get("id");
+    const entry = activeStreams.get(id);
+    if (!entry) {
+      res.end(JSON.stringify({ error: "Stream not found or offline", logs: [] }));
+    } else {
+      res.end(JSON.stringify({ logs: entry.logs || [] }));
+    }
+    return;
+  }
+
   if (req.url === "/health" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
