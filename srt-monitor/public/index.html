@@ -250,21 +250,21 @@
 
     
     @media(max-width: 850px) {
-      .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 10px 0; gap: 10px; }
-      .brand { flex: 1 1 auto; }
-      .header-controls { width: 100%; flex-wrap: wrap; gap: 8px; }
-      .selector { width: 100%; margin: 0; }
+      .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 12px 0; gap: 8px 12px; }
+      .header-controls { display: contents !important; }
+      .brand { order: 1; flex: 1 1 auto; }
+      .live { order: 2; flex: 0 0 auto; }
+      .selector { order: 3; width: 100%; margin: 0; }
       select { width: 100%; max-width: none; }
-      .action-fs-main { margin-right: 0; }
+      .action-fs-main { display: none !important; }
     }
 
     @media(max-width: 650px) {
       .header { padding: 0 16px; }
-      .action-fs-main { display: none !important; }
-      .live { min-height: 34px; padding: 6px 8px; gap: 4px; }
-      .live span { font-size: 10px; }
-      .dot { width: 8px; height: 8px; flex-basis: 8px; }
       .brand { font-size: 14px; }
+      .brand-icon { width: 32px; height: 32px; font-size: 16px; }
+      .live { min-height: 32px; padding: 0 10px; font-size: 11px; }
+      .dot { width: 6px; height: 6px; flex: 0 0 6px; }
       .main { padding: 16px 12px; }
       .title { font-size: 18px; }
       .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
