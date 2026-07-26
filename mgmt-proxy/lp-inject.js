@@ -399,6 +399,17 @@
 
       if (settingsBtn.dataset.hlsManagerTarget) return;
       settingsBtn.dataset.hlsManagerTarget = '1';
+      var monLink = document.createElement('a');
+      monLink.className = 'btn btn-sm hls-manager-nav-btn';
+      monLink.style.marginRight = '8px';
+      monLink.href = location.protocol + '//' + location.hostname + ':9010';
+      monLink.target = '_blank';
+      monLink.rel = 'noopener';
+      monLink.title = 'SRT Monitoring';
+      monLink.setAttribute('aria-label', 'SRT Monitoring');
+      monLink.innerHTML = '<i class="bi bi-bar-chart-fill" aria-hidden="true"></i><span>SRT Monitor</span>';
+      settingsBtn.insertAdjacentElement('beforebegin', monLink);
+
       var link = document.createElement('a');
       link.className = 'btn btn-sm hls-manager-nav-btn';
       link.href = HLS_MANAGER_URL;
