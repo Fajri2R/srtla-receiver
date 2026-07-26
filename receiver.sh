@@ -416,7 +416,7 @@ reset_system() {
     echo -e "${INFO}You can now run './receiver.sh start' to generate a new API key.${NC}"
 }
 
-# Function to download Docker Compose file and hls-manager source
+# Function to download Docker Compose file and local dashboard sources
 download_compose_file() {
     local base_url="https://raw.githubusercontent.com/Fajri2R/srtla-receiver/refs/heads/$(get_branch)"
 
@@ -443,6 +443,20 @@ download_compose_file() {
         fi
     done
     $ok || return 1
+
+    # Download srt-monitor source (needed for --build)
+    echo -e "${INFO}Downloading srt-monitor source files...${NC}"
+    mkdir -p srt-monitor/public
+    local sm_url="${base_url}/srt-monitor"
+    for f in Dockerfile index.js public/index.html; do
+        if curl -sf -o "srt-monitor/${f}" "${sm_url}/${f}"; then
+            echo -e "${SUCCESS}  ✓ srt-monitor/${f}${NC}"
+        else
+            echo -e "${ERROR}  ✗ Failed to download srt-monitor/${f}${NC}"
+            ok=false
+        fi
+    done
+    if [ "$ok" = "false" ]; then return 1; fi
 
     # Download preview files (nginx + SPA)
     echo -e "${INFO}Downloading Live Preview files...${NC}"
@@ -535,6 +549,7 @@ create_env_file() {
     local sls_stats_port="$5"
     local srtla_port="$6"
     local live_preview_port="$7"
+    local srt_monitor_port="$8"
     
     cat > .env << EOF
 # Base URL for the application
@@ -558,6 +573,9 @@ SRTLA_PORT=$srtla_port
 # ── Live Preview (HLS Manager) ────────────────────────────────
 # Web dashboard to watch streams in-browser via HLS.js
 LIVE_PREVIEW_PORT=$live_preview_port
+
+# SRT Monitoring dashboard port
+SRT_MONITOR_PORT=$srt_monitor_port
 HLS_SEGMENT_TIME=2
 HLS_LIST_SIZE=5
 HLS_POLL_INTERVAL=5
@@ -712,6 +730,7 @@ start_receiver() {
             source .env
             echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
             echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+            echo -e "${SUCCESS}  📊  SRT Monitor    : http://${public_ip}:${SRT_MONITOR_PORT:-9010}${NC}"
             echo -e "${INFO}  🔗  Backend API    : http://${public_ip}:${SLS_STATS_PORT:-8080}${NC}"
             echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
             echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
@@ -865,6 +884,7 @@ show_status() {
         fi
         echo -e "${SUCCESS}  🖥  Management UI  : http://${public_ip}:${SLS_MGNT_PORT:-3000}${NC}"
         echo -e "${SUCCESS}  🎬  Live Preview   : http://${public_ip}:${LIVE_PREVIEW_PORT:-8090}${NC}"
+        echo -e "${SUCCESS}  📊  SRT Monitor    : http://${public_ip}:${SRT_MONITOR_PORT:-9010}${NC}"
         echo -e "${INFO}  🔗  Backend API    : http://${public_ip}:${SLS_STATS_PORT:-8080}${NC}"
         echo -e "${MUTED}  📡  SRTla Input    : ${public_ip}:${SRTLA_PORT:-5000}/udp${NC}"
         echo -e "${MUTED}  📤  SRT Sender     : ${public_ip}:${SRT_SENDER_PORT:-4001}/udp${NC}"
@@ -1028,6 +1048,9 @@ configure_environment() {
     read -p "Live Preview Port (default: 8090): " live_preview_port
     live_preview_port=${live_preview_port:-8090}
 
+    read -p "SRT Monitor Port (default: 9010): " srt_monitor_port
+    srt_monitor_port=${srt_monitor_port:-9010}
+
     # Create APP_URL based on user input
     if [[ "$user_input" == *":"* ]]; then
         app_url="http://$user_input"
@@ -1036,7 +1059,7 @@ configure_environment() {
     fi
 
     # Create .env file (now includes live preview vars)
-    create_env_file "$app_url" "$sls_mgnt_port" "$srt_player_port" "$srt_sender_port" "$sls_stats_port" "$srtla_port" "$live_preview_port"
+    create_env_file "$app_url" "$sls_mgnt_port" "$srt_player_port" "$srt_sender_port" "$sls_stats_port" "$srtla_port" "$live_preview_port" "$srt_monitor_port"
 }
 
 # Parse branch arguments and get filtered command line arguments
