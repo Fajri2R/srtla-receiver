@@ -256,7 +256,8 @@
       .selector { order: 3; width: 100%; margin: 0; }
       select { width: 100%; max-width: none; }
       .action-fs-main { display: none !important; }
-        #btn-hls { display: none !important; }
+        #btn-hls { order: 2; padding: 0 10px; }
+        #btn-hls .btn-text { display: none; }
     }
 
     @media(max-width: 650px) {
@@ -291,7 +292,7 @@
         </div>
         <a class="action" id="btn-hls" href="#" target="_blank" title="Open HLS Manager" style="text-decoration:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            HLS Manager
+            <span class="btn-text">HLS Manager</span>
           </a>
           <button class="action action-fs-main" onclick="toggleMainFullscreen()" title="Fullscreen Entire Dashboard">&#x26F6; Fullscreen Main</button>
         <div class="live" id="status"><i class="dot"></i><span>Connecting</span></div>
