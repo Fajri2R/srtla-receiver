@@ -84,18 +84,19 @@
       width: 36px;
       height: 36px;
       border-radius: var(--radius-sm);
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.4);
-      color: var(--accent-light);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 18px;
+      box-shadow: 0 0 16px rgba(99,102,241,0.25);
     }
     .brand-text {
       white-space: nowrap;
     }
-    .brand-text b {
+    .brand-text span {
       color: var(--accent-light);
     }
 
@@ -249,7 +250,7 @@
 <body>
   <header class="header">
     <div class="header-inner">
-      <div class="brand"><div class="brand-icon"><i class="bi bi-activity"></i></div><span class="brand-text">SRT <b>Monitor</b></span></div>
+      <div class="brand"><div class="brand-icon"><i class="bi bi-activity"></i></div><span class="brand-text">SRT <span>Monitor</span></span></div>
       <div class="header-controls">
         <div class="selector">
           <label>Stream</label>
