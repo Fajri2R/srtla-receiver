@@ -506,6 +506,22 @@ http {
             proxy_read_timeout 10s;
         }
 
+        # Keep the vendor Management UI refresh interval at 3 seconds.
+        location ~ ^/static/js/main\..+\.js$ {
+            proxy_pass         http://sls-management-ui:3000;
+            proxy_http_version 1.1;
+            proxy_set_header   Host              $host;
+            proxy_set_header   X-Real-IP         $remote_addr;
+            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header   Accept-Encoding   "";
+            proxy_read_timeout 60s;
+
+            sub_filter_once  on;
+            sub_filter_types application/javascript text/javascript;
+            sub_filter '[s,u]=(0,t.useState)(10);(0,t.useEffect)((()=>{u(a?5:10)}),[a])' '[s,u]=(0,t.useState)(3);(0,t.useEffect)((()=>{u(3)}),[a])';
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+        }
+
         location / {
             proxy_pass         http://sls-management-ui:3000;
             proxy_http_version 1.1;

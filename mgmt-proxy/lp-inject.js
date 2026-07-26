@@ -499,5 +499,5 @@
     subtree:   true,
   });
   [400, 1200, 2500, 5000].forEach(function (t) { setTimeout(injectButtons, t); });
-  setInterval(updateLiveStatus, 1000);
+  setInterval(updateLiveStatus, 3000);
 })();
