@@ -422,7 +422,7 @@ download_compose_file() {
 
     echo -e "${INFO}Downloading Docker Compose file ($(get_branch_display_name))...${NC}"
 
-    if curl -s -o "docker-compose.yml" "${base_url}/docker-compose.prod.yml"; then
+    if curl -s -H "Cache-Control: no-cache" -o "docker-compose.yml" "${base_url}/docker-compose.prod.yml?t=$(date +%s)"; then
         echo -e "${SUCCESS}Docker Compose file successfully downloaded.${NC}"
     else
         echo -e "${ERROR}Error downloading Docker Compose file.${NC}"
@@ -435,7 +435,7 @@ download_compose_file() {
     local hm_url="${base_url}/hls-manager"
     local ok=true
     for f in Dockerfile index.js package.json; do
-        if curl -s -o "hls-manager/${f}" "${hm_url}/${f}"; then
+        if curl -s -H "Cache-Control: no-cache" -o "hls-manager/${f}" "${hm_url}/${f}?t=$(date +%s)"; then
             echo -e "${SUCCESS}  ✓ hls-manager/${f}${NC}"
         else
             echo -e "${ERROR}  ✗ Failed to download hls-manager/${f}${NC}"
@@ -449,7 +449,7 @@ download_compose_file() {
     mkdir -p srt-monitor/public
     local sm_url="${base_url}/srt-monitor"
     for f in Dockerfile index.js public/index.html; do
-        if curl -sf -o "srt-monitor/${f}" "${sm_url}/${f}"; then
+        if curl -sf -H "Cache-Control: no-cache" -o "srt-monitor/${f}" "${sm_url}/${f}?t=$(date +%s)"; then
             echo -e "${SUCCESS}  ✓ srt-monitor/${f}${NC}"
         else
             echo -e "${ERROR}  ✗ Failed to download srt-monitor/${f}${NC}"
@@ -462,7 +462,7 @@ download_compose_file() {
     echo -e "${INFO}Downloading Live Preview files...${NC}"
     mkdir -p preview
     for f in index.html nginx.conf; do
-        if curl -sf -o "preview/${f}" "${base_url}/preview/${f}"; then
+        if curl -sf -H "Cache-Control: no-cache" -o "preview/${f}" "${base_url}/preview/${f}?t=$(date +%s)"; then
             echo -e "${SUCCESS}  ✓ preview/${f}${NC}"
         else
             echo -e "${ERROR}  ✗ Failed to download preview/${f}${NC}"
@@ -825,7 +825,7 @@ update_self() {
     local repo_url="https://raw.githubusercontent.com/Fajri2R/srtla-receiver/refs/heads/$(get_branch)/receiver.sh"
     echo -e "${INFO}Downloading script from $(get_branch_display_name) branch...${NC}"
 
-    if curl -s -o "${SCRIPT_PATH}.new" "$repo_url"; then
+    if curl -s -H "Cache-Control: no-cache" -o "${SCRIPT_PATH}.new" "$repo_url?t=$(date +%s)"; then
         chmod +x "${SCRIPT_PATH}.new"
         mv "${SCRIPT_PATH}.new" "$SCRIPT_PATH"
         echo -e "${SUCCESS}Script successfully updated.${NC}"
