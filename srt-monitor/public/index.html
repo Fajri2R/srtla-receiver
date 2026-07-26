@@ -186,13 +186,31 @@
     .external canvas { height: calc(100vh - 65px) !important; }
     .external .actions { display: none; }
 
+    
+    @media(max-width: 850px) {
+      .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 10px 0; gap: 10px; }
+      .brand { flex: 1 1 auto; }
+      .selector { order: 3; width: 100%; margin-left: 0; margin-top: 4px; }
+      .selector label { display: none; }
+      select { width: 100%; max-width: none; }
+      .action-fs-main { margin-right: 0; }
+    }
+
     @media(max-width: 650px) {
       .header { padding: 0 16px; }
-      .header-inner { height: 56px; gap: 12px; }
       .brand { font-size: 14px; }
-      .selector label { display: none; }
       .main { padding: 16px 12px; }
-      canvas { height: 220px; }
+      .title { font-size: 18px; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .panel-head { flex-wrap: wrap; }
+      .actions { order: 3; width: 100%; margin-left: 0; margin-top: 6px; }
+      canvas { height: 210px; }
+      
+      main:fullscreen { padding: 8px !important; }
+      main:fullscreen .stats { display: none !important; }
+      main:fullscreen .charts { grid-template-columns: 1fr !important; grid-template-rows: repeat(4, 1fr) !important; gap: 8px !important; }
+      main:fullscreen .panel { padding: 8px !important; }
+      main:fullscreen .actions { display: none !important; }
     }
   </style>
 </head>
