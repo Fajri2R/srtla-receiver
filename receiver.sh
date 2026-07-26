@@ -640,8 +640,21 @@ create_data_directory() {
     fi
 }
 
+# Ensure all Compose build contexts exist before Docker resolves them.
+ensure_local_build_contexts() {
+    if [ -f "hls-manager/Dockerfile" ] && [ -f "srt-monitor/Dockerfile" ]; then
+        return 0
+    fi
+    echo -e "${WARNING}Local dashboard source is incomplete. Re-downloading build contexts...${NC}"
+    download_compose_file || {
+        echo -e "${ERROR}Unable to restore dashboard source files. Run './receiver.sh update' after checking network access.${NC}"
+        return 1
+    }
+}
+
 # Function to start SRTla-Receiver
 start_receiver() {
+    ensure_local_build_contexts || return 1
     check_docker
     
     if [ ! -f "docker-compose.yml" ]; then

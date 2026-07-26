@@ -422,6 +422,14 @@
     });
   }
 
+  var _origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, value) {
+    _origSetItem.apply(this, arguments);
+    if (/api.?key/i.test(String(key))) {
+      setTimeout(function() { window.location.reload(); }, 200);
+    }
+  };
+
   function injectButtons() {
     enhanceNavbarBrand();
     injectHlsManagerButton();
