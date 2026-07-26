@@ -1216,6 +1216,10 @@ function createCard(publisher) {
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
           Stop
         </button>
+        <button class="btn-action btn-secondary-action" data-action="monitor" title="View Stream Dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+          Monitor
+        </button>
         <button class="btn-action btn-secondary-action" data-action="copy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy URL
@@ -1226,6 +1230,11 @@ function createCard(publisher) {
   // ✅ FIX #18: Attach event listeners programmatically (safe, no inline handlers)
   card.querySelector('[data-action="preview"]').addEventListener('click', () => startPreview(id));
   card.querySelector('[data-action="stop"]').addEventListener('click',    () => stopPreview(id));
+  card.querySelector('[data-action="monitor"]').addEventListener('click', () => {
+    const port = 9010;
+    const url = window.location.protocol + '//' + window.location.hostname + ':' + port + '/?stream=' + encodeURIComponent(id);
+    window.open(url, '_blank');
+  });
   card.querySelector('[data-action="copy"]').addEventListener('click',    () => copyStreamUrl(id));
 
   // Store video element reference by id
