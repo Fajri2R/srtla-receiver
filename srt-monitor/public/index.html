@@ -200,7 +200,7 @@
     let hover = {};
 
     const select = document.querySelector('#stream');
-    const status = document.querySelector('#status');
+    const statusEl = document.querySelector('#status');
     const statsEl = document.querySelector('#stats');
     const chartsEl = document.querySelector('#charts');
 
@@ -222,8 +222,8 @@
     }
 
     function setStatus(t, bad = false) {
-      status.className = 'live' + (bad ? ' error' : '');
-      status.querySelector('span').textContent = t;
+      statusEl.className = 'live' + (bad ? ' error' : '');
+      statusEl.querySelector('span').textContent = t;
     }
 
     function metrics() {
@@ -461,3 +461,4 @@
   </script>
 </body>
 </html>
+
