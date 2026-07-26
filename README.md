@@ -1,6 +1,6 @@
 ﻿# SRTla Receiver + Live Preview
 
-> **Fork of [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver)** — extends the original with a **browser-based Live Preview** dashboard powered by HLS.js, a dynamic multi-stream HLS manager, and an **integrated Live Preview button in Management UI**.
+> **Fork of [OpenIRL/srtla-receiver](https://github.com/OpenIRL/srtla-receiver)** — extends the original with a **browser-based Live Preview** dashboard powered by HLS.js, a dynamic multi-stream HLS manager, and a dedicated **SRT Monitoring** dashboard.
 
 SRTla receiver with support for multiple streams, statistics integration, and **in-browser live preview** for all active streams simultaneously — including a per-stream 🔴 Live button injected directly into the Management UI.
 
@@ -51,6 +51,7 @@ If you'd like to support the original project, please visit the GoFundMe page: [
 | `8080` | TCP | SLS Stats API |
 | `3000` | TCP | Management UI (via mgmt-proxy with Live Preview injection) |
 | `8090` | TCP | **Standalone Live Preview** dashboard (HLS Manager) |
+| `9010` | TCP | **Dedicated SRT Monitor** dashboard (Real-time network metrics) |
 
 ### Install the Receiver
 
@@ -70,7 +71,7 @@ curl -Lso receiver.sh "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/
 
 The installer will:
 - Install Docker if not present
-- Download `docker-compose`, `hls-manager`, `mgmt-proxy`, and `preview` files from this fork
+- Download `docker-compose`, `hls-manager`, `srt-monitor`, `mgmt-proxy`, and `preview` files from this fork
 - Prompt you for port configuration (press Enter to accept defaults)
 - Build the HLS manager image and start all containers
 - Display all service URLs when done
@@ -199,6 +200,7 @@ OBS/Encoder ─── SRTla:5000 ──▶ [receiver: SLS]
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LIVE_PREVIEW_PORT` | `8090` | Port for the standalone preview web UI |
+| `SRT_MONITOR_PORT` | `9010` | Port for the dedicated SRT Monitoring dashboard |
 | `HLS_SEGMENT_TIME` | `2` | HLS segment duration in seconds (lower = less latency) |
 | `HLS_LIST_SIZE` | `5` | Number of segments kept in the playlist |
 | `HLS_POLL_INTERVAL` | `5` | How often hls-manager polls for new/ended streams (seconds) |
@@ -315,6 +317,7 @@ sudo ufw allow 4001/udp   # SRT sender input
 sudo ufw allow 8080/tcp   # SLS Stats API
 sudo ufw allow 3000/tcp   # Management UI
 sudo ufw allow 8090/tcp   # Standalone Live Preview
+sudo ufw allow 9010/tcp   # Dedicated SRT Monitor
 sudo ufw reload
 ```
 
