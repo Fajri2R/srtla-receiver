@@ -186,7 +186,7 @@
     }
     .action:hover { color: var(--text-primary); border-color: rgba(99,102,241,.5); background: var(--bg-card); }
 
-    canvas { width: 100%; height: 265px; display: block; cursor: crosshair; }
+    canvas { width: 100%; height: 265px; display: block; cursor: crosshair; touch-action: none; }
     
     
     
@@ -443,6 +443,25 @@
             draw(c);
           };
           c.onmouseleave = () => {
+            delete hover[c.dataset.key];
+            draw(c);
+          };
+          c.ontouchstart = e => {
+            if (e.touches && e.touches.length > 0) {
+              let r = c.getBoundingClientRect();
+              hover[c.dataset.key] = e.touches[0].clientX - r.left;
+              draw(c);
+            }
+          };
+          c.ontouchmove = e => {
+            if (e.touches && e.touches.length > 0) {
+              e.preventDefault();
+              let r = c.getBoundingClientRect();
+              hover[c.dataset.key] = e.touches[0].clientX - r.left;
+              draw(c);
+            }
+          };
+          c.ontouchend = c.ontouchcancel = () => {
             delete hover[c.dataset.key];
             draw(c);
           };
