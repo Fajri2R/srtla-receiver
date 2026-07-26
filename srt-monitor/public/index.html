@@ -186,7 +186,7 @@
     }
     .action:hover { color: var(--text-primary); border-color: rgba(99,102,241,.5); background: var(--bg-card); }
 
-    canvas { width: 100%; height: 265px; display: block; cursor: crosshair; touch-action: none; }
+    canvas { width: 100%; height: 265px; display: block; cursor: crosshair; touch-action: pan-y; }
     
     
     
@@ -455,7 +455,6 @@
           };
           c.ontouchmove = e => {
             if (e.touches && e.touches.length > 0) {
-              e.preventDefault();
               let r = c.getBoundingClientRect();
               hover[c.dataset.key] = e.touches[0].clientX - r.left;
               draw(c);
@@ -591,9 +590,12 @@
           return;
         }
         
-        select.innerHTML = streams.map(s => '<option value="' + esc(s.id) + '">' + esc(s.id) + '</option>').join('');
+        const newOpts = streams.map(s => '<option value="' + esc(s.id) + '">' + esc(s.id) + '</option>').join('');
+        if (select.innerHTML !== newOpts) {
+          select.innerHTML = newOpts;
+        }
         if (!selected || !streams.some(s => s.id === selected)) selected = streams[0].id;
-        select.value = selected;
+        if (select.value !== selected) select.value = selected;
         
         let r = await fetch('/api/streams/' + encodeURIComponent(selected), {cache: 'no-store'});
         if (!r.ok) throw Error();
