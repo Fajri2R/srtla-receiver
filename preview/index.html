@@ -155,7 +155,7 @@
       50%      { opacity: 0.5; transform: scale(0.8); }
     }
 
-    .btn-refresh, .btn-mgmt, .btn-config-toggle {
+    .btn-refresh, .btn-mgmt {
       display: flex;
       align-items: center;
       gap: 7px;
@@ -169,7 +169,7 @@
       cursor: pointer;
       transition: var(--transition);
     }
-    .btn-refresh:hover, .btn-mgmt:hover, .btn-config-toggle:hover {
+    .btn-refresh:hover, .btn-mgmt:hover {
       color: var(--text-primary);
       border-color: var(--border-accent);
       background: var(--bg-card);
@@ -325,7 +325,7 @@
         white-space: nowrap;
       }
       .pulse-dot { width: 8px; height: 8px; }
-      .btn-refresh, .btn-mgmt, .btn-config-toggle {
+      .btn-refresh, .btn-mgmt {
         flex: 0 0 36px;
         width: 36px;
         min-width: 36px;
@@ -338,9 +338,6 @@
       .btn-refresh svg, .btn-mgmt svg { width: 16px !important; height: 16px !important; }
       .main { padding: 20px 16px; }
       .stats-overview { grid-template-columns: repeat(2, 1fr); }
-      .settings-bar { flex-direction: column; align-items: stretch; gap: 12px; }
-      .settings-group { flex-direction: column; align-items: stretch; }
-      .settings-input { min-width: 0; }
     }
 
     @media (max-width: 480px) {
@@ -350,7 +347,7 @@
       .logo-text { display: none; }
       .header-badge { padding: 6px 8px; gap: 4px; }
       .header-badge span { font-size: 10px; }
-      .btn-refresh, .btn-mgmt, .btn-config-toggle { flex-basis: 34px; min-width: 34px; height: 34px; }
+      .btn-refresh, .btn-mgmt { flex-basis: 34px; min-width: 34px; height: 34px; }
       .stats-overview, .streams-grid { grid-template-columns: 1fr; }
       .card-actions { flex-direction: column; }
       .btn-action { width: 100%; }
@@ -705,15 +702,6 @@
         <span>HLS: checking...</span>
       </div>
 
-
-      <button class="btn-refresh" id="btn-config-toggle" title="Toggle Configuration" onclick="toggleConfig()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        Config
-      </button>
-
       <button class="btn-refresh" id="btn-refresh" title="Refresh streams" onclick="refreshAll()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -734,26 +722,6 @@
 
   <!-- MAIN -->
   <main class="main">
-
-    <!-- SETTINGS -->
-    <div class="settings-bar" id="settings-bar" style="display:none">
-      <span class="settings-label">⚙ Config</span>
-      <div class="settings-group">
-        <label for="input-stats-url">Stats API URL</label>
-        <input id="input-stats-url" class="settings-input" type="text"
-               placeholder="http://your-server:8080" />
-        <label for="input-hls-base">HLS Base URL</label>
-        <input id="input-hls-base" class="settings-input" type="text"
-               placeholder="http://your-server:8090/hls" />
-        <label for="input-mgmt-port">Mgmt Port</label>
-        <input id="input-mgmt-port" class="settings-input" type="text"
-               placeholder="3030" style="width:80px;" />
-        <button class="btn-primary" onclick="saveConfig()">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Apply
-        </button>
-      </div>
-    </div>
 
     <!-- STATS OVERVIEW -->
     <div class="stats-overview">
@@ -824,9 +792,8 @@ const DEFAULT_HLS_BASE  = IS_SAME_ORIGIN
   : 'http://localhost:8090/hls';
 
 let config = {
-  statsUrl: localStorage.getItem('srtla_stats_url') || DEFAULT_STATS_URL,
-  hlsBase:  localStorage.getItem('srtla_hls_base')  || DEFAULT_HLS_BASE,
-  mgmtPort: localStorage.getItem('srtla_mgmt_port') || '3030',
+  statsUrl: DEFAULT_STATS_URL,
+  hlsBase: DEFAULT_HLS_BASE,
 };
 
 // Active HLS.js instances keyed by stream id
@@ -842,9 +809,6 @@ const playingStreams = new Set();
    INIT
 ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('input-stats-url').value = config.statsUrl;
-  document.getElementById('input-hls-base').value  = config.hlsBase;
-  document.getElementById('input-mgmt-port').value = config.mgmtPort;
   updateMgmtLink();
   fetchStats();
   startAutoRefresh();
@@ -863,37 +827,15 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ================================================================
    CONFIG
 ================================================================ */
-function toggleConfig() {
-  const bar = document.getElementById('settings-bar');
-  const btn = document.getElementById('btn-config-toggle');
-  if (bar.style.display === 'none' || !bar.style.display) {
-    bar.style.display = 'flex';
-    btn.style.borderColor = 'var(--border-accent)';
-    btn.style.color = 'var(--text-primary)';
-  } else {
-    bar.style.display = 'none';
-    btn.style.borderColor = '';
-    btn.style.color = '';
-  }
-}
-
 function updateMgmtLink() {
   const btn = document.getElementById('btn-mgmt');
   if (!btn) return;
-  const port = config.mgmtPort || '3030';
-  btn.href = `${window.location.protocol}//${window.location.hostname}:${port}`;
-}
-
-function saveConfig() {
-  config.statsUrl = document.getElementById('input-stats-url').value.trim().replace(/\/$/, '');
-  config.hlsBase  = document.getElementById('input-hls-base').value.trim().replace(/\/$/, '');
-  config.mgmtPort = document.getElementById('input-mgmt-port').value.trim();
-  localStorage.setItem('srtla_stats_url', config.statsUrl);
-  localStorage.setItem('srtla_hls_base', config.hlsBase);
-  localStorage.setItem('srtla_mgmt_port', config.mgmtPort);
-  updateMgmtLink();
-  showToast('Configuration saved!', 'ok');
-  fetchStats();
+  const params = new URLSearchParams(window.location.search);
+  const port = params.get('mgmt') || localStorage.getItem('srtla_mgmt_port') || '3030';
+  if (params.get('mgmt')) localStorage.setItem('srtla_mgmt_port', port);
+  btn.href = port === '80' || port === '443'
+    ? `${window.location.protocol}//${window.location.hostname}`
+    : `${window.location.protocol}//${window.location.hostname}:${port}`;
 }
 
 /* ================================================================
