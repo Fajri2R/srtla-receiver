@@ -119,6 +119,24 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  # ?? Dedicated SRT Monitoring ??????????????????????????????????????????????????
+  srt-monitor:
+    build: ./srt-monitor
+    container_name: srt-monitor
+    restart: unless-stopped
+    depends_on:
+      receiver:
+        condition: service_started
+    environment:
+      SLS_STATS_URL: "http://receiver:8080/stats"
+    ports:
+      - "${SRT_MONITOR_PORT:-9010}:9091"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
 volumes:
   hls-access-logs:
     driver: local
