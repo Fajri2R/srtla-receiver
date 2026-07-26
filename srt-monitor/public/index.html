@@ -1,33 +1,463 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SRT Monitor</title>
-<style>
-:root{--bg:#0b0d12;--panel:#141820;--panel2:#10141c;--line:#2a3140;--grid:#232938;--text:#e5e7eb;--muted:#8b95a7;--blue:#38bdf8;--violet:#818cf8;--green:#4ade80;--orange:#fb923c;--red:#f87171}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:13px Inter,ui-sans-serif,system-ui,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(#ffffff05 1px,transparent 1px),linear-gradient(90deg,#ffffff05 1px,transparent 1px);background-size:32px 32px}.top{height:58px;padding:0 20px;border-bottom:1px solid var(--line);background:#10131b;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}.brand{font-weight:700;font-size:15px;white-space:nowrap}.brand b{color:var(--violet)}.selector{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}select{max-width:290px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 10px;outline:none}.live{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:20px;color:var(--green);border:1px solid #4ade8038;background:#4ade8014;font-size:11px}.live.error{color:var(--red);border-color:#f8717138;background:#f8717114}.dot{width:6px;height:6px;border-radius:50%;background:currentColor}.main{position:relative;max-width:1450px;margin:auto;padding:22px 20px}.title{font-size:20px;margin:0 0 5px}.title code{font:500 13px ui-monospace,monospace;color:var(--blue);background:#38bdf815;border:1px solid #38bdf82b;border-radius:4px;padding:3px 7px}.sub{color:var(--muted);margin:0 0 20px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px}.stat{padding:12px 14px;border-left:3px solid var(--violet)}.stat-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}.stat-value{margin-top:4px;font:700 20px ui-monospace,SFMono-Regular,Consolas,monospace}.charts{display:grid;grid-template-columns:1fr;gap:16px}.panel{padding:14px;position:relative}.panel.hidden-chart{height:54px;overflow:hidden}.actions{display:flex;gap:6px;margin-left:auto}.btn-action{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px}.btn-action:hover{color:var(--text);border-color:var(--muted);background:#ffffff0a}.panel:fullscreen{background:var(--bg)!important;padding:24px;display:flex;flex-direction:column;justify-content:center}.panel:fullscreen .chart{height:calc(100vh - 100px)!important;max-height:none!important}.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.panel-title{font-weight:600}.current{font:500 11px ui-monospace,monospace;color:var(--muted)}.key{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}.chart{width:100%;height:260px;display:block}.empty{padding:80px 20px;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--muted)}@media(max-width:650px){.top{padding:0 12px}.brand{font-size:13px}.selector{gap:5px}.selector label{display:none}select{max-width:145px}.main{padding:16px 12px}.charts{grid-template-columns:1fr}.chart{height:220px}}
-</style></head><body>
-<header class="top"><div class="brand">SRT <b>Monitor</b></div><div class="selector"><label for="stream">Stream</label><select id="stream"></select></div><div class="live" id="status"><span class="dot"></span><span>Connecting</span></div></header>
-<main class="main"><h1 class="title">Metrics <code id="stream-name">-</code></h1><p class="sub">Only metrics reported by this publisher are displayed. Time axis uses your browser timezone.</p><section class="stats" id="stats"></section><section class="charts" id="charts"></section></main>
-<script>
-const metricDefs=[
- {key:'recvBitrate',label:'Receive Bitrate',color:'#818cf8',format:'rate'},
- {key:'rtt',label:'Round Trip Time (RTT)',color:'#4ade80',format:'ms'},
- {key:'droppedPackets',label:'Packet Drops',color:'#f87171',format:'count'},
- {key:'transcoderFps',label:'Realtime FPS',color:'#38bdf8',format:'fps'},
- {key:'viewers',label:'Active Viewers',color:'#fb923c',format:'count'},
- {key:'uptime',label:'Stream Uptime',color:'#c084fc',format:'duration'}
-];
-let selected=new URLSearchParams(location.search).get('stream')||'';let history=[];let latest={};let resizeTimer;let hiddenStates={};let hoverData={};
-const select=document.querySelector('#stream'),status=document.querySelector('#status'),statsEl=document.querySelector('#stats'),chartsEl=document.querySelector('#charts');
-function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function value(v){return Number.isFinite(Number(v))?Number(v):null}
-function fmt(v,type){v=value(v);if(v===null)return'â€”';if(type==='rate')return v>=1e6?(v/1e6).toFixed(2)+' Mbps':v>=1e3?(v/1e3).toFixed(1)+' Kbps':v.toFixed(0)+' bps';if(type==='ms')return v.toFixed(1)+' ms';if(type==='fps')return v.toFixed(1)+' FPS';if(type==='duration'){const s=Math.round(v),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return [h?h+'h':'',m?m+'m':'',sec+'s'].filter(Boolean).join(' ')||'0s'}return Math.round(v).toLocaleString()}
-function time(at){return new Date(at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})}
-function setStatus(text,error=false){status.className='live'+(error?' error':'');status.querySelector('span:last-child').textContent=text}
-function switchStream(){selected=select.value;let url=new URL(location);url.searchParams.set('stream',selected);history.replaceState({},'',url);load()}
-select.addEventListener('change',switchStream);
-function toggleChart(key){hiddenStates[key]=!hiddenStates[key];render()}function toggleFullscreen(key){const panel=document.querySelector('.panel[data-panel-key=\"'+key+'\"]');if(!document.fullscreenElement)panel?.requestFullscreen().catch(()=>{});else document.exitFullscreen()}function supported(){return metricDefs.filter(m=>history.some(p=>value(p[m.key])!==null)||value(latest[m.key])!==null)}
-function updateSelect(streams){select.innerHTML=streams.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id)+'</option>').join('');if(!selected||!streams.some(x=>x.id===selected))selected=streams[0]?.id||'';select.value=selected}
-function render(){document.querySelector('#stream-name').textContent=selected||'â€”';let metrics=supported();statsEl.innerHTML=metrics.slice(0,4).map(m=>'<article class="stat" style="border-left-color:'+m.color+'"><div class="stat-label">'+m.label+'</div><div class="stat-value">'+fmt(latest[m.key],m.format)+'</div></article>').join('');chartsEl.innerHTML=metrics.map(m=>'<article class="panel'+(hiddenStates[m.key]?' hidden-chart':'')+'" data-panel-key="'+m.key+'"><div class="panel-head"><div class="panel-title"><span class="key" style="background:'+m.color+'"></span>'+m.label+'</div><div class="actions"><button class="btn-action" onclick="toggleChart(\''+m.key+'\')">'+(hiddenStates[m.key]?'Show':'Hide')+'</button><button class="btn-action" onclick="toggleFullscreen(\''+m.key+'\')">Fullscreen</button></div><div class="current">Current: '+fmt(latest[m.key],m.format)+'</div></div><canvas class="chart" data-key="'+m.key+'" data-color="'+m.color+'" data-format="'+m.format+'"></canvas></article>').join('');if(!metrics.length){chartsEl.innerHTML='<div class="empty">Waiting for supported SRT metrics from <b>'+esc(selected)+'</b>â€¦</div>';return}chartsEl.querySelectorAll('canvas').forEach(c=>{if(!hiddenStates[c.dataset.key]){draw(c,c.dataset.key,c.dataset.color,c.dataset.format);setupHover(c)}})}
-function setupHover(canvas){const key=canvas.dataset.key;canvas.onmousemove=e=>{const r=canvas.getBoundingClientRect();hoverData[key]={x:e.clientX-r.left};draw(canvas,key,canvas.dataset.color,canvas.dataset.format)};canvas.onmouseleave=()=>{delete hoverData[key];draw(canvas,key,canvas.dataset.color,canvas.dataset.format)}}
-function draw(canvas,key,color,type){let rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1,w=rect.width,h=rect.height;canvas.width=Math.max(1,w*dpr);canvas.height=Math.max(1,h*dpr);let c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);let pts=history.map(x=>({at:x.at,v:value(x[key])})).filter(x=>x.v!==null),left=58,right=14,top=12,bottom=29,pw=w-left-right,ph=h-top-bottom;if(!pts.length||pw<=0||ph<=0)return;let min=Math.min(...pts.map(x=>x.v)),max=Math.max(...pts.map(x=>x.v));if(min===max){min=Math.max(0,min-(min||1)*.15);max=max+(max||1)*.15}else{let gap=(max-min)*.12;min=Math.max(0,min-gap);max+=gap}let y=v=>top+ph-(v-min)/(max-min)*ph,x=i=>left+(pts.length===1?pw:i/(pts.length-1)*pw);c.font='10px Inter,system-ui,sans-serif';c.fillStyle='#7d8799';c.strokeStyle='#283041';c.lineWidth=1;c.textAlign='right';for(let i=0;i<=4;i++){let yy=top+ph-i*ph/4,v=min+(max-min)*i/4;c.beginPath();c.moveTo(left,yy);c.lineTo(left+pw,yy);c.stroke();c.fillText(fmt(v,type),left-7,yy+3)}c.textAlign='center';for(let i=0;i<=4;i++){let idx=Math.round((pts.length-1)*i/4),xx=left+pw*i/4;if(pts[idx])c.fillText(time(pts[idx].at),xx,h-7)}let g=c.createLinearGradient(0,top,0,top+ph);g.addColorStop(0,color+'55');g.addColorStop(1,color+'00');c.beginPath();pts.forEach((p,i)=>i?c.lineTo(x(i),y(p.v)):c.moveTo(x(i),y(p.v)));c.lineTo(x(pts.length-1),top+ph);c.lineTo(x(0),top+ph);c.closePath();c.fillStyle=g;c.fill();c.beginPath();pts.forEach((p,i)=>i?c.lineTo(x(i),y(p.v)):c.moveTo(x(i),y(p.v)));c.strokeStyle=color;c.lineWidth=2;c.stroke();let last=pts.at(-1);c.fillStyle=color;c.beginPath();c.arc(x(pts.length-1),y(last.v),3,0,Math.PI*2);c.fill();const hover=hoverData[key];if(hover&&hover.x>=left&&hover.x<=left+pw){const i=Math.max(0,Math.min(pts.length-1,Math.round((hover.x-left)/pw*(pts.length-1)))),p=pts[i],hx=x(i),hy=y(p.v),txt=time(p.at)+' Â· '+fmt(p.v,type);c.strokeStyle='rgba(255,255,255,.25)';c.setLineDash([4,4]);c.beginPath();c.moveTo(hx,top);c.lineTo(hx,top+ph);c.stroke();c.setLineDash([]);c.fillStyle='#fff';c.strokeStyle=color;c.lineWidth=2;c.beginPath();c.arc(hx,hy,4,0,Math.PI*2);c.fill();c.stroke();c.font='500 11px Inter,sans-serif';const tw=c.measureText(txt).width,bw=tw+16,bh=23,tx=Math.max(left,Math.min(hx-bw/2,left+pw-bw)),ty=hy<top+35?hy+12:hy-34;c.fillStyle='rgba(20,24,32,.96)';c.strokeStyle='rgba(255,255,255,.15)';c.lineWidth=1;c.beginPath();c.roundRect(tx,ty,bw,bh,4);c.fill();c.stroke();c.fillStyle='#fff';c.textAlign='left';c.fillText(txt,tx+8,ty+15)}}
-async function load(){try{let [state,listing]=await Promise.all([fetch('/api/status',{cache:'no-store'}).then(r=>r.json()),fetch('/api/streams',{cache:'no-store'}).then(r=>r.json())]);let streams=listing.streams||[];if(state.lastError)setStatus('API: '+state.lastError,true);else setStatus(streams.length+' stream'+(streams.length===1?'':'s')+' Â· 1s');if(!streams.length){selected='';history=[];latest={};select.innerHTML='<option>No active stream</option>';render();return}updateSelect(streams);let res=await fetch('/api/streams/'+encodeURIComponent(selected),{cache:'no-store'});if(!res.ok)throw new Error('Selected stream unavailable');let data=await res.json();history=data.history||[];latest=data.latest||{};render()}catch(e){setStatus('Monitor unavailable',true)}}
-window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(render,120)});load();setInterval(load,1000);
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SRT Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base:        #0a0e1a;
+      --bg-surface:     #111827;
+      --bg-elevated:    #1a2235;
+      --bg-card:        #1e2a3d;
+      --bg-overlay:     rgba(17, 24, 39, 0.95);
+
+      --border-subtle:  rgba(255,255,255,0.06);
+      --border-default: rgba(255,255,255,0.12);
+
+      --accent:         #6366f1;
+      --accent-light:   #818cf8;
+      --green:          #22c55e;
+      --green-dim:      rgba(34,197,94,0.15);
+      --red:            #ef4444;
+      --red-dim:        rgba(239,68,68,0.15);
+      --yellow:         #f59e0b;
+
+      --text-primary:   #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted:     #475569;
+
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg-overlay);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+    }
+    .header-inner {
+      max-width: 1440px; margin: 0 auto; height: 64px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .brand { font-size: 16px; font-weight: 700; white-space: nowrap; }
+    .brand b { color: var(--accent-light); }
+    
+    .selector { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+    select {
+      max-width: 290px; padding: 7px 10px; border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--text-primary);
+      outline: none; font-family: inherit;
+    }
+
+    .live {
+      display: flex; align-items: center; gap: 6px; padding: 5px 9px;
+      border-radius: var(--radius-xl); color: var(--green);
+      border: 1px solid var(--green-dim); background: rgba(34,197,94,0.08); font-size: 11px;
+    }
+    .live.error {
+      color: var(--red); border-color: var(--red-dim); background: rgba(239,68,68,0.08);
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .main { max-width: 1440px; margin: auto; padding: 24px; }
+    .title { font-size: 20px; margin: 0 0 5px; font-weight: 600; }
+    .title code {
+      font-family: 'Courier New', monospace; font-size: 13px; font-weight: 500;
+      color: #38bdf8; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 4px; padding: 3px 7px;
+    }
+    .sub { color: var(--text-secondary); margin: 0 0 18px; }
+
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px; margin-bottom: 16px;
+    }
+    .stat, .panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+    .stat { padding: 12px 14px; border-left: 3px solid var(--accent); }
+    .sl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+    .sv { margin-top: 4px; font: 700 20px ui-monospace, Consolas, monospace; }
+
+    .charts { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .panel { padding: 14px; display: flex; flex-direction: column; }
+    .panel.hidden-chart { height: 60px; overflow: hidden; }
+    .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .name { font-weight: 600; }
+    .key { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+    .current { margin-left: auto; color: var(--text-secondary); font: 11px ui-monospace, Consolas, monospace; }
+    
+    .actions { display: flex; gap: 6px; margin-left: 12px; }
+    .action {
+      border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+      background: transparent; color: var(--text-secondary); padding: 4px 8px;
+      font-size: 11px; cursor: pointer; font-family: inherit;
+    }
+    .action:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+
+    canvas { width: 100%; height: 265px; display: block; cursor: crosshair; }
+    
+    /* Native Fullscreen Fix */
+    .panel:fullscreen {
+      background: var(--bg-base) !important;
+      padding: 24px;
+      justify-content: center;
+      border: none;
+      border-radius: 0;
+    }
+    .panel:fullscreen canvas {
+      height: calc(100vh - 80px) !important;
+      max-height: none !important;
+    }
+
+    .empty { padding: 80px 20px; text-align: center; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+
+    /* External Monitor popup display (display=1) */
+    .external body, .external { overflow: hidden; }
+    .external .header, .external .stats, .external .sub, .external .title { display: none; }
+    .external .main { max-width: none; height: 100vh; padding: 0; }
+    .external .charts { height: 100%; display: block; }
+    .external .panel { height: 100vh; border: 0; border-radius: 0; background: transparent; padding: 24px; }
+    .external .panel.hidden-chart { display: none; }
+    .external canvas { height: calc(100vh - 65px) !important; }
+    .external .actions { display: none; }
+
+    @media(max-width: 650px) {
+      .header { padding: 0 16px; }
+      .header-inner { height: 56px; gap: 12px; }
+      .brand { font-size: 14px; }
+      .selector label { display: none; }
+      .main { padding: 16px 12px; }
+      canvas { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">SRT <b>Monitor</b></div>
+      <div class="selector">
+        <label>Stream</label>
+        <select id="stream"></select>
+      </div>
+      <div class="live" id="status"><i class="dot"></i><span>Connecting</span></div>
+    </div>
+  </header>
+  <main class="main">
+    <h1 class="title">Metrics <code id="stream-name">-</code></h1>
+    <p class="sub">Hover a graph for its timestamp and exact metric value.</p>
+    <section class="stats" id="stats"></section>
+    <section class="charts" id="charts"></section>
+  </main>
+
+  <script>
+    const defs = [
+      {key: 'recvBitrate', label: 'Receive Bitrate', color: '#818cf8', fmt: 'rate'},
+      {key: 'rtt', label: 'Round Trip Time (RTT)', color: '#22c55e', fmt: 'ms'},
+      {key: 'droppedPackets', label: 'Packet Drops', color: '#ef4444', fmt: 'count'},
+      {key: 'transcoderFps', label: 'Realtime FPS', color: '#38bdf8', fmt: 'fps'},
+      {key: 'viewers', label: 'Active Viewers', color: '#f59e0b', fmt: 'count'},
+      {key: 'uptime', label: 'Stream Uptime', color: '#c084fc', fmt: 'duration'}
+    ];
+
+    const qs = new URLSearchParams(location.search);
+    const external = qs.get('display') === '1';
+    const externalMetric = qs.get('metric');
+    if (external) document.documentElement.classList.add('external');
+
+    let selected = qs.get('stream') || '';
+    let history = [];
+    let latest = {};
+    let hidden = JSON.parse(sessionStorage.getItem('srt-monitor-hidden') || '{}');
+    let hover = {};
+
+    const select = document.querySelector('#stream');
+    const status = document.querySelector('#status');
+    const statsEl = document.querySelector('#stats');
+    const chartsEl = document.querySelector('#charts');
+
+    const num = v => Number.isFinite(Number(v)) ? Number(v) : null;
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const clock = t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+
+    function fmt(v, t) {
+      v = num(v);
+      if (v === null) return '—';
+      if (t === 'rate') return v >= 1e6 ? (v / 1e6).toFixed(2) + ' Mbps' : v >= 1e3 ? (v / 1e3).toFixed(1) + ' Kbps' : v.toFixed(0) + ' bps';
+      if (t === 'ms') return v.toFixed(1) + ' ms';
+      if (t === 'fps') return v.toFixed(1) + ' FPS';
+      if (t === 'duration') {
+        let s = Math.round(v), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+        return [h ? h + 'h' : '', m ? m + 'm' : '', s % 60 + 's'].filter(Boolean).join(' ') || '0s';
+      }
+      return Math.round(v).toLocaleString();
+    }
+
+    function setStatus(t, bad = false) {
+      status.className = 'live' + (bad ? ' error' : '');
+      status.querySelector('span').textContent = t;
+    }
+
+    function metrics() {
+      let m = defs.filter(d => history.some(p => num(p[d.key]) !== null) || num(latest[d.key]) !== null);
+      return externalMetric ? m.filter(d => d.key === externalMetric) : m;
+    }
+
+    function toggleChart(k) {
+      hidden[k] = !hidden[k];
+      sessionStorage.setItem('srt-monitor-hidden', JSON.stringify(hidden));
+      renderUI(true);
+    }
+
+    function toggleNativeFullscreen(k) {
+      const panel = document.querySelector(.panel[data-key="+k+"]);
+      if (!panel) return;
+      if (!document.fullscreenElement) {
+        panel.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function openExternal(k) {
+      let u = new URL(location.href);
+      u.searchParams.set('stream', selected);
+      u.searchParams.set('metric', k);
+      u.searchParams.set('display', '1');
+      window.open(u.toString(), 'srt-monitor-' + k, 'width=800,height=400,noopener');
+    }
+
+    select.onchange = () => {
+      selected = select.value;
+      let u = new URL(location);
+      u.searchParams.set('stream', selected);
+      window.history.replaceState({}, '', u);
+      load();
+    };
+
+    function renderUI(forceRebuild = false) {
+      let m = metrics();
+      document.querySelector('#stream-name').textContent = selected || '—';
+
+      if (external) {
+        statsEl.innerHTML = '';
+      } else {
+        statsEl.innerHTML = m.slice(0, 4).map(d => 
+          <article class="stat" style="border-left-color:+d.color+"><div class="sl">+d.label+</div><div class="sv">+fmt(latest[d.key], d.fmt)+</div></article>
+        ).join('');
+      }
+
+      if (!m.length) {
+        chartsEl.innerHTML = '<div class="empty">Waiting for supported metrics…</div>';
+        return;
+      }
+
+      // Check if we need to rebuild charts DOM (to avoid breaking fullscreen)
+      const currentKeys = Array.from(chartsEl.querySelectorAll('.panel')).map(el => el.dataset.key).join(',');
+      const newKeys = m.map(d => d.key).join(',');
+      
+      if (currentKeys !== newKeys || forceRebuild) {
+        chartsEl.innerHTML = m.map(d => 
+          <article class="panel +(hidden[d.key] && !external ? 'hidden-chart' : '')+" data-key="+d.key+">
+            <div class="panel-head">
+              <i class="key" style="background:+d.color+"></i>
+              <strong class="name">+d.label+</strong>
+              <div class="actions">
+                + (external ? '' : 
+                <button class="action" onclick="toggleChart('+d.key+')">+(hidden[d.key] ? 'Show' : 'Hide')+</button>
+                <button class="action" onclick="toggleNativeFullscreen('+d.key+')" title="Native Fullscreen">Full</button>
+                <button class="action" onclick="openExternal('+d.key+')" title="External Monitor Popup">Ext Window</button>
+                ) +
+              </div>
+              <span class="current" id="current-+d.key+">Current: +fmt(latest[d.key], d.fmt)+</span>
+            </div>
+            <canvas id="canvas-+d.key+" data-key="+d.key+" data-color="+d.color+" data-fmt="+d.fmt+"></canvas>
+          </article>
+        ).join('');
+
+        chartsEl.querySelectorAll('canvas').forEach(c => {
+          c.onmousemove = e => {
+            let r = c.getBoundingClientRect();
+            hover[c.dataset.key] = e.clientX - r.left;
+            draw(c);
+          };
+          c.onmouseleave = () => {
+            delete hover[c.dataset.key];
+            draw(c);
+          };
+        });
+      } else {
+        // Update incrementally to preserve fullscreen and hover state!
+        m.forEach(d => {
+          const curEl = document.getElementById('current-' + d.key);
+          if (curEl) curEl.textContent = 'Current: ' + fmt(latest[d.key], d.fmt);
+        });
+      }
+
+      chartsEl.querySelectorAll('canvas').forEach(c => {
+        if (!hidden[c.dataset.key] || external) draw(c);
+      });
+    }
+
+    function draw(canvas) {
+      let key = canvas.dataset.key, color = canvas.dataset.color, type = canvas.dataset.fmt;
+      let r = canvas.getBoundingClientRect();
+      let d = devicePixelRatio || 1;
+      let w = r.width, h = r.height;
+      if (w === 0 || h === 0) return;
+      
+      canvas.width = w * d;
+      canvas.height = h * d;
+      let c = canvas.getContext('2d');
+      c.setTransform(d, 0, 0, d, 0, 0);
+      c.clearRect(0, 0, w, h);
+      
+      let pts = history.map(x => ({ at: x.at, v: num(x[key]) })).filter(x => x.v !== null);
+      let L = 58, R = 14, T = 12, B = 29, PW = w - L - R, PH = h - T - B;
+      
+      if (!pts.length || PW <= 0 || PH <= 0) return;
+      
+      let lo = Math.min(...pts.map(p => p.v)), hi = Math.max(...pts.map(p => p.v));
+      if (lo === hi) { lo = Math.max(0, lo - (lo || 1) * 0.15); hi += hi || 1; }
+      else { let g = (hi - lo) * 0.12; lo = Math.max(0, lo - g); hi += g; }
+      
+      let X = i => L + (pts.length === 1 ? PW : i / (pts.length - 1) * PW);
+      let Y = v => T + PH - (v - lo) / (hi - lo) * PH;
+      
+      c.font = '10px Inter, sans-serif';
+      c.strokeStyle = 'rgba(255,255,255,0.08)';
+      c.fillStyle = '#7d8799';
+      c.textAlign = 'right';
+      
+      for (let i = 0; i <= 4; i++) {
+        let yy = T + PH - i * PH / 4, v = lo + (hi - lo) * i / 4;
+        c.beginPath(); c.moveTo(L, yy); c.lineTo(L + PW, yy); c.stroke();
+        c.fillText(fmt(v, type), L - 7, yy + 3);
+      }
+      
+      c.textAlign = 'center';
+      for (let i = 0; i <= 4; i++) {
+        let j = Math.round((pts.length - 1) * i / 4);
+        if(pts[j]) c.fillText(clock(pts[j].at), L + PW * i / 4, h - 7);
+      }
+      
+      let gr = c.createLinearGradient(0, T, 0, T + PH);
+      gr.addColorStop(0, color + '55');
+      gr.addColorStop(1, color + '00');
+      
+      c.beginPath();
+      pts.forEach((p, i) => i ? c.lineTo(X(i), Y(p.v)) : c.moveTo(X(i), Y(p.v)));
+      c.lineTo(X(pts.length - 1), T + PH);
+      c.lineTo(X(0), T + PH);
+      c.closePath();
+      c.fillStyle = gr;
+      c.fill();
+      
+      c.beginPath();
+      pts.forEach((p, i) => i ? c.lineTo(X(i), Y(p.v)) : c.moveTo(X(i), Y(p.v)));
+      c.strokeStyle = color;
+      c.lineWidth = 2;
+      c.stroke();
+
+      let last = pts[pts.length - 1];
+      c.fillStyle = color;
+      c.beginPath();
+      c.arc(X(pts.length - 1), Y(last.v), 3, 0, Math.PI * 2);
+      c.fill();
+      
+      let hx = hover[key];
+      if (hx !== undefined && hx >= L && hx <= L + PW) {
+        let i = Math.max(0, Math.min(pts.length - 1, Math.round((hx - L) / PW * (pts.length - 1))));
+        let p = pts[i], px = X(i), py = Y(p.v), label = clock(p.at) + ' · ' + fmt(p.v, type);
+        
+        c.strokeStyle = 'rgba(255,255,255,.3)';
+        c.setLineDash([4, 4]);
+        c.beginPath(); c.moveTo(px, T); c.lineTo(px, T + PH); c.stroke();
+        c.setLineDash([]);
+        
+        c.fillStyle = '#fff';
+        c.strokeStyle = color;
+        c.beginPath(); c.arc(px, py, 4, 0, Math.PI * 2); c.fill(); c.stroke();
+        
+        c.font = '500 11px Inter, sans-serif';
+        let bw = c.measureText(label).width + 16;
+        let tx = Math.max(L, Math.min(px - bw / 2, L + PW - bw));
+        let ty = py < T + 35 ? py + 12 : py - 34;
+        
+        c.fillStyle = 'rgba(17,24,39,0.97)';
+        c.strokeStyle = 'rgba(255,255,255,0.15)';
+        c.beginPath(); c.roundRect(tx, ty, bw, 23, 4); c.fill(); c.stroke();
+        
+        c.fillStyle = '#fff';
+        c.textAlign = 'left';
+        c.fillText(label, tx + 8, ty + 15);
+      }
+    }
+
+    async function load() {
+      try {
+        let [st, ls] = await Promise.all([
+          fetch('/api/status', {cache: 'no-store'}).then(r => r.json()),
+          fetch('/api/streams', {cache: 'no-store'}).then(r => r.json())
+        ]);
+        let streams = ls.streams || [];
+        
+        setStatus(st.lastError ? 'API: ' + st.lastError : streams.length + ' stream' + (streams.length === 1 ? '' : 's') + ' · 1s', !!st.lastError);
+        
+        if (!streams.length) {
+          history = []; latest = {};
+          select.innerHTML = '<option>No active stream</option>';
+          renderUI();
+          return;
+        }
+        
+        select.innerHTML = streams.map(s => '<option value="' + esc(s.id) + '">' + esc(s.id) + '</option>').join('');
+        if (!selected || !streams.some(s => s.id === selected)) selected = streams[0].id;
+        select.value = selected;
+        
+        let r = await fetch('/api/streams/' + encodeURIComponent(selected), {cache: 'no-store'});
+        if (!r.ok) throw Error();
+        
+        let d = await r.json();
+        history = d.history || [];
+        latest = d.latest || {};
+        renderUI();
+      } catch (e) {
+        setStatus('Monitor unavailable', true);
+      }
+    }
+
+    window.addEventListener('resize', () => renderUI());
+    load();
+    setInterval(load, 1000);
+  </script>
+</body>
+</html>
