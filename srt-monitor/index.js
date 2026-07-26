@@ -3,7 +3,13 @@ import { readFileSync, existsSync } from "fs";
 import { join, normalize } from "path";
 
 const PORT = Number(process.env.PORT || 9091);
-const STATS_URL = process.env.SLS_STATS_URL || "http://receiver:8080/stats";
+const SLS_BASE = (process.env.SLS_STATS_URL || "http://receiver:8080/stats").replace(/\/stats\/?$/, "");
+const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE + "/api/stream-ids");
+let SLS_API_KEY = process.env.SLS_API_KEY || "";
+function refreshApiKey() {
+  try { SLS_API_KEY = readFileSync("/apikey", "utf8").trim(); } catch {}
+  return SLS_API_KEY;
+}
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
 const HISTORY_SIZE = Math.max(60, Number(process.env.HISTORY_SIZE || 900));
 const publicDir = join(process.cwd(), "public");
@@ -51,22 +57,44 @@ function snapshot(item) {
 
 async function poll() {
   try {
-    const response = await fetch(STATS_URL, { signal: AbortSignal.timeout(3500) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const body = await response.json();
+    const apiKey = refreshApiKey();
+    const headers = apiKey ? { "Authorization": `Bearer ${apiKey}` } : {};
+    const streamResponse = await fetch(SLS_STREAMS_URL, { headers, signal: AbortSignal.timeout(4000) });
+    if (!streamResponse.ok) throw new Error(`HTTP ${streamResponse.status} from stream-ids`);
+
+    const streamBody = await streamResponse.json();
+    const streamList = Array.isArray(streamBody)
+      ? streamBody
+      : (streamBody.data || streamBody.streams || streamBody.stream_ids || []);
     const present = new Set();
-    for (const publisher of normalizePublishers(body)) {
-      const id = streamId(publisher);
-      if (!id) continue;
-      present.add(id);
-      const entry = streams.get(id) || { id, latest: null, history: [] };
-      const point = snapshot(publisher);
-      entry.latest = point;
-      entry.history.push(point);
-      if (entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
-      streams.set(id, entry);
+
+    await Promise.all(streamList.map(async (stream) => {
+      const publisherId = stream.publisher || stream.pub_stream_id || stream.publisherId;
+      if (!publisherId) return;
+
+      try {
+        const statsResponse = await fetch(`${SLS_BASE}/stats/${encodeURIComponent(publisherId)}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (!statsResponse.ok) return;
+
+        const statsBody = await statsResponse.json();
+        const publisher = statsBody.status === "ok" ? statsBody.publisher : null;
+        if (!publisher) return;
+
+        present.add(publisherId);
+        const entry = streams.get(publisherId) || { id: publisherId, latest: null, history: [] };
+        const point = snapshot(publisher);
+        entry.latest = point;
+        entry.history.push(point);
+        if (entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
+        streams.set(publisherId, entry);
+      } catch {}
+    }));
+
+    for (const [id, entry] of streams) {
+      if (!present.has(id) && entry.history.length > HISTORY_SIZE / 2) streams.delete(id);
     }
-    for (const [id, entry] of streams) if (!present.has(id) && entry.history.length > HISTORY_SIZE / 2) streams.delete(id);
     lastPoll = Date.now();
     lastError = null;
   } catch (error) {
@@ -90,7 +118,7 @@ function serveFile(res, file, type) {
 
 createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (url.pathname === "/api/status") return json(res, 200, { lastPoll, lastError, source: STATS_URL, pollMs: POLL_MS, streams: streams.size });
+  if (url.pathname === "/api/status") return json(res, 200, { lastPoll, lastError, source: SLS_STREAMS_URL, pollMs: POLL_MS, streams: streams.size });
   if (url.pathname === "/api/streams") return json(res, 200, { streams: [...streams.values()].map(({ id, latest }) => ({ id, latest })) });
   if (url.pathname.startsWith("/api/streams/")) {
     const id = decodeURIComponent(url.pathname.slice("/api/streams/".length));

@@ -129,6 +129,10 @@ services:
         condition: service_started
     environment:
       SLS_STATS_URL: "http://receiver:8080/stats"
+      SLS_STREAMS_URL: "http://receiver:8080/api/stream-ids"
+      SLS_API_KEY: "${SLS_API_KEY}"
+    volumes:
+      - ./.apikey:/apikey:ro
     ports:
       - "${SRT_MONITOR_PORT:-9010}:9091"
     logging:
