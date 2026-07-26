@@ -17,6 +17,8 @@
   var BASE    = location.protocol + '//' + location.host;
   var portStr = location.port ? ':' + location.port : '';
   var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':8090/?mgmt=' + encodeURIComponent(location.port || (location.protocol === 'https:' ? '443' : '80'));
+  var SRT_MONITOR_URL = location.protocol + '//' + location.hostname + ':9010/';
+
   /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
   var fontP1 = document.createElement('link'); fontP1.rel = 'preconnect'; fontP1.href = 'https://fonts.googleapis.com';
   var fontP2 = document.createElement('link'); fontP2.rel = 'preconnect'; fontP2.href = 'https://fonts.gstatic.com'; fontP2.crossOrigin = 'anonymous';
@@ -256,12 +258,19 @@
     '#lp-badge-dot { background: #818cf8 !important; }',
     '#lp-bx { background: #111827 !important; border-color: rgba(129,140,248,.30) !important; box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 32px 80px rgba(0,0,0,.7) !important; }',
     '#lp-spinner { border-top-color: #818cf8 !important; }',
-    '.hls-manager-nav-btn, button[title="Settings"] { display: inline-flex !important; align-items: center; gap: 7px; background: #1a2235 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; padding: 7px 14px !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; box-shadow: none !important; }',
-    '.hls-manager-nav-btn { margin-right: 8px; }',
-    '.hls-manager-nav-btn:hover, button[title="Settings"]:hover { background: #1e2a3d !important; border-color: rgba(99,102,241,.5) !important; color: #f1f5f9 !important; transform: none !important; }',
+    '.action { display: inline-flex !important; align-items: center; justify-content: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; cursor: pointer; text-decoration: none !important; transition: background .18s, color .18s, border-color .18s !important; }',
+    '.action:hover { color: #f1f5f9 !important; border-color: rgba(99,102,241,.5) !important; background: #1e2a3d !important; transform: none !important; }',
+    '.action svg { width: 15px !important; height: 15px !important; }',
+    'button[title="Settings"] { display: inline-flex !important; align-items: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; box-shadow: none !important; }',
+    'button[title="Settings"]:hover { background: #1e2a3d !important; border-color: rgba(99,102,241,.5) !important; color: #f1f5f9 !important; }',
+    '.live-status { display: flex !important; align-items: center; gap: 6px; height: 36px !important; padding: 0 12px !important; border-radius: 100px !important; color: #94a3b8 !important; background: #1a2235 !important; border: 1px solid rgba(255,255,255,.06) !important; font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; margin-right: 8px; }',
+    '.live-status.error { color: #94a3b8 !important; }',
+    '.live-status .dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #22c55e; animation: pulse-anim 2s infinite; }',
+    '.live-status.error .dot { background: #ef4444; }',
+    '@keyframes pulse-anim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.8); } }',
     '.navbar .container-fluid { display: flex !important; align-items: center !important; height: 100% !important; } .navbar .ms-auto { display: flex !important; flex-flow: row nowrap !important; align-items: center !important; gap: 8px; margin: 0 !important; }',
-    '@media (max-width: 991.98px) { .navbar, nav, header { height: 56px !important; min-height: 56px !important; padding: 0 16px !important; } .navbar > .container, .navbar > .container-fluid, nav > .container, nav > .container-fluid, header > .container, header > .container-fluid { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 8px !important; min-width: 0; height: 100% !important; } .navbar .ms-auto { flex: 0 0 auto !important; margin-left: auto !important; } .navbar-brand, .navbar .navbar-brand { flex: 1 1 auto !important; min-width: 0; margin-right: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px !important; } .navbar-collapse, .navbar .navbar-collapse { display: flex !important; flex: 0 0 auto !important; width: auto !important; margin: 0 !important; } .hls-manager-nav-btn { flex: 0 0 36px !important; width: 36px !important; min-width: 36px !important; height: 36px !important; margin: 0 !important; padding: 0 !important; justify-content: center !important; gap: 0 !important; font-size: 0 !important; } button[title="Settings"] { flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; height: 36px !important; margin: 0 !important; padding: 0 12px !important; justify-content: center !important; gap: 7px !important; font-size: 13px !important; white-space: nowrap !important; } .hls-manager-nav-btn i, button[title="Settings"] i { font-size: 16px !important; } .hls-manager-nav-btn svg, button[title="Settings"] svg { width: 16px !important; height: 16px !important; } }',
-    '@media (max-width: 600px) { .navbar, nav, header { padding-left: 12px !important; padding-right: 12px !important; } .navbar-brand, .navbar .navbar-brand { flex: 0 0 34px !important; width: 34px !important; font-size: 0 !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex-basis: 32px; } .mgmt-brand-text { display: none; } .hls-manager-nav-btn { flex-basis: 34px !important; width: 34px !important; min-width: 34px !important; height: 34px !important; } button[title="Settings"] { height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } }'
+    '@media (max-width: 991.98px) { .navbar, nav, header { height: auto !important; min-height: 56px !important; padding: 12px 16px !important; } .navbar > .container, .navbar > .container-fluid { flex-wrap: wrap !important; gap: 8px 12px !important; } .navbar-brand { order: 1; flex: 1 1 auto !important; } .live-status { order: 2; flex: 0 0 auto !important; margin: 0 !important; height: 34px !important; padding: 0 10px !important; font-size: 11px !important; } .navbar .ms-auto { order: 3; width: 100% !important; flex: 1 1 100% !important; display: contents !important; } .action { order: 4; } button[title="Settings"] { order: 5; height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } .action .btn-text { display: none !important; } .action { padding: 0 10px !important; } .live-status .dot { width: 6px; height: 6px; flex: 0 0 6px; } }',
+    '@media (max-width: 600px) { .navbar, nav, header { padding: 12px !important; } .navbar-brand { font-size: 14px !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex: 0 0 32px; font-size: 16px; } .mgmt-brand-text { display: none; } }'
   ].join('\n');
   document.head.appendChild(themeCss);
 
@@ -378,6 +387,24 @@
   });
 
   /* ── Button injection ────────────────────────────────────────────── */
+
+  function updateLiveStatus() {
+    var badge = document.getElementById('mgmt-live-status');
+    if (!badge) return;
+
+    // Count active publishers on screen
+    var activeCount = document.querySelectorAll('.publisher-card').length;
+    var textNode = badge.querySelector('span');
+
+    if (activeCount > 0) {
+      badge.classList.remove('error');
+      textNode.textContent = 'Publishers: ' + activeCount + ' active';
+    } else {
+      badge.classList.add('error');
+      textNode.textContent = 'No active stream';
+    }
+  }
+
   function enhanceNavbarBrand() {
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
@@ -387,7 +414,7 @@
     });
   }
 
-  function injectHlsManagerButton() {
+  function injectNavTools() {
     document.querySelectorAll('button[title="Settings"]').forEach(function (settingsBtn) {
       settingsBtn.setAttribute('aria-label', 'Settings');
       if (!settingsBtn.querySelector('.mgmt-settings-label')) {
@@ -397,18 +424,42 @@
         settingsBtn.appendChild(label);
       }
 
-      if (settingsBtn.dataset.hlsManagerTarget) return;
-      settingsBtn.dataset.hlsManagerTarget = '1';
+      if (settingsBtn.dataset.navInjected) return;
+      settingsBtn.dataset.navInjected = '1';
 
-      var link = document.createElement('a');
-      link.className = 'btn btn-sm hls-manager-nav-btn';
-      link.href = HLS_MANAGER_URL;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.title = 'Open HLS Manager';
-      link.setAttribute('aria-label', 'Open HLS Manager');
-      link.innerHTML = '<i class="bi bi-activity" aria-hidden="true"></i><span>HLS Manager</span>';
-      settingsBtn.insertAdjacentElement('beforebegin', link);
+      // 1. SRT Monitor Button
+      var srtBtn = document.createElement('a');
+      srtBtn.className = 'action';
+      srtBtn.href = SRT_MONITOR_URL;
+      srtBtn.target = '_blank';
+      srtBtn.rel = 'noopener';
+      srtBtn.title = 'Open SRT Monitor';
+      srtBtn.setAttribute('aria-label', 'Open SRT Monitor');
+      srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text">SRT Monitor</span>';
+
+      // 2. HLS Manager Button
+      var hlsBtn = document.createElement('a');
+      hlsBtn.className = 'action';
+      hlsBtn.href = HLS_MANAGER_URL;
+      hlsBtn.target = '_blank';
+      hlsBtn.rel = 'noopener';
+      hlsBtn.title = 'Open HLS Manager';
+      hlsBtn.setAttribute('aria-label', 'Open HLS Manager');
+      hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text">HLS Manager</span>';
+
+      // 3. Live Status Badge
+      var liveBadge = document.createElement('div');
+      liveBadge.className = 'live-status';
+      liveBadge.id = 'mgmt-live-status';
+      liveBadge.innerHTML = '<i class="dot"></i><span>Publisher: 0 active</span>';
+
+      // Order injected before the Settings button (left to right):
+      // 1. HLS Manager
+      // 2. SRT Monitor
+      // 3. Live Badge
+      settingsBtn.insertAdjacentElement('beforebegin', hlsBtn);
+      settingsBtn.insertAdjacentElement('beforebegin', srtBtn);
+      settingsBtn.insertAdjacentElement('beforebegin', liveBadge);
     });
   }
 
@@ -422,7 +473,8 @@
 
   function injectButtons() {
     enhanceNavbarBrand();
-    injectHlsManagerButton();
+    injectNavTools();
+    updateLiveStatus();
   }
 
   // Watch React re-renders
@@ -431,4 +483,5 @@
     subtree:   true,
   });
   [400, 1200, 2500, 5000].forEach(function (t) { setTimeout(injectButtons, t); });
+  setInterval(updateLiveStatus, 1000);
 })();
