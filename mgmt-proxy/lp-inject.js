@@ -230,7 +230,7 @@
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
     '.navbar, nav, header { background: rgba(17,24,39,.95) !important; border-bottom: 1px solid rgba(255,255,255,.06) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25) !important; padding: 0 24px !important; height: 64px !important; display: flex !important; align-items: center !important; }',
     '.navbar > .container, .navbar > .container-fluid { padding: 0 !important; margin: 0 auto !important; max-width: 1440px !important; height: 100% !important; }',
-    '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 6px; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 0 16px rgba(99,102,241,.25); } .mgmt-brand-icon i { margin: 0 !important; font-size: 18px !important; line-height: 1; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
+    '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 8px; color: #818cf8; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); box-shadow: 0 0 12px rgba(99,102,241,.18); } .mgmt-brand-icon svg { margin: 0 !important; width: 19px !important; height: 19px !important; display: block; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
     '::-webkit-scrollbar { width: 6px !important; height: 6px !important; }',
     '::-webkit-scrollbar-track { background: transparent !important; }',
     '::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12) !important; border-radius: 100px !important; }',
@@ -383,7 +383,7 @@
       brand.dataset.mgmtBrand = '1';
       brand.classList.add('mgmt-brand');
       brand.setAttribute('aria-label', 'SRT Live Server Management');
-      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><i class="bi bi-play-fill"></i></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
+      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;display:block;"><path d="M4.93 4.93a10 10 0 0 1 14.14 0"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 14v8"/></svg></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
     });
   }
 

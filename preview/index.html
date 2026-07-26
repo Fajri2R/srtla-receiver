@@ -110,17 +110,19 @@
       gap: 10px;
       text-decoration: none;
     }
-    .logo-icon {
+        .logo-icon {
       width: 36px;
       height: 36px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #818cf8;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 16px var(--accent-glow);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.18);
     }
-    .logo-icon svg { width: 18px; height: 18px; fill: white; }
+    .logo-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; }
     .logo-text {
       font-size: 16px;
       font-weight: 700;
@@ -774,9 +776,7 @@
   <header class="header">
     <div class="header-inner">
       <a class="logo" href="#">
-        <div class="logo-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-        </div>
+        <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;display:block;"><path d="M4.93 4.93a10 10 0 0 1 14.14 0"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 14v8"/></svg></div>
         <span class="logo-text">HLS <span>Manager</span></span>
       </a>
 
@@ -1670,3 +1670,4 @@ function showToast(msg, type='ok') {
 </script>
 </body>
 </html>
+
