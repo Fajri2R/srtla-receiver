@@ -258,9 +258,9 @@
     '#lp-badge-dot { background: #818cf8 !important; }',
     '#lp-bx { background: #111827 !important; border-color: rgba(129,140,248,.30) !important; box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 32px 80px rgba(0,0,0,.7) !important; }',
     '#lp-spinner { border-top-color: #818cf8 !important; }',
-    '.action { display: inline-flex !important; align-items: center; justify-content: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; cursor: pointer; text-decoration: none !important; transition: background .18s, color .18s, border-color .18s !important; }',
-    '.action:hover { color: #f1f5f9 !important; border-color: rgba(99,102,241,.5) !important; background: #1e2a3d !important; transform: none !important; }',
-    '.action svg { width: 15px !important; height: 15px !important; }',
+    '.mgmt-nav-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; cursor: pointer; text-decoration: none !important; transition: background .18s, color .18s, border-color .18s !important; }',
+    '.mgmt-nav-btn:hover { color: #f1f5f9 !important; border-color: rgba(99,102,241,.5) !important; background: #1e2a3d !important; transform: none !important; }',
+    '.mgmt-nav-btn svg { width: 15px !important; height: 15px !important; }',
     'button[title="Settings"] { display: inline-flex !important; align-items: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; box-shadow: none !important; }',
     'button[title="Settings"]:hover { background: #1e2a3d !important; border-color: rgba(99,102,241,.5) !important; color: #f1f5f9 !important; }',
     '.live-status { display: flex !important; align-items: center; gap: 6px; height: 36px !important; padding: 0 12px !important; border-radius: 100px !important; color: #94a3b8 !important; background: #1a2235 !important; border: 1px solid rgba(255,255,255,.06) !important; font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; margin-right: 8px; }',
@@ -269,7 +269,7 @@
     '.live-status.error .dot { background: #ef4444; }',
     '@keyframes pulse-anim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.8); } }',
     '.navbar .container-fluid { display: flex !important; align-items: center !important; height: 100% !important; } .navbar .ms-auto { display: flex !important; flex-flow: row nowrap !important; align-items: center !important; gap: 8px; margin: 0 !important; }',
-    '@media (max-width: 991.98px) { .navbar, nav, header { height: auto !important; min-height: 56px !important; padding: 12px 16px !important; } .navbar > .container, .navbar > .container-fluid { flex-wrap: wrap !important; gap: 8px 12px !important; } .navbar-brand { order: 1; flex: 1 1 auto !important; } .live-status { order: 2; flex: 0 0 auto !important; margin: 0 !important; height: 34px !important; padding: 0 10px !important; font-size: 11px !important; } .navbar .ms-auto { order: 3; width: 100% !important; flex: 1 1 100% !important; display: contents !important; } .action { order: 4; } button[title="Settings"] { order: 5; height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } .action .btn-text { display: none !important; } .action { padding: 0 10px !important; } .live-status .dot { width: 6px; height: 6px; flex: 0 0 6px; } }',
+    '@media (max-width: 991.98px) { .navbar, nav, header { height: auto !important; min-height: 56px !important; padding: 12px 16px !important; } .navbar > .container, .navbar > .container-fluid { flex-wrap: wrap !important; gap: 8px 12px !important; } .navbar-brand { order: 1; flex: 1 1 auto !important; } .live-status { order: 6; flex: 0 0 auto !important; margin: 0 !important; height: 34px !important; padding: 0 10px !important; font-size: 11px !important; } .navbar .ms-auto { order: 3; width: 100% !important; flex: 1 1 100% !important; display: contents !important; } .mgmt-nav-btn { order: 4; } button[title="Settings"] { order: 5; height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } .mgmt-nav-btn .btn-text { display: none !important; } .mgmt-nav-btn { padding: 0 10px !important; } .live-status .dot { width: 6px; height: 6px; flex: 0 0 6px; } }',
     '@media (max-width: 600px) { .navbar, nav, header { padding: 12px !important; } .navbar-brand { font-size: 14px !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex: 0 0 32px; font-size: 16px; } .mgmt-brand-text { display: none; } }'
   ].join('\n');
   document.head.appendChild(themeCss);
@@ -396,12 +396,11 @@
     var activeCount = document.querySelectorAll('.publisher-card').length;
     var textNode = badge.querySelector('span');
 
-    if (activeCount > 0) {
-      badge.classList.remove('error');
-      textNode.textContent = 'Publishers: ' + activeCount + ' active';
-    } else {
-      badge.classList.add('error');
-      textNode.textContent = 'No active stream';
+    var newText = activeCount > 0 ? ('Publishers: ' + activeCount + ' active') : 'No active stream';
+    if (textNode.textContent !== newText) {
+      if (activeCount > 0) badge.classList.remove('error');
+      else badge.classList.add('error');
+      textNode.textContent = newText;
     }
   }
 
@@ -424,12 +423,11 @@
         settingsBtn.appendChild(label);
       }
 
-      if (settingsBtn.dataset.navInjected) return;
-      settingsBtn.dataset.navInjected = '1';
+      if (settingsBtn.parentNode.querySelector('.mgmt-nav-tools')) return;
 
       // 1. SRT Monitor Button
       var srtBtn = document.createElement('a');
-      srtBtn.className = 'action';
+      srtBtn.className = 'mgmt-nav-btn';
       srtBtn.href = SRT_MONITOR_URL;
       srtBtn.target = '_blank';
       srtBtn.rel = 'noopener';
@@ -439,7 +437,7 @@
 
       // 2. HLS Manager Button
       var hlsBtn = document.createElement('a');
-      hlsBtn.className = 'action';
+      hlsBtn.className = 'mgmt-nav-btn';
       hlsBtn.href = HLS_MANAGER_URL;
       hlsBtn.target = '_blank';
       hlsBtn.rel = 'noopener';
@@ -454,12 +452,16 @@
       liveBadge.innerHTML = '<i class="dot"></i><span>Publisher: 0 active</span>';
 
       // Order injected before the Settings button (left to right):
-      // 1. HLS Manager
-      // 2. SRT Monitor
-      // 3. Live Badge
-      settingsBtn.insertAdjacentElement('beforebegin', hlsBtn);
-      settingsBtn.insertAdjacentElement('beforebegin', srtBtn);
-      settingsBtn.insertAdjacentElement('beforebegin', liveBadge);
+      // Wrap them in a single container to prevent React DOM tracking issues
+      var container = document.createElement('div');
+      container.className = 'mgmt-nav-tools';
+      container.style.display = 'contents';
+      container.appendChild(hlsBtn);
+      container.appendChild(srtBtn);
+
+      settingsBtn.insertAdjacentElement('beforebegin', container);
+      settingsBtn.insertAdjacentElement('afterend', liveBadge);
+
     });
   }
 
