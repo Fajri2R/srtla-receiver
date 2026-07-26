@@ -125,6 +125,33 @@
 
     canvas { width: 100%; height: 265px; display: block; cursor: crosshair; }
     
+    
+    .action-fs-main { background: rgba(99,102,241,0.15) !important; color: #818cf8 !important; border-color: rgba(99,102,241,0.3) !important; font-weight: 600; padding: 5px 12px; margin-right: 12px; }
+    .action-fs-main:hover { background: rgba(99,102,241,0.25) !important; color: #fff !important; border-color: rgba(99,102,241,0.5) !important; }
+    
+    /* Main Dashboard Fullscreen No-Scroll */
+    main:fullscreen {
+      background: var(--bg-base) !important;
+      width: 100vw !important; height: 100vh !important;
+      margin: 0 !important; padding: 16px !important;
+      display: flex !important; flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    main:fullscreen .title, main:fullscreen .sub { display: none !important; }
+    main:fullscreen .stats { flex: 0 0 auto !important; margin-bottom: 12px !important; }
+    main:fullscreen .charts { 
+      flex: 1 1 auto !important; 
+      display: grid !important; 
+      grid-template-columns: repeat(2, 1fr) !important; 
+      grid-template-rows: repeat(2, 1fr) !important;
+      gap: 12px !important; 
+      height: 100% !important;
+      width: 100% !important;
+    }
+    main:fullscreen .panel { height: 100% !important; padding: 12px !important; display: flex !important; flex-direction: column !important; }
+    main:fullscreen .panel-head { margin-bottom: 8px !important; flex: 0 0 auto !important; }
+    main:fullscreen canvas { flex: 1 1 auto !important; height: 100% !important; max-height: none !important; }
+
     /* Native Fullscreen Fix */
     .panel:fullscreen {
       background: var(--bg-base) !important;
@@ -177,7 +204,7 @@
         <label>Stream</label>
         <select id="stream"></select>
       </div>
-      <div class="live" id="status"><i class="dot"></i><span>Connecting</span></div>
+      <button class="action action-fs-main" onclick="toggleMainFullscreen()" title="Fullscreen Entire Dashboard">&#x26F6; Fullscreen Main</button><div class="live" id="status"><i class="dot"></i><span>Connecting</span></div>
     </div>
   </header>
   <main class="main">
@@ -219,7 +246,7 @@
 
     function fmt(v, t) {
       v = num(v);
-      if (v === null) return '—';
+      if (v === null) return 'â€”';
       if (t === 'rate') return v >= 1e6 ? (v / 1e6).toFixed(2) + ' Mbps' : v >= 1e3 ? (v / 1e3).toFixed(1) + ' Kbps' : v.toFixed(0) + ' bps';
       if (t === 'ms') return v.toFixed(1) + ' ms';
       if (t === 'fps') return v.toFixed(1) + ' FPS';
@@ -244,6 +271,17 @@
       hidden[k] = !hidden[k];
       sessionStorage.setItem('srt-monitor-hidden', JSON.stringify(hidden));
       renderUI(true);
+    }
+
+    
+    function toggleMainFullscreen() {
+      const mainEl = document.querySelector('main.main');
+      if (!mainEl) return;
+      if (!document.fullscreenElement) {
+        mainEl.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
     }
 
     function toggleNativeFullscreen(k) {
@@ -274,7 +312,7 @@
 
     function renderUI(forceRebuild = false) {
       let m = metrics();
-      document.querySelector('#stream-name').textContent = selected || '—';
+      document.querySelector('#stream-name').textContent = selected || 'â€”';
 
       if (external) {
         statsEl.innerHTML = '';
@@ -286,7 +324,7 @@
       }
 
       if (!m.length) {
-        chartsEl.innerHTML = '<div class="empty">Waiting for supported metrics…</div>';
+        chartsEl.innerHTML = '<div class="empty">Waiting for supported metricsâ€¦</div>';
         return;
       }
 
@@ -405,7 +443,7 @@
       let hx = hover[key];
       if (hx !== undefined && hx >= L && hx <= L + PW) {
         let i = Math.max(0, Math.min(pts.length - 1, Math.round((hx - L) / PW * (pts.length - 1))));
-        let p = pts[i], px = X(i), py = Y(p.v), label = clock(p.at) + ' · ' + fmt(p.v, type);
+        let p = pts[i], px = X(i), py = Y(p.v), label = clock(p.at) + ' Â· ' + fmt(p.v, type);
         
         c.strokeStyle = 'rgba(255,255,255,.3)';
         c.setLineDash([4, 4]);
@@ -439,7 +477,7 @@
         ]);
         let streams = ls.streams || [];
         
-        setStatus(st.lastError ? 'API: ' + st.lastError : streams.length + ' stream' + (streams.length === 1 ? '' : 's') + ' · 1s', !!st.lastError);
+        setStatus(st.lastError ? 'API: ' + st.lastError : streams.length + ' stream' + (streams.length === 1 ? '' : 's') + ' Â· 1s', !!st.lastError);
         
         if (!streams.length) {
           history = []; latest = {};
