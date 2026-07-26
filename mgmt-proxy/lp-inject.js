@@ -270,7 +270,10 @@
     '@keyframes pulse-anim { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.8); } }',
     '.navbar .container-fluid { display: flex !important; align-items: center !important; height: 100% !important; } .navbar .ms-auto { display: flex !important; flex-flow: row nowrap !important; align-items: center !important; gap: 8px; margin: 0 !important; }',
     '@media (max-width: 991.98px) { .navbar, nav, header { height: auto !important; min-height: 56px !important; padding: 12px 16px !important; } .navbar > .container, .navbar > .container-fluid { flex-wrap: wrap !important; gap: 8px 12px !important; } .navbar-brand { order: 1; flex: 1 1 auto !important; } .live-status { order: 6; flex: 0 0 auto !important; margin: 0 !important; height: 34px !important; padding: 0 10px !important; font-size: 11px !important; } .navbar .ms-auto { order: 3; width: 100% !important; flex: 1 1 100% !important; display: contents !important; } .mgmt-nav-btn { order: 4; } button[title="Settings"] { order: 5; height: 34px !important; padding: 0 10px !important; font-size: 12px !important; } .mgmt-nav-btn .btn-text { display: none !important; } button[title=\"Settings\"] .mgmt-settings-label { display: none !important; } .mgmt-nav-btn { padding: 0 10px !important; } .live-status .dot { width: 6px; height: 6px; flex: 0 0 6px; } }',
-    '@media (max-width: 600px) { .navbar, nav, header { padding: 12px !important; } .navbar-brand { font-size: 14px !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex: 0 0 32px; font-size: 16px; } .mgmt-brand-text { display: none; } }'
+    '@media (max-width: 600px) { .navbar, nav, header { padding: 12px !important; } .navbar-brand { font-size: 14px !important; } .mgmt-brand-icon { width: 32px; height: 32px; flex: 0 0 32px; font-size: 16px; } .mgmt-brand-text { display: none; } }',
+    '.mgmt-toast { position: fixed; bottom: 24px; right: 24px; z-index: 2147483647; background: rgba(17,24,39,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); color: #f1f5f9; padding: 12px 20px; font-size: 13px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateY(20px); opacity: 0; transition: transform .25s ease, opacity .25s ease; pointer-events: none; display: flex; align-items: center; gap: 8px; }',
+    '.mgmt-toast.show { transform: translateY(0); opacity: 1; }',
+    '.mgmt-toast.error { border-color: rgba(239,68,68,0.25); background: rgba(127,29,29,0.95); }'
   ].join('\n');
   document.head.appendChild(themeCss);
 
@@ -389,6 +392,20 @@
   /* ── Button injection ────────────────────────────────────────────── */
 
   var lastActiveCount = -1;
+  function showToast(msg, isError) {
+    var oldToast = document.querySelector('.mgmt-toast');
+    if (oldToast) oldToast.remove();
+    var toast = document.createElement('div');
+    toast.className = 'mgmt-toast' + (isError ? ' error' : '');
+    toast.innerHTML = (isError ? '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' : '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>') + '<span>' + msg + '</span>';
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.classList.add('show'); }, 50);
+    setTimeout(function () {
+      toast.classList.remove('show');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 4000);
+  }
+
   function updateLiveStatus() {
     var badge = document.getElementById('mgmt-live-status');
     if (!badge) return;
@@ -483,7 +500,22 @@
   Storage.prototype.setItem = function(key, value) {
     _origSetItem.apply(this, arguments);
     if (/api.?key/i.test(String(key))) {
-      setTimeout(function() { window.location.reload(); }, 200);
+      // Sync it to backend immediately without reloading the page
+      fetch('/api/apikey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apikey: value })
+      })
+      .then(function(res) {
+        if (res.ok) {
+          showToast('API Key updated successfully', false);
+        } else {
+          showToast('Failed to sync API Key with backend', true);
+        }
+      })
+      .catch(function(err) {
+        showToast('Error syncing API Key: ' + err.message, true);
+      });
     }
   };
 

@@ -6,7 +6,7 @@
  *   GET /health          (no auth)      -> SLS health
  */
 import { spawn }             from "child_process";
-import { mkdirSync, rmSync, readFileSync, existsSync, statSync, openSync, readSync, closeSync } from "fs";
+import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync, openSync, readSync, closeSync } from "fs";
 import { join }              from "path";
 import { createServer }      from "http";
 
@@ -381,6 +381,27 @@ createServer((req, res) => {
     } else {
       res.end(JSON.stringify({ logs: entry.logs || [] }));
     }
+    return;
+  }
+
+  if (req.url === "/api/apikey" && req.method === "POST") {
+    let body = "";
+    req.on("data", chunk => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const payload = JSON.parse(body);
+        if (payload && payload.apikey) {
+          writeFileSync("/apikey", payload.apikey, "utf8");
+          SLS_API_KEY = payload.apikey;
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "ok" }));
+        } else {
+          res.writeHead(400); res.end(JSON.stringify({ error: "Invalid payload" }));
+        }
+      } catch (err) {
+        res.writeHead(500); res.end(JSON.stringify({ error: err.message }));
+      }
+    });
     return;
   }
 

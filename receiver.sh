@@ -522,6 +522,12 @@ http {
             add_header Cache-Control "no-cache, no-store, must-revalidate";
         }
 
+        location = /api/apikey {
+            proxy_pass         http://hls-manager:9090/api/apikey;
+            proxy_http_version 1.1;
+            proxy_read_timeout 10s;
+        }
+
         location / {
             proxy_pass         http://sls-management-ui:3000;
             proxy_http_version 1.1;
