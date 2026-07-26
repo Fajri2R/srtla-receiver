@@ -796,13 +796,6 @@
         Refresh
       </button>
 
-      <a class="btn-mgmt" id="btn-monitor-nav" href="#" target="_blank" title="SRT Monitoring">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
-          <path d="M12 20V10M18 20V4M6 20v-4"/>
-        </svg>
-        SRT Monitor
-      </a>
-
       <a class="btn-mgmt" id="btn-mgmt" href="#" target="_blank" title="Open Management UI">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -961,10 +954,6 @@ function updateMgmtLink() {
   btn.href = port === '80' || port === '443'
     ? `${window.location.protocol}//${window.location.hostname}`
     : `${window.location.protocol}//${window.location.hostname}:${port}`;
-  const btnMon = document.getElementById('btn-monitor-nav');
-  if (btnMon) {
-    btnMon.href = window.location.protocol + '//' + window.location.hostname + ':9010';
-  }
 }
 
 /* ================================================================
