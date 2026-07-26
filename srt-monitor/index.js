@@ -62,6 +62,9 @@ function streamId(item) {
 function snapshot(item) {
   const raw = item || {};
   const metrics = Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key, getValue(raw, names)]));
+  if (metrics.recvBitrate !== null) metrics.recvBitrate *= 1000;
+  if (metrics.sendBitrate !== null) metrics.sendBitrate *= 1000;
+  if (metrics.linkCapacity !== null) metrics.linkCapacity *= 1000;
   return { at: Date.now(), ...metrics, raw };
 }
 
