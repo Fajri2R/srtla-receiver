@@ -228,9 +228,6 @@
     'h1, h2, h3, h4, h5, h6, .navbar-brand { letter-spacing: -0.3px; font-weight: 700 !important; }',
     'html, body { min-height: 100vh; background: #0a0e1a !important; color: #f1f5f9 !important; display: flex !important; flex-direction: column !important; margin: 0 !important; } #root { position: relative; z-index: 1; flex: 1 0 auto !important; min-height: 0 !important; background: transparent !important; color: #f1f5f9 !important; }',
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
-    '.mgmt-footer { text-align: center; padding: 24px; font-size: 12px; color: #475569; border-top: 1px solid rgba(255,255,255,.06); margin-top: auto; position: relative; z-index: 1; width: 100%; flex-shrink: 0; }',
-    '.mgmt-footer a { color: #818cf8; text-decoration: none; transition: .2s cubic-bezier(.4,0,.2,1); }',
-    '.mgmt-footer a:hover { color: #c7d2fe; }',
     '.navbar, nav, header { background: rgba(17,24,39,.96) !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25); padding: 0 24px !important; height: 64px !important; display: flex !important; align-items: center !important; }',
     '.navbar > .container, .navbar > .container-fluid { padding: 0 !important; margin: 0 auto !important; max-width: 1440px !important; height: 100% !important; }',
     '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 6px; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 0 16px rgba(99,102,241,.25); } .mgmt-brand-icon i { margin: 0 !important; font-size: 18px !important; line-height: 1; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
@@ -255,8 +252,6 @@
     '.badge.bg-primary, .bg-primary { background-color: #6366f1 !important; }',
     '.publisher-card { background: #111827 !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 16px !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; }',
     '.publisher-card:hover { border-color: rgba(99,102,241,.5) !important; box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 0 40px rgba(99,102,241,.15) !important; transform: translateY(-2px); }',
-    '.lp-btn { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important; box-shadow: 0 2px 8px rgba(99,102,241,.35) !important; }',
-    '.lp-btn:hover { box-shadow: 0 4px 14px rgba(99,102,241,.52) !important; }',
     '#lp-badge { background: rgba(99,102,241,.14) !important; border-color: rgba(129,140,248,.42) !important; }',
     '#lp-badge-dot { background: #818cf8 !important; }',
     '#lp-bx { background: #111827 !important; border-color: rgba(129,140,248,.30) !important; box-shadow: 0 0 0 1px rgba(99,102,241,.15), 0 32px 80px rgba(0,0,0,.7) !important; }',
@@ -383,17 +378,6 @@
   });
 
   /* ── Button injection ────────────────────────────────────────────── */
-  var DONE = 'data-lp-ok';
-
-  function injectFooter() {
-    if (document.getElementById('mgmt-footer')) return;
-    var footer = document.createElement('footer');
-    footer.id = 'mgmt-footer';
-    footer.className = 'mgmt-footer';
-    footer.innerHTML = '<a href="https://github.com/Fajri2R/srtla-receiver" target="_blank" rel="noopener">Fajri2R/srtla-receiver</a> &nbsp;&middot;&nbsp; Management UI';
-    document.body.appendChild(footer);
-  }
-
   function enhanceNavbarBrand() {
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
@@ -428,33 +412,8 @@
   }
 
   function injectButtons() {
-    injectFooter();
     enhanceNavbarBrand();
     injectHlsManagerButton();
-    document.querySelectorAll('button[title="Add Player"]:not([' + DONE + '])').forEach(function (btn) {
-      btn.setAttribute(DONE, '1');
-
-      // Walk up the DOM (max 12 levels) to find .publisher-card-publisher-name
-      var el = btn, nameEl = null;
-      for (var i = 0; i < 12; i++) {
-        if (!el.parentElement) break;
-        el = el.parentElement;
-        nameEl = el.querySelector('.publisher-card-publisher-name');
-        if (nameEl) break;
-      }
-      var pub = nameEl && nameEl.textContent.trim();
-      if (!pub) return;
-
-      // Build Live button
-      var lb          = document.createElement('button');
-      lb.type         = 'button';
-      lb.className    = 'btn btn-sm lp-btn';
-      lb.title        = 'Watch live: ' + pub;
-      lb.innerHTML    = '<span class="lp-dot"></span><i class="bi bi-camera-video-fill"></i> Live';
-      lb.onclick      = function (e) { e.stopPropagation(); openPreview(pub); };
-
-      btn.insertAdjacentElement('beforebegin', lb);
-    });
   }
 
   // Watch React re-renders
