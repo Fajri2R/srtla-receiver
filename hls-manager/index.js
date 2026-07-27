@@ -242,7 +242,7 @@ async function startStream(streamId, playerKey, retryCount = 0) {
   const getCodecs = () => new Promise(resolve => {
     const probe = spawn("ffprobe", [
       "-v", "error", "-show_entries", "stream=codec_type,codec_name,profile,width,height,avg_frame_rate,r_frame_rate,pix_fmt,sample_rate,channels", "-of", "json",
-      "-analyze_duration", "1500000", "-probesize", "1500000", srtUrl
+      "-analyzeduration", "5000000", "-probesize", "5000000", srtUrl
     ]);
     let output = "";
     probe.stdout.on("data", d => output += d);
@@ -259,7 +259,7 @@ async function startStream(streamId, playerKey, retryCount = 0) {
         });
       } catch { resolve({ hevc: false, opus: false, aac: false, h264: false, sourceMedia: null }); }
     });
-    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false, sourceMedia: null }); }, 7000);
+    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false, sourceMedia: null }); }, 10000);
   });
 
   const codecs = await getCodecs();

@@ -1636,20 +1636,43 @@ function renderMetrics(p) {
   const publisherStats = p.publisherStats || null;
   let mediaChips    = "";
 
-  if (sourceMedia && sourceMedia.video) {
-    const video = sourceMedia.video;
-    const resolution = video.width && video.height ? `${video.width}x${video.height}` : "Unknown resolution";
-    const frameRate = video.fps ? `${video.fps} FPS` : "Unknown FPS";
-    const videoCodec = video.codec ? video.codec.toUpperCase() : "Unknown codec";
-    const audioCodec = sourceMedia.audio && sourceMedia.audio.codec ? sourceMedia.audio.codec.toUpperCase() : "No audio";
-    mediaChips += `
-      <span class="metric-label">Source Asli (SRT)</span>
-      <div class="metric-chip" title="Original SRT input. This is not changed by the browser preview." style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-        <strong>${resolution} &middot; ${frameRate} &middot; ${videoCodec}</strong>
-      </div>
-      <div class="metric-chip" title="Original SRT audio track" style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)"><strong>${audioCodec}</strong></div>
-    `;
+  const sourceBitrate = Number(publisherStats?.bitrate);
+  const sourceRtt = Number(publisherStats?.rtt);
+  const sourceDrops = publisherStats?.dropped_pkts;
+  const sourceLatency = Number(publisherStats?.latency);
+
+  if (sourceMedia || publisherStats) {
+    mediaChips += `<span class="metric-label">Source Asli (SRT)</span>`;
+    if (sourceMedia && sourceMedia.video) {
+      const video = sourceMedia.video;
+      const resolution = video.width && video.height ? `${video.width}x${video.height}` : "Unknown resolution";
+      const frameRate = video.fps ? `${video.fps} FPS` : "Unknown FPS";
+      const videoCodec = video.codec ? video.codec.toUpperCase() : "Unknown codec";
+      mediaChips += `
+        <div class="metric-chip" title="Original SRT video; this is not changed by the browser preview." style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          <strong>${resolution} &middot; ${frameRate} &middot; ${videoCodec}</strong>
+        </div>`;
+      if (sourceMedia.audio?.codec) {
+        const audio = sourceMedia.audio;
+        const rate = audio.sampleRate ? ` &middot; ${Math.round(audio.sampleRate / 1000)} kHz` : "";
+        const channels = audio.channels ? ` &middot; ${audio.channels}ch` : "";
+        mediaChips += `<div class="metric-chip" title="Original SRT audio track" style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)"><strong>${audio.codec.toUpperCase()}${rate}${channels}</strong></div>`;
+      }
+    } else {
+      mediaChips += `<div class="metric-chip" title="Waiting for FFprobe to identify the original SRT video"><strong>Detecting source video...</strong></div>`;
+    }
+    if (Number.isFinite(sourceBitrate) && sourceBitrate >= 0) {
+      mediaChips += `<div class="metric-chip" title="Current bitrate received from the original SRT publisher" style="border-color:var(--yellow);background:var(--yellow-dim)"><strong>Source: ${formatBitrate(sourceBitrate * 1000)}</strong></div>`;
+    }
+    if (Number.isFinite(sourceRtt) || sourceDrops !== undefined || Number.isFinite(sourceLatency)) {
+      const network = [
+        Number.isFinite(sourceRtt) ? `RTT ${sourceRtt.toFixed(1)} ms` : "",
+        sourceDrops !== undefined ? `SRT drop ${sourceDrops}` : "",
+        Number.isFinite(sourceLatency) ? `Latency ${sourceLatency} ms` : "",
+      ].filter(Boolean).join(" | ");
+      mediaChips += `<div class="metric-chip" title="Original SRT connection metrics" style="border-color:var(--yellow);background:var(--yellow-dim)"><strong>${network}</strong></div>`;
+    }
   }
 
   if (media && media.video) {
@@ -1701,18 +1724,7 @@ function renderMetrics(p) {
       mediaChips += `<div class="metric-chip" title="FFmpeg frame corrections"><strong>Drop ${transcoder.droppedFrames || 0} | Dup ${transcoder.duplicatedFrames || 0}</strong></div>`;
     }
   }
-  if (publisherStats) {
-    const rtt = publisherStats.rtt ? `${parseFloat(publisherStats.rtt).toFixed(1)} ms` : "";
-    const drops = publisherStats.dropped_pkts !== undefined ? `${publisherStats.dropped_pkts} drops` : "";
-    if (rtt || drops) {
-      mediaChips += `
-        <div class="metric-chip" title="SLS Stream Connection stats" style="border-color:var(--yellow);background:var(--yellow-dim)">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-          <strong>RTT: ${rtt || "N/A"}${drops ? " | " + drops : ""}</strong>
-        </div>
-      `;
-    }
-  }
+
   return `
     ${mediaChips}
     <div class="metric-chip">
