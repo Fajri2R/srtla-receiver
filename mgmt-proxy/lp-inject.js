@@ -419,6 +419,23 @@
         return res.json();
       })
       .then(function(data) {
+
+        // Auto-sync Management UI if publishers are added or deleted in another browser
+        var serverPubCount = (data && Array.isArray(data.publishers)) ? data.publishers.length : null;
+        if (serverPubCount !== null) {
+          if (window.lpLastKnownConfigCount === undefined) {
+             window.lpLastKnownConfigCount = serverPubCount;
+          } else if (window.lpLastKnownConfigCount !== serverPubCount) {
+             var isModalOpen = document.querySelector('.modal.show, .modal.in, [role="dialog"]');
+             var isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
+             if (!isModalOpen && !isInputFocused) {
+                console.log('Publishers count changed (' + window.lpLastKnownConfigCount + ' -> ' + serverPubCount + '). Syncing UI...');
+                window.location.reload();
+                return;
+             }
+          }
+        }
+
         var activeCount = 0;
         if (data && Number.isFinite(data.activePublishers)) {
           activeCount = data.activePublishers;
