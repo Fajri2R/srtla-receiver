@@ -19,6 +19,7 @@ const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || "5";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5", 10) * 1000;
 const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || "9090", 10);
 const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || "10", 10);
+const HEVC_PREVIEW_WIDTH = parseInt(process.env.HLS_HEVC_MAX_WIDTH || "1280", 10);
 const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
 const SLS_BASE_URL  = process.env.SLS_STATS_URL
   ? process.env.SLS_STATS_URL.replace(/\/[^/]+$/, "")
@@ -256,7 +257,7 @@ async function startStream(streamId, playerKey, retryCount = 0) {
   const codecs = await getCodecs();
   if (isShuttingDown || !activeStreams.has(streamId)) return;
 
-  const vArgs = codecs.hevc ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-g", "60"] : ["-c:v", "copy"];
+  const vArgs = codecs.hevc ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
   const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
 
   log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${codecs.hevc?"h264-transcode":"copy"} a:${codecs.opus?"aac-transcode":"copy"})`);

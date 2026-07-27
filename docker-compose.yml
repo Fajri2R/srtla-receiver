@@ -82,6 +82,7 @@ services:
       POLL_INTERVAL:   "${HLS_POLL_INTERVAL:-5}"
       HEALTH_PORT:     "9090"
       MAX_RETRIES:     "${HLS_MAX_RETRIES:-10}"
+      HLS_HEVC_MAX_WIDTH: "${HLS_HEVC_MAX_WIDTH:-1280}"
     volumes:
       - hls-access-logs:/logs:ro
       - hls-data:/hls
