@@ -405,8 +405,11 @@
     }
 
     function setStatus(t, bad = false) {
-      statusEl.className = 'live' + (bad ? ' error' : '');
-      statusEl.querySelector('span').textContent = t;
+      statusEls.forEach(el => {
+        el.className = 'live status-indicator' + (bad ? ' error' : '') + (el.classList.contains('fs-only-status') ? ' fs-only-status' : '');
+        const span = el.querySelector('span');
+        if (span) span.textContent = t;
+      });
     }
 
     function metrics() {
