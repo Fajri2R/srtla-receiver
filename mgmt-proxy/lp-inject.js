@@ -536,7 +536,7 @@
   }
 
   function syncApiKeyOnLoad() {
-    var storedKey = localStorage.getItem('apiKey') || localStorage.getItem('api_key');
+    var storedKey = localStorage.getItem('apiKey') || localStorage.getItem('api_key') || localStorage.getItem('srt-api-key');
     if (storedKey) {
       fetch('/api/apikey', {
         method: 'POST',
