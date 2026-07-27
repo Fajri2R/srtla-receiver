@@ -218,7 +218,7 @@ async function getPublisherStats(pubId) {
 }
 
 // FFmpeg: start HLS for one stream
-function startStream(streamId, playerKey, retryCount = 0) {
+async function startStream(streamId, playerKey, retryCount = 0) {
   if (isShuttingDown) return;
   const safe   = safeId(streamId);
   const dir    = join(HLS_PATH, safe);
@@ -226,13 +226,47 @@ function startStream(streamId, playerKey, retryCount = 0) {
   const segPat = join(dir, "seg_%05d.ts");
   mkdirSync(dir, { recursive: true });
   const srtUrl = `srt://${SRT_HOST}:${SRT_PORT}?streamid=${encodeURIComponent(playerKey)}&mode=caller&latency=${SRT_LATENCY}`;
-  log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} playerKey="${playerKey}"`);
+
+  if (!activeStreams.has(streamId)) {
+    activeStreams.set(streamId, { proc: null, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Probing stream codec...`] });
+  }
+
+  log("info", `PROBE [${streamId}] playerKey="${playerKey}"`);
+  const getCodecs = () => new Promise(resolve => {
+    const probe = spawn("ffprobe", [
+      "-v", "error", "-show_entries", "stream=codec_name", "-of", "json",
+      "-analyze_duration", "1500000", "-probesize", "1500000", srtUrl
+    ]);
+    let output = "";
+    probe.stdout.on("data", d => output += d);
+    probe.on("close", () => {
+      try {
+        const streams = JSON.parse(output).streams || [];
+        resolve({
+          hevc: streams.some(s => s.codec_name === "hevc" || s.codec_name === "h265"),
+          opus: streams.some(s => s.codec_name === "opus"),
+          aac: streams.some(s => s.codec_name === "aac"),
+          h264: streams.some(s => s.codec_name === "h264")
+        });
+      } catch { resolve({ hevc: false, opus: false, aac: false, h264: false }); }
+    });
+    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false }); }, 3000);
+  });
+
+  const codecs = await getCodecs();
+  if (isShuttingDown || !activeStreams.has(streamId)) return;
+
+  const vArgs = codecs.hevc ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-g", "60"] : ["-c:v", "copy"];
+  const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
+
+  log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${codecs.hevc?"h264-transcode":"copy"} a:${codecs.opus?"aac-transcode":"copy"})`);
+
   const args = [
     "-hide_banner", "-loglevel", "warning",
     "-fflags", "+nobuffer+genpts", "-flags", "low_delay",
     "-progress", "pipe:3", "-stats_period", "1", "-nostats",
     "-i", srtUrl,
-    "-c:v", "copy", "-c:a", "copy",
+    ...vArgs, ...aArgs,
     "-f", "hls",
     "-hls_time", HLS_TIME, "-hls_list_size", HLS_LIST_SIZE,
     "-hls_flags", "delete_segments+append_list+independent_segments",
@@ -290,7 +324,13 @@ function startStream(streamId, playerKey, retryCount = 0) {
     }
   });
   proc.on("error", e => { log("error", `spawn [${streamId}]:`, e.message); activeStreams.delete(streamId); });
-  activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`] });
+  const entry = activeStreams.get(streamId);
+  if (entry) {
+    entry.proc = proc;
+    entry.logs.push(`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`);
+  } else {
+    activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`] });
+  }
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
 
