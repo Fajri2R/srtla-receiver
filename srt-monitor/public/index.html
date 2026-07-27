@@ -242,7 +242,8 @@
     main:fullscreen .charts { 
       flex: 1 1 auto !important; 
       display: grid !important; 
-      grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)) !important; grid-auto-rows: minmax(0, 1fr) !important;
+      grid-template-columns: repeat(2, 1fr) !important; 
+      grid-template-rows: repeat(2, 1fr) !important;
       gap: 12px !important; 
       min-height: 0 !important;
       width: 100% !important;
@@ -420,16 +421,7 @@
     function toggleChart(k) {
       hidden[k] = !hidden[k];
       sessionStorage.setItem('srt-monitor-hidden', JSON.stringify(hidden));
-      const panel = document.querySelector('.panel[data-key="' + k + '"]');
-      if (!panel) return;
-      panel.classList.toggle('hidden-chart', hidden[k]);
-      const button = panel.querySelector('[data-chart-toggle]');
-      if (button) button.textContent = hidden[k] ? 'Show' : 'Hide';
-      requestAnimationFrame(() => {
-        chartsEl.querySelectorAll('canvas').forEach(canvas => {
-          if (!hidden[canvas.dataset.key] || external) draw(canvas);
-        });
-      });
+      renderUI(true);
     }
 
     
@@ -497,7 +489,7 @@
       if (currentKeys !== newKeys || forceRebuild) {
         chartsEl.innerHTML = m.map(d => {
           const actions = external ? '' :
-            '<button class="action" type="button" data-chart-toggle onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
+            '<button class="action" type="button" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
             '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Fullscreen this metric">Fullscreen</button>' +
             '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">Ext Window</button>';
           const panelClass = 'panel' + (hidden[d.key] && !external ? ' hidden-chart' : '');
