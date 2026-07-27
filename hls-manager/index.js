@@ -251,16 +251,16 @@ async function startStream(streamId, playerKey, retryCount = 0) {
         });
       } catch { resolve({ hevc: false, opus: false, aac: false, h264: false }); }
     });
-    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false }); }, 3000);
+    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false }); }, 7000);
   });
 
   const codecs = await getCodecs();
   if (isShuttingDown || !activeStreams.has(streamId)) return;
 
-  const vArgs = codecs.hevc ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
+  const vArgs = (!codecs.h264) ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
   const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
 
-  log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${codecs.hevc?"h264-transcode":"copy"} a:${codecs.opus?"aac-transcode":"copy"})`);
+  log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${!codecs.h264?"h264-transcode":"copy"} a:${(codecs.opus||!codecs.aac)?"aac-transcode":"copy"})`);
 
   const args = [
     "-hide_banner", "-loglevel", "warning",
