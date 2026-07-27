@@ -457,6 +457,7 @@
       selected = select.value;
       history = [];
       latest = {};
+      renderUI(true);
       let u = new URL(location);
       u.searchParams.set('stream', selected);
       window.history.replaceState({}, '', u);
