@@ -880,7 +880,7 @@
       <div class="stat-card">
         <div class="stat-label">Last Updated</div>
         <div class="stat-value" id="stat-updated" style="font-size:16px;padding-top:4px;">—</div>
-        <div class="stat-sub">Auto-refresh every 1s</div>
+        <div class="stat-sub">Auto-refresh every 2.5s</div>
       </div>
     </div>
 
@@ -964,6 +964,8 @@ let hlsStatusState = null;
 const playingStreams = new Set();
 const metricHistory = new Map();
 const METRIC_HISTORY_LIMIT = 60;
+const AUTO_REFRESH_MS = 2500;
+let statsFetchInFlight = false;
 let monitorStreamId = null;
 let monitorMode = 'graph';
 let monitorLogTimer = null;
@@ -1008,7 +1010,7 @@ function updateMgmtLink() {
 ================================================================ */
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(fetchStats, 1000);
+  refreshTimer = setInterval(fetchStats, AUTO_REFRESH_MS);
 }
 
 function refreshAll() {
@@ -1023,6 +1025,8 @@ function refreshAll() {
    SLS exposes GET /stats → JSON with publisher list
 ================================================================ */
 async function fetchStats() {
+  if (statsFetchInFlight) return;
+  statsFetchInFlight = true;
   const requestId = ++statsRequestId;
   try {
     const origin = IS_SAME_ORIGIN ? window.location.origin : (config.hlsBase ? config.hlsBase.replace(/\/hls\/?$/, "") : "");
@@ -1052,6 +1056,8 @@ async function fetchStats() {
     }
   } catch (err) {
     console.warn("HLS status fetch failed:", err.message);
+  } finally {
+    statsFetchInFlight = false;
   }
   if (requestId !== statsRequestId) return;
   updateHlsStatus(null, "HLS Manager unreachable");
@@ -1289,11 +1295,16 @@ function updateCard(card, publisher) {
 
   const statusEl = document.getElementById(`status-${eid}`);
   if (statusEl) {
-    statusEl.className = `status-chip ${online ? 'online' : 'offline'}`;
-    statusEl.innerHTML = `<div class="dot"></div>${online ? 'Live' : 'Offline'}`;
+    const statusHtml = `<div class="dot"></div>${online ? 'Live' : 'Offline'}`;
+    const statusClass = `status-chip ${online ? 'online' : 'offline'}`;
+    if (statusEl.className !== statusClass) statusEl.className = statusClass;
+    if (statusEl.innerHTML !== statusHtml) statusEl.innerHTML = statusHtml;
   }
   const metricsEl = document.getElementById(`metrics-${eid}`);
-  if (metricsEl) metricsEl.innerHTML = renderMetrics(publisher);
+  if (metricsEl) {
+    const metricsHtml = renderMetrics(publisher);
+    if (metricsEl.innerHTML !== metricsHtml) metricsEl.innerHTML = metricsHtml;
+  }
 
   const bitrateEl = document.getElementById(`badge-bitrate-${eid}`);
   if (bitrateEl) bitrateEl.textContent = formatBitrate(publisher.bitrate || publisher.recv_bitrate || 0);
