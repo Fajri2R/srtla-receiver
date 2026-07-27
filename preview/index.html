@@ -1049,6 +1049,7 @@ async function fetchStats() {
           publisherStats: stats,
         };
       }).filter(Boolean);
+      publishers.sort((a, b) => (b.duration || 0) - (a.duration || 0));
       if (requestId !== statsRequestId) return;
       updateHlsStatus(hlsData.running);
       renderDashboard({ publishers });
@@ -1174,20 +1175,22 @@ function renderDashboard(data) {
   grid.querySelector('.empty-state')?.remove();
 
   // Render/update each card
-  for (const publisher of publishers) {
+  publishers.forEach((publisher, index) => {
     const id = streamId(publisher);
     const existing = document.getElementById(`card-${CSS.escape(id)}`);
     if (existing) {
+      existing.style.order = index;
       updateCard(existing, publisher);
     } else {
       const card = createCard(publisher);
+      card.style.order = index;
       grid.appendChild(card);
       // ✅ FIX #17: auto-resume stream if it was playing before page refresh
       if (sessionStorage.getItem(`playing_${id}`) === '1') {
         setTimeout(() => startPreview(id), 500);
       }
     }
-  }
+  });
 }
 
 function streamId(p) {
