@@ -161,7 +161,8 @@
 
     .charts { display: grid; grid-template-columns: 1fr; gap: 16px; }
     .panel { padding: 14px; display: flex; flex-direction: column; }
-    .panel.hidden-chart { height: 60px; overflow: hidden; }
+    .panel.hidden-chart canvas, .panel.hidden-chart .current { display: none; }
+    .panel.hidden-chart .panel-head { margin-bottom: 0; }
     .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .name { font-weight: 600; }
     .key { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
@@ -485,7 +486,7 @@
       if (currentKeys !== newKeys || forceRebuild) {
         chartsEl.innerHTML = m.map(d => {
           const actions = external ? '' :
-            '<button class="action" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
+            '<button class="action" type="button" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
             '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Fullscreen this metric">Fullscreen</button>' +
             '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">Ext Window</button>';
           const panelClass = 'panel' + (hidden[d.key] && !external ? ' hidden-chart' : '');
