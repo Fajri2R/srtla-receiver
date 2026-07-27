@@ -347,14 +347,14 @@
             <line x1="3" y1="21" x2="10" y2="14"></line>
           </svg>
         </button>
-        <div class="live status-indicator"><i class="dot"></i><span>Connecting</span></div>
+        <div class="live status-indicator error"><i class="dot"></i><span>Disconnected</span></div>
       </div>
     </div>
   </header>
   <main class="main">
     <h1 class="title" style="display:flex;align-items:center;gap:12px;margin:0 0 5px 0;">
       Metrics <code id="stream-name">-</code>
-      <div class="live status-indicator fs-only-status"><i class="dot"></i><span>Connecting</span></div>
+      <div class="live status-indicator fs-only-status error"><i class="dot"></i><span>Disconnected</span></div>
     </h1>
     <p class="sub">Hover a graph for its timestamp and exact metric value.</p>
     <section class="stats" id="stats"></section>
@@ -647,7 +647,7 @@
           selected = '';
           history = [];
           latest = {};
-          setStatus(st.lastError ? 'API: ' + st.lastError : 'No stream active', !!st.lastError);
+          setStatus(st.lastError ? 'API: ' + st.lastError : 'Disconnected', true);
           renderUI();
           return;
         }
