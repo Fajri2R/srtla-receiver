@@ -534,7 +534,6 @@
   function injectButtons() {
     enhanceNavbarBrand();
     injectNavTools();
-    updateLiveStatus();
   }
 
   function syncApiKeyOnLoad() {
@@ -550,10 +549,15 @@
   syncApiKeyOnLoad();
 
   // Watch React re-renders
-  new MutationObserver(injectButtons).observe(document.body, {
+  var injectTimeout = null;
+  new MutationObserver(function() {
+    if (injectTimeout) clearTimeout(injectTimeout);
+    injectTimeout = setTimeout(injectButtons, 200);
+  }).observe(document.body, {
     childList: true,
     subtree:   true,
   });
   [400, 1200, 2500, 5000].forEach(function (t) { setTimeout(injectButtons, t); });
-  setInterval(updateLiveStatus, 1000);
+  setInterval(function() { if (!document.hidden) updateLiveStatus(); }, 3000);
+  updateLiveStatus();
 })();
