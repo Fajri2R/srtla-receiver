@@ -1059,6 +1059,7 @@ async function fetchStats() {
           media: item.media || null,
           transcoder: item.transcoder || null,
           publisherStats: stats,
+          offlineGraceAt: item.offlineGraceAt || null,
         };
       }).filter(Boolean);
       publishers.sort((a, b) => (b.duration || 0) - (a.duration || 0));

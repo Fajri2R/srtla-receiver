@@ -19,6 +19,7 @@ const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || "5";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5", 10) * 1000;
 const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || "9090", 10);
 const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || "10", 10);
+const OFFLINE_GRACE_MS = Math.max(parseInt(process.env.HLS_OFFLINE_GRACE_SECONDS || "15", 10), 0) * 1000;
 const HEVC_PREVIEW_WIDTH = parseInt(process.env.HLS_HEVC_MAX_WIDTH || "1280", 10);
 const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
 const SLS_BASE_URL  = process.env.SLS_STATS_URL
@@ -414,9 +415,18 @@ async function reconcile() {
         );
         const activeSet = new Set(checks.filter(c => c.active).map(c => c.pub));
 
-        // Stop streams that ended
-        for (const [id, e] of activeStreams)
-          if (!activeSet.has(id) && e.proc !== null) stopStream(id);
+        const now = Date.now();
+        for (const [id, entry] of activeStreams) {
+          if (activeSet.has(id)) {
+            delete entry.offlineSince;
+            continue;
+          }
+          if (!entry.offlineSince) {
+            entry.offlineSince = now;
+            continue;
+          }
+          if (now - entry.offlineSince >= OFFLINE_GRACE_MS) stopStream(id);
+        }
 
         // Start streams that began
         for (const pub of activeSet)
@@ -517,7 +527,7 @@ createServer((req, res) => {
       publishers,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        sourceMedia: e.sourceMedia || null, media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id)
+        sourceMedia: e.sourceMedia || null, media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id), offlineGraceAt: e.offlineSince || null
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }
