@@ -1044,7 +1044,7 @@ async function fetchStats() {
     const hlsRes = await fetch(origin + "/api/hls-status", { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (hlsRes.ok) {
       const hlsData = await hlsRes.json();
-      const streams = (hlsData.streams || []).filter(item => item.ready);
+      const streams = (hlsData.streams || []).filter(item => item.status === "running" || item.ready);
       const publishers = streams.map((item) => {
         const pubId = item.id;
         if (!pubId) return null;

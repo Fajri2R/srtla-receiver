@@ -140,7 +140,13 @@ function probeStream(streamId, playlist, expectedProc, attempt = 0) {
         return;
       }
     } catch {}
-    if (attempt < 5) setTimeout(() => probeStream(streamId, playlist, expectedProc, attempt + 1), 2000);
+          // Use playlist file presence as fallback readiness
+      if (!current.ready && attempt >= 5) {
+        try {
+          if (existsSync(playlist)) current.ready = true;
+        } catch {}
+      }
+      if (attempt < 30) setTimeout(() => probeStream(streamId, playlist, expectedProc, attempt + 1), 2000);
   });
 }
 
