@@ -671,6 +671,7 @@
         let d = await r.json();
         if (lastAt > 0) {
           history.push(...(d.history || []));
+        if (history.length > 300) history.splice(0, history.length - 300);
         } else {
           history = d.history || [];
         }

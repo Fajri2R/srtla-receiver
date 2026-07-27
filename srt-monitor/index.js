@@ -13,7 +13,7 @@ function refreshApiKey() {
 }
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
 const GRACE_PERIOD = Math.max(1000, Number(process.env.OFFLINE_GRACE_MS || 15000));
-const HISTORY_SIZE = Math.max(0, Number(process.env.HISTORY_SIZE || 0));
+const HISTORY_SIZE = Math.max(300, Number(process.env.HISTORY_SIZE || 600));
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 2500));
 const publicDir = join(process.cwd(), "public");
 const streams = new Map();
@@ -203,7 +203,9 @@ createServer((req, res) => {
     if (since > 0) {
       return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: entry.history.filter(p => p.at > since) });
     }
-    return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: entry.history });
+    const limit = Math.max(1, Number(url.searchParams.get("limit") || 300));
+    const initialHistory = entry.history.length > limit ? entry.history.slice(-limit) : entry.history;
+    return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: initialHistory });
   }
   if (url.pathname === "/" || url.pathname === "/index.html") return serveFile(res, "index.html", "text/html; charset=utf-8");
   return json(res, 404, { error: "Not found" });
