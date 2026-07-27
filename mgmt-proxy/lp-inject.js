@@ -430,7 +430,11 @@
              var isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
              if (!isModalOpen && !isInputFocused) {
                 console.log('Publishers count changed (' + window.lpLastKnownConfigCount + ' -> ' + serverPubCount + '). Syncing UI...');
-                window.location.reload();
+                document.body.style.transition = 'opacity 160ms ease, filter 160ms ease';
+                document.body.style.opacity = '0.88';
+                document.body.style.filter = 'blur(1px)';
+                document.body.style.pointerEvents = 'none';
+                setTimeout(function() { window.location.reload(); }, 160);
                 return;
              }
           }
