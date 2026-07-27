@@ -184,7 +184,34 @@
       font-family: inherit;
       transition: background .18s, color .18s, border-color .18s;
     }
-    .action:hover { color: var(--text-primary); border-color: rgba(99,102,241,.5); background: var(--bg-card); }
+    .action:hover, .action:focus-visible { color: #f1f5f9; border-color: rgba(99,102,241,.5); background: #1e2a3d; outline: none; }
+    [data-tooltip] { position: relative; }
+    @media (min-width: 992px) {
+      [data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: calc(100% + 9px);
+        right: 0;
+        z-index: 2147483647;
+        padding: 7px 10px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 6px;
+        background: rgba(17,24,39,.98);
+        color: #f1f5f9;
+        font-size: 11px;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 8px 20px rgba(0,0,0,.35);
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity .16s ease, transform .16s ease;
+      }
+      [data-tooltip]:hover::after, [data-tooltip]:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
     canvas { width: 100%; height: 265px; display: block; cursor: crosshair; touch-action: pan-y; }
     
@@ -299,18 +326,18 @@
           <label>Stream</label>
           <select id="stream"></select>
         </div>
-        <a class="action" id="btn-mgmt" href="#" target="_blank" title="Open Management UI" style="text-decoration:none;">
+        <a class="action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <line x1="9" y1="3" x2="9" y2="21"/>
           </svg>
           <span class="btn-text">Management UI</span>
         </a>
-        <a class="action" id="btn-hls" href="#" target="_blank" title="Open HLS Manager" style="text-decoration:none;">
+        <a class="action" id="btn-hls" href="#" target="_blank" data-tooltip="Open HLS Manager" style="text-decoration:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="btn-text">HLS Manager</span>
         </a>
-        <button class="action action-fs-main" onclick="toggleMainFullscreen()" title="Fullscreen Entire Dashboard" style="padding: 0 10px;">
+        <button class="action action-fs-main" onclick="toggleMainFullscreen()" data-tooltip="Fullscreen Entire Dashboard" style="padding: 0 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
             <polyline points="15 3 21 3 21 9"></polyline>
             <polyline points="9 21 3 21 3 15"></polyline>

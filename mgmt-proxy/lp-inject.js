@@ -263,6 +263,8 @@
     '.mgmt-nav-btn svg { width: 15px !important; height: 15px !important; }',
     'button[data-mgmt-settings] { position: relative; display: inline-flex !important; align-items: center; gap: 7px; height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.12) !important; border-radius: 6px !important; background: #1a2235 !important; color: #94a3b8 !important; font-size: 13px !important; font-weight: 500 !important; transition: .2s cubic-bezier(.4,0,.2,1) !important; box-shadow: none !important; }',
     'button[data-mgmt-settings]:hover, button[data-mgmt-settings]:focus-visible { background: #1e2a3d !important; border-color: rgba(99,102,241,.5) !important; color: #f1f5f9 !important; outline: none !important; }',
+    '.mgmt-nav-btn[data-tooltip] { position: relative; }',
+    '@media (min-width: 992px) { .mgmt-nav-btn[data-tooltip]::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 9px); right: 0; z-index: 2147483647; padding: 7px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: rgba(17,24,39,.98); color: #f1f5f9; font-size: 11px; font-weight: 500; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.35); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; } .mgmt-nav-btn[data-tooltip]:hover::after, .mgmt-nav-btn[data-tooltip]:focus-visible::after { opacity: 1; transform: translateY(0); } }',
     '@media (min-width: 992px) { button[data-mgmt-settings]::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 9px); right: 0; z-index: 2147483647; padding: 7px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: rgba(17,24,39,.98); color: #f1f5f9; font-size: 11px; font-weight: 500; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.35); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; } button[data-mgmt-settings]:hover::after, button[data-mgmt-settings]:focus-visible::after { opacity: 1; transform: translateY(0); } }',
     '.live-status { display: flex !important; align-items: center; gap: 6px; height: 36px !important; padding: 0 12px !important; border-radius: 100px !important; color: #94a3b8 !important; background: #1a2235 !important; border: 1px solid rgba(255,255,255,.06) !important; font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; margin-right: 8px; }',
     '.live-status.error { color: #94a3b8 !important; }',
@@ -472,7 +474,7 @@
       srtBtn.href = SRT_MONITOR_URL;
       srtBtn.target = '_blank';
       srtBtn.rel = 'noopener';
-      srtBtn.title = 'Open SRT Monitor';
+      srtBtn.setAttribute('data-tooltip', 'Open SRT Monitor');
       srtBtn.setAttribute('aria-label', 'Open SRT Monitor');
       srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text">SRT Monitor</span>';
 
@@ -482,7 +484,7 @@
       hlsBtn.href = HLS_MANAGER_URL;
       hlsBtn.target = '_blank';
       hlsBtn.rel = 'noopener';
-      hlsBtn.title = 'Open HLS Manager';
+      hlsBtn.setAttribute('data-tooltip', 'Open HLS Manager');
       hlsBtn.setAttribute('aria-label', 'Open HLS Manager');
       hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text">HLS Manager</span>';
 
