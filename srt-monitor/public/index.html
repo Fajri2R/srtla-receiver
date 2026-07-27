@@ -640,7 +640,7 @@
         setStatus(st.lastError ? 'API: ' + st.lastError : 'Streams: ' + streams.length + ' active', !!st.lastError);
         
         if (!streams.length) {
-          history = []; latest = {};
+          // Do not wipe history/latest when offline so chart remains visible
           select.innerHTML = '<option>No active stream</option>';
           renderUI();
           return;
@@ -677,8 +677,15 @@
         ? window.location.protocol + '//' + window.location.hostname
         : window.location.protocol + '//' + window.location.hostname + ':' + port;
     }
-    load();
-    setInterval(load, 1000);
+    async function startLoop() {
+      while (true) {
+        let start = Date.now();
+        await load();
+        let elapsed = Date.now() - start;
+        await new Promise(r => setTimeout(r, Math.max(50, 1000 - elapsed)));
+      }
+    }
+    startLoop();
   </script>
 </body>
 </html>

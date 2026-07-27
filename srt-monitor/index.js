@@ -12,7 +12,7 @@ function refreshApiKey() {
   return SLS_API_KEY;
 }
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
-const HISTORY_SIZE = Math.max(60, Number(process.env.HISTORY_SIZE || 900));
+const HISTORY_SIZE = Math.max(60, Number(process.env.HISTORY_SIZE || 86400)); // 24 hours of 1s history
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 4500));
 const publicDir = join(process.cwd(), "public");
 const streams = new Map();
@@ -80,6 +80,7 @@ async function fetchHlsStreams() {
 }
 
 async function poll() {
+  const pollStartMs = Date.now();
   try {
     const apiKey = refreshApiKey();
     const headers = apiKey ? { "Authorization": `Bearer ${apiKey}` } : {};
@@ -140,15 +141,18 @@ async function poll() {
       } catch {}
     }));
 
-    for (const id of streams.keys()) {
-      if (!present.has(id)) streams.delete(id);
-    }
+    // Keep history intact even if streams go offline temporarily
+    // for (const id of streams.keys()) {
+    //   if (!present.has(id)) streams.delete(id);
+    // }
     lastPoll = Date.now();
     lastError = null;
   } catch (error) {
     lastError = error.message;
   } finally {
-    setTimeout(poll, POLL_MS);
+    const elapsed = Date.now() - pollStartMs;
+    const nextWait = Math.max(50, POLL_MS - elapsed);
+    setTimeout(poll, nextWait);
   }
 }
 
