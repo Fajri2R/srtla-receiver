@@ -19,7 +19,7 @@ const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || "5";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5", 10) * 1000;
 const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || "9090", 10);
 const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || "10", 10);
-const HEVC_PREVIEW_WIDTH = parseInt(process.env.HLS_HEVC_MAX_WIDTH || "1280", 10);
+const MAX_PREVIEWS  = Math.max(parseInt(process.env.HLS_MAX_PREVIEWS || "1", 10) || 1, 1);
 const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
 const SLS_BASE_URL  = process.env.SLS_STATS_URL
   ? process.env.SLS_STATS_URL.replace(/\/[^/]+$/, "")
@@ -267,7 +267,7 @@ async function startStream(streamId, playerKey, retryCount = 0) {
   const sourceEntry = activeStreams.get(streamId);
   if (sourceEntry) sourceEntry.sourceMedia = codecs.sourceMedia;
 
-  const vArgs = (!codecs.h264) ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
+  const vArgs = (!codecs.h264) ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-g", "60"] : ["-c:v", "copy"];
   const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
 
   log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${!codecs.h264?"h264-transcode":"copy"} a:${(codecs.opus||!codecs.aac)?"aac-transcode":"copy"})`);
@@ -412,9 +412,13 @@ async function reconcile() {
         for (const [id, e] of activeStreams)
           if (!activeSet.has(id) && e.proc !== null) stopStream(id);
 
-        // Start streams that began
-        for (const pub of activeSet)
-          if (!activeStreams.has(pub)) startStream(pub, streamMap[pub]);
+        // Start streams that began, respecting MAX_PREVIEWS limit
+        for (const pub of activeSet) {
+          if (!activeStreams.has(pub)) {
+            if (activeStreams.size >= MAX_PREVIEWS) break;
+            startStream(pub, streamMap[pub]);
+          }
+        }
 
         // Update stats for active streams
         for (const c of checks) {
