@@ -187,9 +187,9 @@ createServer((req, res) => {
     if (!entry) return json(res, 404, { error: "Stream not found" });
     const since = Number(url.searchParams.get("since"));
     if (since > 0) {
-      return json(res, 200, { id: entry.id, latest: entry.latest, history: entry.history.filter(p => p.at > since) });
+      return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: entry.history.filter(p => p.at > since) });
     }
-    return json(res, 200, entry);
+    return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: entry.history });
   }
   if (url.pathname === "/" || url.pathname === "/index.html") return serveFile(res, "index.html", "text/html; charset=utf-8");
   return json(res, 404, { error: "Not found" });

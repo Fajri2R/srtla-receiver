@@ -668,6 +668,8 @@
           history = d.history || [];
         }
         latest = d.latest || {};
+        if (d.offlineSince) setStatus("Stream disconnected... (" + Math.round((Date.now() - d.offlineSince) / 1000) + "s)", true);
+        else setStatus(st.lastError ? "API: " + st.lastError : "Streams: " + streams.length + " active", !!st.lastError);
         renderUI();
       } catch (e) {
         setStatus('Monitor unavailable', true);
