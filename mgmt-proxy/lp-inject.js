@@ -535,6 +535,18 @@
     updateLiveStatus();
   }
 
+  function syncApiKeyOnLoad() {
+    var storedKey = localStorage.getItem('apiKey') || localStorage.getItem('api_key');
+    if (storedKey) {
+      fetch('/api/apikey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apikey: storedKey })
+      }).catch(function(){});
+    }
+  }
+  syncApiKeyOnLoad();
+
   // Watch React re-renders
   new MutationObserver(injectButtons).observe(document.body, {
     childList: true,

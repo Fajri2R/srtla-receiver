@@ -411,19 +411,33 @@ createServer((req, res) => {
   if (req.url === "/api/apikey" && req.method === "POST") {
     let body = "";
     req.on("data", chunk => { body += chunk; });
-    req.on("end", () => {
+    req.on("end", async () => {
       try {
         const payload = JSON.parse(body);
-        if (payload && payload.apikey) {
-          writeFileSync("/apikey", payload.apikey, "utf8");
-          SLS_API_KEY = payload.apikey;
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ status: "ok" }));
-        } else {
-          res.writeHead(400); res.end(JSON.stringify({ error: "Invalid payload" }));
+        const apiKey = String(payload?.apikey || "").trim();
+        if (!apiKey) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid payload" }));
+          return;
         }
+
+        const validation = await fetch(SLS_STREAMS_URL, {
+          headers: { "Authorization": `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!validation.ok) {
+          res.writeHead(401, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "API key was rejected by SLS" }));
+          return;
+        }
+
+        writeFileSync("/apikey", apiKey, "utf8");
+        SLS_API_KEY = apiKey;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok" }));
       } catch (err) {
-        res.writeHead(500); res.end(JSON.stringify({ error: err.message }));
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
       }
     });
     return;
