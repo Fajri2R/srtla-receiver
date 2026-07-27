@@ -12,7 +12,7 @@ function refreshApiKey() {
   return SLS_API_KEY;
 }
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
-const HISTORY_SIZE = Math.max(60, Number(process.env.HISTORY_SIZE || 86400)); // 24 hours of 1s history
+const HISTORY_SIZE = Math.max(0, Number(process.env.HISTORY_SIZE || 0));
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 4500));
 const publicDir = join(process.cwd(), "public");
 const streams = new Map();
@@ -102,8 +102,6 @@ async function poll() {
       }
     }
     const hlsStreams = await fetchHlsStreams();
-    const present = new Set();
-
     await Promise.all(streamList.map(async (stream) => {
       const publisherId = stream.publisher || stream.pub_stream_id || stream.publisherId;
       if (!publisherId) return;
@@ -131,20 +129,15 @@ async function poll() {
           transcoder_duplicated_frames: hls?.transcoder?.duplicatedFrames ?? null,
         };
 
-        present.add(publisherId);
         const entry = streams.get(publisherId) || { id: publisherId, latest: null, history: [] };
         const point = snapshot(source);
         entry.latest = point;
         entry.history.push(point);
-        if (entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
+        if (HISTORY_SIZE > 0 && entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
         streams.set(publisherId, entry);
       } catch {}
     }));
 
-    // Keep history intact even if streams go offline temporarily
-    // for (const id of streams.keys()) {
-    //   if (!present.has(id)) streams.delete(id);
-    // }
     lastPoll = Date.now();
     lastError = null;
   } catch (error) {
@@ -175,7 +168,12 @@ createServer((req, res) => {
   if (url.pathname.startsWith("/api/streams/")) {
     const id = decodeURIComponent(url.pathname.slice("/api/streams/".length));
     const entry = streams.get(id);
-    return entry ? json(res, 200, entry) : json(res, 404, { error: "Stream not found" });
+    if (!entry) return json(res, 404, { error: "Stream not found" });
+    const since = Number(url.searchParams.get("since"));
+    if (since > 0) {
+      return json(res, 200, { id: entry.id, latest: entry.latest, history: entry.history.filter(p => p.at > since) });
+    }
+    return json(res, 200, entry);
   }
   if (url.pathname === "/" || url.pathname === "/index.html") return serveFile(res, "index.html", "text/html; charset=utf-8");
   return json(res, 404, { error: "Not found" });

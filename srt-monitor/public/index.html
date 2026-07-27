@@ -640,7 +640,6 @@
         setStatus(st.lastError ? 'API: ' + st.lastError : 'Streams: ' + streams.length + ' active', !!st.lastError);
         
         if (!streams.length) {
-          // Do not wipe history/latest when offline so chart remains visible
           select.innerHTML = '<option>No active stream</option>';
           renderUI();
           return;
@@ -650,14 +649,21 @@
         if (select.innerHTML !== newOpts) {
           select.innerHTML = newOpts;
         }
-        if (!selected || !streams.some(s => s.id === selected)) selected = streams[0].id;
-        if (select.value !== selected) select.value = selected;
+        let switched = false;
+        if (!selected || !streams.some(s => s.id === selected)) { selected = streams[0].id; switched = true; }
+        if (select.value !== selected) { select.value = selected; switched = true; }
+        if (switched) history = [];
         
-        let r = await fetch('/api/streams/' + encodeURIComponent(selected), {cache: 'no-store'});
+        let lastAt = history.length ? history[history.length - 1].at : 0;
+        let r = await fetch('/api/streams/' + encodeURIComponent(selected) + '?since=' + lastAt, {cache: 'no-store'});
         if (!r.ok) throw Error();
         
         let d = await r.json();
-        history = d.history || [];
+        if (lastAt > 0) {
+          history.push(...(d.history || []));
+        } else {
+          history = d.history || [];
+        }
         latest = d.latest || {};
         renderUI();
       } catch (e) {
