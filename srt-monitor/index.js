@@ -150,7 +150,12 @@ async function poll() {
         } else if (Date.now() - entry.offlineSince > GRACE_PERIOD) {
           streams.delete(id);
           console.log(`[srt-monitor] Stream ${id} offline grace period expired. Resetting graph history.`);
+          continue;
         }
+        const point = { ...entry.latest, at: Date.now(), recvBitrate: 0, sendBitrate: 0 };
+        entry.latest = point;
+        entry.history.push(point);
+        if (HISTORY_SIZE > 0 && entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
       }
     }
 

@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <style>
+    .fs-only-status { display: none !important; }
+    :fullscreen .fs-only-status { display: flex !important; margin-left: auto; margin-right: 0; }
     :root {
       --bg-base:        #0a0e1a;
       --bg-surface:     #111827;
@@ -345,12 +347,15 @@
             <line x1="3" y1="21" x2="10" y2="14"></line>
           </svg>
         </button>
-        <div class="live" id="status"><i class="dot"></i><span>Connecting</span></div>
+        <div class="live status-indicator"><i class="dot"></i><span>Connecting</span></div>
       </div>
     </div>
   </header>
   <main class="main">
-    <h1 class="title">Metrics <code id="stream-name">-</code></h1>
+    <h1 class="title" style="display:flex;align-items:center;gap:12px;margin:0 0 5px 0;">
+      Metrics <code id="stream-name">-</code>
+      <div class="live status-indicator fs-only-status"><i class="dot"></i><span>Connecting</span></div>
+    </h1>
     <p class="sub">Hover a graph for its timestamp and exact metric value.</p>
     <section class="stats" id="stats"></section>
     <section class="charts" id="charts"></section>
@@ -378,7 +383,7 @@
     let hover = {};
 
     const select = document.querySelector('#stream');
-    const statusEl = document.querySelector('#status');
+    const statusEls = document.querySelectorAll('.status-indicator');
     const statsEl = document.querySelector('#stats');
     const chartsEl = document.querySelector('#charts');
 
@@ -637,13 +642,12 @@
         ]);
         let streams = ls.streams || [];
         
-        setStatus(st.lastError ? 'API: ' + st.lastError : 'Streams: ' + streams.length + ' active', !!st.lastError);
-        
         if (!streams.length) {
           select.innerHTML = '<option>No active stream</option>';
           selected = '';
           history = [];
           latest = {};
+          setStatus(st.lastError ? 'API: ' + st.lastError : 'No stream active', !!st.lastError);
           renderUI();
           return;
         }
