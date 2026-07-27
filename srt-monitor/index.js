@@ -14,7 +14,7 @@ function refreshApiKey() {
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
 const GRACE_PERIOD = Math.max(1000, Number(process.env.OFFLINE_GRACE_MS || 15000));
 const HISTORY_SIZE = Math.max(0, Number(process.env.HISTORY_SIZE || 0));
-const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 4500));
+const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 2500));
 const publicDir = join(process.cwd(), "public");
 const streams = new Map();
 let lastPoll = null;
@@ -104,9 +104,18 @@ async function poll() {
     }
     const hlsStreams = await fetchHlsStreams();
     const present = new Set();
-    await Promise.all(streamList.map(async (stream) => {
-      const publisherId = stream.publisher || stream.pub_stream_id || stream.publisherId;
-      if (!publisherId) return;
+    const candidateIds = new Set();
+    streamList.forEach(s => {
+      if (typeof s === "string") candidateIds.add(s);
+      else if (s && (s.publisher || s.pub_stream_id || s.publisherId || s.id)) {
+        candidateIds.add(String(s.publisher || s.pub_stream_id || s.publisherId || s.id));
+      }
+    });
+    if (hlsStreams && hlsStreams.keys) {
+      for (const id of hlsStreams.keys()) candidateIds.add(id);
+    }
+
+    await Promise.all([...candidateIds].map(async (publisherId) => {
 
       try {
         const statsResponse = await fetch(`${SLS_BASE}/stats/${encodeURIComponent(publisherId)}`, {
