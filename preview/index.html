@@ -605,6 +605,17 @@
     }
     .metric-chip svg { width: 12px; height: 12px; opacity: 0.6; }
     .metric-chip strong { color: var(--text-primary); font-weight: 600; }
+    .metric-label {
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 4px 2px 2px;
+      width: 100%;
+    }
 
     /* Card actions */
     .card-actions {
@@ -1044,6 +1055,7 @@ async function fetchStats() {
           bitrate: stats.bitrate ? (stats.bitrate * 1000) : 0,
           duration: stats.uptime || 0,
           connections: item.viewers || 0,
+          sourceMedia: item.sourceMedia || null,
           media: item.media || null,
           transcoder: item.transcoder || null,
           publisherStats: stats,
@@ -1618,10 +1630,27 @@ function renderMetrics(p) {
   const bitrate     = p.bitrate || p.recv_bitrate || 0;
   const connections = p.connections || p.client_counts || 0;
   const duration    = p.duration || p.alive_time || 0;
+  const sourceMedia = p.sourceMedia || null;
   const media       = p.media || null;
   const transcoder  = p.transcoder || null;
   const publisherStats = p.publisherStats || null;
   let mediaChips    = "";
+
+  if (sourceMedia && sourceMedia.video) {
+    const video = sourceMedia.video;
+    const resolution = video.width && video.height ? `${video.width}x${video.height}` : "Unknown resolution";
+    const frameRate = video.fps ? `${video.fps} FPS` : "Unknown FPS";
+    const videoCodec = video.codec ? video.codec.toUpperCase() : "Unknown codec";
+    const audioCodec = sourceMedia.audio && sourceMedia.audio.codec ? sourceMedia.audio.codec.toUpperCase() : "No audio";
+    mediaChips += `
+      <span class="metric-label">Source Asli (SRT)</span>
+      <div class="metric-chip" title="Original SRT input. This is not changed by the browser preview." style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        <strong>${resolution} &middot; ${frameRate} &middot; ${videoCodec}</strong>
+      </div>
+      <div class="metric-chip" title="Original SRT audio track" style="border-color:var(--yellow);background:var(--yellow-dim);color:var(--yellow)"><strong>${audioCodec}</strong></div>
+    `;
+  }
 
   if (media && media.video) {
     const video = media.video;
@@ -1630,11 +1659,12 @@ function renderMetrics(p) {
     const videoCodec = video.codec ? video.codec.toUpperCase() : "";
     if (resolution || frameRate || videoCodec) {
       mediaChips += `
-        <div class="metric-chip" title="Video settings" style="border-color:var(--border-accent);background:var(--accent-glow)">
+        <span class="metric-label">Preview Browser (HLS)</span>
+          <div class="metric-chip" title="HLS output used by the browser preview. It can differ from the original SRT source." style="border-color:var(--border-accent);background:var(--accent-glow)">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
           <strong>${resolution}${frameRate ? " &middot; " + frameRate : ""}</strong>
         </div>
-        <div class="metric-chip" title="Video codec"><strong>${videoCodec}${video.profile ? " " + video.profile : ""}</strong></div>
+        <div class="metric-chip" title="HLS preview video codec"><strong>${videoCodec}${video.profile ? " " + video.profile : ""}</strong></div>
       `;
     }
     if (media.audio && media.audio.codec) {

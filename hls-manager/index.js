@@ -98,6 +98,24 @@ function parseFrameRate(rate) {
   return Math.round((numerator / denominator) * 100) / 100;
 }
 
+function mediaFromProbeStreams(streams) {
+  const video = streams.find(stream => stream.codec_type === "video");
+  const audio = streams.find(stream => stream.codec_type === "audio");
+  if (!video) return null;
+  return {
+    video: {
+      codec: video.codec_name || null, profile: video.profile || null,
+      width: video.width || null, height: video.height || null,
+      fps: parseFrameRate(video.avg_frame_rate || video.r_frame_rate),
+      pixelFormat: video.pix_fmt || null,
+    },
+    audio: audio ? {
+      codec: audio.codec_name || null, profile: audio.profile || null,
+      sampleRate: Number(audio.sample_rate) || null, channels: audio.channels || null,
+    } : null,
+  };
+}
+
 function probeStream(streamId, playlist, expectedProc, attempt = 0) {
   const entry = activeStreams.get(streamId);
   if (!entry || entry.proc !== expectedProc || isShuttingDown) return;
@@ -114,23 +132,11 @@ function probeStream(streamId, playlist, expectedProc, attempt = 0) {
     if (!current || current.proc !== expectedProc || isShuttingDown) return;
     try {
       const streams = code === 0 ? (JSON.parse(output).streams || []) : [];
-      const video = streams.find(stream => stream.codec_type === "video");
-      const audio = streams.find(stream => stream.codec_type === "audio");
-      if (video) {
-        current.media = {
-          video: {
-            codec: video.codec_name || null, profile: video.profile || null,
-            width: video.width || null, height: video.height || null,
-            fps: parseFrameRate(video.avg_frame_rate || video.r_frame_rate),
-            pixelFormat: video.pix_fmt || null,
-          },
-          audio: audio ? {
-            codec: audio.codec_name || null, profile: audio.profile || null,
-            sampleRate: Number(audio.sample_rate) || null, channels: audio.channels || null,
-          } : null,
-        };
+      const media = mediaFromProbeStreams(streams);
+      if (media) {
+        current.media = media;
         current.ready = true;
-        log("info", `  Media [${streamId}]: ${video.width}x${video.height} ${current.media.video.fps}fps ${video.codec_name}`);
+        log("info", `  Preview [${streamId}]: ${media.video.width}x${media.video.height} ${media.video.fps}fps ${media.video.codec}`);
         return;
       }
     } catch {}
@@ -229,13 +235,13 @@ async function startStream(streamId, playerKey, retryCount = 0) {
   const srtUrl = `srt://${SRT_HOST}:${SRT_PORT}?streamid=${encodeURIComponent(playerKey)}&mode=caller&latency=${SRT_LATENCY}`;
 
   if (!activeStreams.has(streamId)) {
-    activeStreams.set(streamId, { proc: null, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Probing stream codec...`] });
+    activeStreams.set(streamId, { proc: null, dir, retryCount, retryTimer: null, sourceMedia: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Probing stream codec...`] });
   }
 
   log("info", `PROBE [${streamId}] playerKey="${playerKey}"`);
   const getCodecs = () => new Promise(resolve => {
     const probe = spawn("ffprobe", [
-      "-v", "error", "-show_entries", "stream=codec_name", "-of", "json",
+      "-v", "error", "-show_entries", "stream=codec_type,codec_name,profile,width,height,avg_frame_rate,r_frame_rate,pix_fmt,sample_rate,channels", "-of", "json",
       "-analyze_duration", "1500000", "-probesize", "1500000", srtUrl
     ]);
     let output = "";
@@ -243,19 +249,23 @@ async function startStream(streamId, playerKey, retryCount = 0) {
     probe.on("close", () => {
       try {
         const streams = JSON.parse(output).streams || [];
+        const sourceMedia = mediaFromProbeStreams(streams);
         resolve({
           hevc: streams.some(s => s.codec_name === "hevc" || s.codec_name === "h265"),
           opus: streams.some(s => s.codec_name === "opus"),
           aac: streams.some(s => s.codec_name === "aac"),
-          h264: streams.some(s => s.codec_name === "h264")
+          h264: streams.some(s => s.codec_name === "h264"),
+          sourceMedia
         });
-      } catch { resolve({ hevc: false, opus: false, aac: false, h264: false }); }
+      } catch { resolve({ hevc: false, opus: false, aac: false, h264: false, sourceMedia: null }); }
     });
-    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false }); }, 7000);
+    setTimeout(() => { try { probe.kill(); } catch {} resolve({ hevc: false, opus: false, aac: false, h264: false, sourceMedia: null }); }, 7000);
   });
 
   const codecs = await getCodecs();
   if (isShuttingDown || !activeStreams.has(streamId)) return;
+  const sourceEntry = activeStreams.get(streamId);
+  if (sourceEntry) sourceEntry.sourceMedia = codecs.sourceMedia;
 
   const vArgs = (!codecs.h264) ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
   const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
@@ -330,7 +340,7 @@ async function startStream(streamId, playerKey, retryCount = 0) {
     entry.proc = proc;
     entry.logs.push(`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`);
   } else {
-    activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`] });
+    activeStreams.set(streamId, { proc, dir, retryCount, retryTimer: null, sourceMedia: null, media: null, transcoder: null, publisherStats: null, ready: false, logs: [`[${new Date().toISOString()}] [info] Transcoder process initialized for ${streamId}`] });
   }
   setTimeout(() => probeStream(streamId, m3u8, proc), 2000);
 }
@@ -501,7 +511,7 @@ createServer((req, res) => {
       publishers,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
         id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
-        media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id)
+        sourceMedia: e.sourceMedia || null, media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id)
       }))
     }, null, 2));
   } else { res.writeHead(404); res.end(); }
