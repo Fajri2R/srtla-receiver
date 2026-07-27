@@ -641,6 +641,9 @@
         
         if (!streams.length) {
           select.innerHTML = '<option>No active stream</option>';
+          selected = '';
+          history = [];
+          latest = {};
           renderUI();
           return;
         }

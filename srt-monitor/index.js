@@ -12,6 +12,7 @@ function refreshApiKey() {
   return SLS_API_KEY;
 }
 const POLL_MS = Math.max(1000, Number(process.env.POLL_MS || 1000));
+const GRACE_PERIOD = Math.max(1000, Number(process.env.OFFLINE_GRACE_MS || 15000));
 const HISTORY_SIZE = Math.max(0, Number(process.env.HISTORY_SIZE || 0));
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 4500));
 const publicDir = join(process.cwd(), "public");
@@ -102,6 +103,7 @@ async function poll() {
       }
     }
     const hlsStreams = await fetchHlsStreams();
+    const present = new Set();
     await Promise.all(streamList.map(async (stream) => {
       const publisherId = stream.publisher || stream.pub_stream_id || stream.publisherId;
       if (!publisherId) return;
@@ -135,8 +137,22 @@ async function poll() {
         entry.history.push(point);
         if (HISTORY_SIZE > 0 && entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
         streams.set(publisherId, entry);
+        present.add(publisherId);
       } catch {}
     }));
+
+    for (const [id, entry] of streams.entries()) {
+      if (present.has(id)) {
+        entry.offlineSince = null;
+      } else {
+        if (!entry.offlineSince) {
+          entry.offlineSince = Date.now();
+        } else if (Date.now() - entry.offlineSince > GRACE_PERIOD) {
+          streams.delete(id);
+          console.log(`[srt-monitor] Stream ${id} offline grace period expired. Resetting graph history.`);
+        }
+      }
+    }
 
     lastPoll = Date.now();
     lastError = null;
