@@ -19,6 +19,7 @@ const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || "5";
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5", 10) * 1000;
 const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || "9090", 10);
 const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || "10", 10);
+const ALLOW_TRANSCODE = process.env.HLS_ALLOW_TRANSCODE === "true"; // Default: false, bypass transcode for HEVC/Opus
 const OFFLINE_GRACE_MS = Math.max(parseInt(process.env.HLS_OFFLINE_GRACE_SECONDS || "15", 10), 0) * 1000;
 const HEVC_PREVIEW_WIDTH = parseInt(process.env.HLS_HEVC_MAX_WIDTH || "1280", 10);
 const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
@@ -274,7 +275,19 @@ async function startStream(streamId, playerKey, retryCount = 0) {
   const sourceEntry = activeStreams.get(streamId);
   if (sourceEntry) sourceEntry.sourceMedia = codecs.sourceMedia;
 
-  const vArgs = (!codecs.h264) ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
+  const needsVTranscode = !codecs.h264;
+  const needsATranscode = codecs.opus || (!codecs.aac && !codecs.opus);
+  if (!ALLOW_TRANSCODE && (needsVTranscode || needsATranscode)) {
+    log("warn", `SKIP [${streamId}]: Requires transcode (H.264/AAC missing) but HLS_ALLOW_TRANSCODE is false`);
+    const e = activeStreams.get(streamId);
+    if (e) {
+      e.status = "unsupported_codec";
+      e.ready = false;
+      e.logs.push(`[${new Date().toISOString()}] [error] Stream uses unsupported codec (HEVC/Opus). Transcoding disabled.`);
+    }
+    return;
+  }
+  const vArgs = needsVTranscode ? ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency", "-vf", `scale=\'min(${HEVC_PREVIEW_WIDTH},iw)\':-2`, "-g", "60"] : ["-c:v", "copy"];
   const aArgs = (codecs.opus || (!codecs.aac && !codecs.opus)) ? ["-c:a", "aac", "-b:a", "128k"] : ["-c:a", "copy"];
 
   log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${!codecs.h264?"h264-transcode":"copy"} a:${(codecs.opus||!codecs.aac)?"aac-transcode":"copy"})`);
@@ -526,7 +539,7 @@ createServer((req, res) => {
       publisherStatusUpdatedAt: lastPublisherActivityAt || null,
       publishers,
       streams: [...activeStreams.entries()].map(([id, e]) => ({
-        id, status: e.proc ? "running" : "retrying", retry: e.retryCount || 0,
+        id, status: e.status || (e.proc ? "running" : "retrying"), retry: e.retryCount || 0,
         sourceMedia: e.sourceMedia || null, media: e.media || null, transcoder: e.transcoder || null, publisherStats: e.publisherStats || publisherActivity.get(id)?.stats || null, ready: !!e.ready, viewers: viewerCount(id), offlineGraceAt: e.offlineSince || null
       }))
     }, null, 2));

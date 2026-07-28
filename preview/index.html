@@ -1044,7 +1044,7 @@ async function fetchStats() {
     const hlsRes = await fetch(origin + "/api/hls-status", { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (hlsRes.ok) {
       const hlsData = await hlsRes.json();
-      const streams = (hlsData.streams || []).filter(item => item.status === "running" || item.ready);
+      const streams = (hlsData.streams || []).filter(item => item.status === "running" || item.status === "unsupported_codec" || item.ready);
       const publishers = streams.map((item) => {
         const pubId = item.id;
         if (!pubId) return null;
@@ -1057,6 +1057,7 @@ async function fetchStats() {
           connections: item.viewers || 0,
           sourceMedia: item.sourceMedia || null,
           media: item.media || null,
+          status: item.status,
           transcoder: item.transcoder || null,
           publisherStats: stats,
           offlineGraceAt: item.offlineGraceAt || null,
@@ -1226,6 +1227,7 @@ function createCard(publisher) {
   const id     = streamId(publisher);
   const name   = publisher.description || publisher.name || publisher.stream || id;
   const online = (publisher.bitrate || publisher.recv_bitrate || 0) > 0;
+  const unsupported = publisher.status === 'unsupported_codec';
 
   const card = document.createElement('div');
   card.className = 'stream-card';
@@ -1236,7 +1238,13 @@ function createCard(publisher) {
     <div class="video-wrapper">
       <video class="stream-video" controls playsinline muted></video>
 
-      <div class="video-overlay" id="overlay-${CSS.escape(id)}">
+      <div class="video-overlay" id="unsupported-${CSS.escape(id)}" style="display:${unsupported ? 'flex' : 'none'}; background:rgba(0,0,0,0.8); z-index:20; flex-direction:column; justify-content:center; text-align:center; padding:20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width:32px;height:32px;margin:0 auto 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div style="font-size:14px;font-weight:600;color:#f87171;margin-bottom:6px;">Preview Unsupported</div>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.4;">Stream uses HEVC or Opus.<br>Set encoder to H.264 & AAC.</div>
+      </div>
+
+      <div class="video-overlay" id="overlay-${CSS.escape(id)}" style="display:${unsupported ? 'none' : ''}">
         <div class="overlay-icon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
         </div>
@@ -1266,7 +1274,7 @@ function createCard(publisher) {
       </div>
 
       <div class="card-actions">
-        <button class="btn-action btn-play" id="btn-play-${CSS.escape(id)}" data-action="preview">
+        <button class="btn-action btn-play" id="btn-play-${CSS.escape(id)}" data-action="preview" style="display:${unsupported ? 'none' : ''}">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           Preview
         </button>
@@ -1308,6 +1316,18 @@ function updateCard(card, publisher) {
   const id     = streamId(publisher);
   const eid    = CSS.escape(id);
   const online = (publisher.bitrate || publisher.recv_bitrate || 0) > 0;
+
+  const overlay = document.getElementById(`overlay-${eid}`);
+  const unsupportedEl = document.getElementById(`unsupported-${eid}`);
+  const btnPlay = document.getElementById(`btn-play-${eid}`);
+  if (publisher.status === 'unsupported_codec') {
+    if (unsupportedEl) unsupportedEl.style.display = 'flex';
+    if (overlay) overlay.style.display = 'none';
+    if (btnPlay) btnPlay.style.display = 'none';
+  } else {
+    if (unsupportedEl) unsupportedEl.style.display = 'none';
+    if (btnPlay && !playingStreams.has(id)) btnPlay.style.display = '';
+  }
 
   const statusEl = document.getElementById(`status-${eid}`);
   if (statusEl) {
