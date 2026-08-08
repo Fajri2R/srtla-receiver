@@ -133,7 +133,7 @@ async function poll() {
           viewers: hls?.viewers ?? publisher.viewers,
           media: hls?.media ?? null,
           transcoder: hls?.transcoder ?? null,
-          transcoder_fps: hls?.transcoder?.realtimeFps ?? null,
+          transcoder_fps: hls?.transcoder?.realtimeFps ?? hls?.sourceMedia?.video?.fps ?? null,
           transcoder_speed: hls?.transcoder?.speed ?? null,
           transcoder_frames: hls?.transcoder?.frames ?? null,
           transcoder_dropped_frames: hls?.transcoder?.droppedFrames ?? null,

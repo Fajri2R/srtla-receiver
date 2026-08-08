@@ -1137,7 +1137,7 @@ function recordMetricHistory(publishers) {
     history.push({
       at: Date.now(),
       bitrate: Number(publisher.bitrate || publisher.recv_bitrate || 0),
-      fps: Number(transcoder.realtimeFps || 0),
+      fps: Number(transcoder.realtimeFps ?? publisher.sourceMedia?.video?.fps ?? 0),
       viewers: Number(publisher.connections || publisher.client_counts || 0),
       rtt: Number(stats.rtt || 0),
       dropped: Number(stats.dropped_pkts || stats.packet_drop || 0),
