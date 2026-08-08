@@ -123,7 +123,8 @@
       font-weight: 500;
       white-space: nowrap;
     }
-    .live.error { color: var(--text-secondary); }
+    .live.error { color: var(--red); }
+    .live.warning { color: var(--yellow); }
     .dot {
       width: 7px;
       height: 7px;
@@ -133,6 +134,7 @@
       animation: pulse-anim 2s infinite;
     }
     .live.error .dot { background: var(--red); }
+    .live.warning .dot { background: var(--yellow); }
     @keyframes pulse-anim {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: .5; transform: scale(.8); }
@@ -389,6 +391,7 @@
     const statsEl = document.querySelector('#stats');
     const chartsEl = document.querySelector('#charts');
 
+    window._chartObserver = window._chartObserver || new IntersectionObserver(entries => { entries.forEach(e => e.target._isIntersecting = e.isIntersecting) });
     const num = v => Number.isFinite(Number(v)) ? Number(v) : null;
     const esc = v => String(v).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
     const clock = t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
@@ -406,11 +409,12 @@
       return Math.round(v).toLocaleString();
     }
 
-    function setStatus(t, bad = false) {
+    function setStatus(text, theme = 'normal', tooltip = '') {
       statusEls.forEach(el => {
-        el.className = 'live status-indicator' + (bad ? ' error' : '') + (el.classList.contains('fs-only-status') ? ' fs-only-status' : '');
+        el.className = 'live status-indicator' + (theme === 'error' ? ' error' : theme === 'warning' ? ' warning' : '') + (el.classList.contains('fs-only-status') ? ' fs-only-status' : '');
         const span = el.querySelector('span');
-        if (span) span.textContent = t;
+        if (span) span.textContent = text;
+        el.title = tooltip;
       });
     }
 
@@ -473,9 +477,17 @@
         statsEl.innerHTML = '';
       } else {
         let sm = summaryDefs.filter(d => history.some(p => num(p[d.key]) !== null) || num(latest[d.key]) !== null);
-        statsEl.innerHTML = sm.map(d =>
-          '<article class="stat" style="border-left-color:' + d.color + '"><div class="sl">' + d.label + '</div><div class="sv">' + fmt(latest[d.key], d.fmt) + '</div></article>'
-        ).join('');
+        const currentKeys = Array.from(statsEl.children).map(node => node.dataset.metric).join(',');
+        const nextKeys = sm.map(def => def.key).join(',');
+        if (currentKeys !== nextKeys) {
+          statsEl.innerHTML = sm.map(d => '<article class="stat" data-metric="' + d.key + '" style="border-left-color:' + d.color + '"><div class="sl">' + d.label + '</div><div class="sv">' + fmt(latest[d.key], d.fmt) + '</div></article>').join('');
+        } else {
+          sm.forEach(d => {
+            const valueEl = statsEl.querySelector('[data-metric="' + d.key + '"] .sv');
+            const value = fmt(latest[d.key], d.fmt);
+            if (valueEl && valueEl.textContent !== value) valueEl.textContent = value;
+          });
+        }
       }
 
       if (!m.length) {
@@ -681,8 +693,17 @@
           history = d.history || [];
         }
         latest = d.latest || {};
-        if (d.offlineSince) setStatus("Stream disconnected... (" + Math.round((Date.now() - d.offlineSince) / 1000) + "s)", true);
-        else setStatus(st.lastError ? "API: " + st.lastError : "Streams: " + streams.length + " active", !!st.lastError);
+        if (d.offlineSince) {
+          setStatus("Disconnecting...", "warning", "Offline grace period active (" + Math.round((Date.now() - d.offlineSince)/1000) + "s)");
+        } else if (st.lastError) {
+          setStatus("API Error", "error", st.lastError);
+        } else {
+          const rtt = num(latest.rtt) || 0;
+          const drops = num(latest.droppedPackets) || 0;
+          const theme = (rtt > 250 || drops > 50) ? "error" : (rtt > 100 || drops > 5) ? "warning" : "normal";
+          const label = theme === "error" ? "Critical" : theme === "warning" ? "Warning" : "Live";
+          setStatus(label, theme, "RTT " + rtt.toFixed(1) + "ms, drops " + drops);
+        }
         renderUI();
       } catch (e) {
         setStatus('Monitor unavailable', true);
@@ -706,7 +727,8 @@
         let start = Date.now();
         await load();
         let elapsed = Date.now() - start;
-        await new Promise(r => setTimeout(r, Math.max(50, 1000 - elapsed)));
+        let delay = document.hidden ? 15000 : 1000;
+        await new Promise(r => setTimeout(r, Math.max(50, delay - elapsed)));
       }
     }
     startLoop();

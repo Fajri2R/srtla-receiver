@@ -567,6 +567,12 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .status-chip.warning { color: var(--yellow); background: var(--yellow-dim); border: 1px solid rgba(245,158,11,0.3); }
+    .status-chip.warning .dot { background: var(--yellow); animation: none; }
+    .status-chip.error { color: var(--red); background: var(--red-dim); border: 1px solid rgba(239,68,68,0.3); }
+    .status-chip.error .dot { background: var(--red); animation: none; }
+    .status-chip.unsupported { color: #c084fc; background: rgba(192,132,252,0.15); border: 1px solid rgba(192,132,252,0.3); }
+    .status-chip.unsupported .dot { background: #c084fc; animation: none; }
     .status-chip.online {
       color: var(--green);
       background: var(--green-dim);
@@ -991,11 +997,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ✅ FIX #10: Stop polling when tab is hidden, resume when visible
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
-    } else {
-      fetchStats();
-      startAutoRefresh();
+    if (!document.hidden && refreshTimer) {
+      clearTimeout(refreshTimer);
+      fetchStats().finally(() => {
+        refreshTimer = setTimeout(() => startAutoRefresh(), AUTO_REFRESH_MS);
+      });
     }
   });
 });
@@ -1020,8 +1026,13 @@ function updateMgmtLink() {
    AUTO REFRESH
 ================================================================ */
 function startAutoRefresh() {
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(fetchStats, AUTO_REFRESH_MS);
+  if (refreshTimer) clearTimeout(refreshTimer);
+  const loop = () => {
+    fetchStats().finally(() => {
+      refreshTimer = setTimeout(loop, document.hidden ? 15000 : AUTO_REFRESH_MS);
+    });
+  };
+  refreshTimer = setTimeout(loop, AUTO_REFRESH_MS);
 }
 
 function refreshAll() {
@@ -1331,15 +1342,56 @@ function updateCard(card, publisher) {
 
   const statusEl = document.getElementById(`status-${eid}`);
   if (statusEl) {
-    const statusHtml = `<div class="dot"></div>${online ? 'Live' : 'Offline'}`;
-    const statusClass = `status-chip ${online ? 'online' : 'offline'}`;
+    let statusText = online ? 'Live' : 'Offline';
+    let statusTheme = online ? 'online' : 'offline';
+    let tooltip = '';
+    
+    if (publisher.status === 'unsupported_codec') {
+      statusText = 'Unsupported';
+      statusTheme = 'unsupported';
+      tooltip = 'Preview unsupported for HEVC / Opus codec';
+    } else if (publisher.offlineGraceAt) {
+      statusText = 'Disconnecting... (' + Math.max(0, Math.ceil((15000 - (Date.now() - publisher.offlineGraceAt)) / 1000)) + 's)';
+      statusTheme = 'warning';
+      tooltip = 'Stream disconnected, awaiting reconnection grace period';
+    } else if (online) {
+      const rtt = Number(publisher.publisherStats?.rtt || 0);
+      const drops = Number(publisher.publisherStats?.dropped_pkts || 0);
+      if (drops > 50 || rtt > 250) {
+        statusTheme = 'error';
+        tooltip = 'Critical network health: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+      } else if (drops > 5 || rtt > 100) {
+        statusTheme = 'warning';
+        tooltip = 'Degraded network health: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+      } else {
+        tooltip = 'Healthy: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+      }
+    }
+    
+    const statusHtml = '<div class="dot"></div>' + statusText;
+    const statusClass = 'status-chip ' + statusTheme;
+    if (statusEl.title !== tooltip) statusEl.title = tooltip;
     if (statusEl.className !== statusClass) statusEl.className = statusClass;
     if (statusEl.innerHTML !== statusHtml) statusEl.innerHTML = statusHtml;
   }
   const metricsEl = document.getElementById(`metrics-${eid}`);
   if (metricsEl) {
     const metricsHtml = renderMetrics(publisher);
-    if (metricsEl.innerHTML !== metricsHtml) metricsEl.innerHTML = metricsHtml;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = metricsHtml;
+    const newChips = tempDiv.querySelectorAll('.metric-chip');
+    const oldChips = metricsEl.querySelectorAll('.metric-chip');
+    if (oldChips.length === newChips.length) {
+      newChips.forEach((newChip, index) => {
+        const newValue = newChip.querySelector('.metric-value');
+        const oldValue = oldChips[index].querySelector('.metric-value');
+        if (newValue && oldValue && oldValue.textContent !== newValue.textContent) {
+          oldValue.textContent = newValue.textContent;
+        }
+      });
+    } else {
+      metricsEl.innerHTML = metricsHtml;
+    }
   }
 
   const bitrateEl = document.getElementById(`badge-bitrate-${eid}`);
