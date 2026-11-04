@@ -521,7 +521,7 @@
       var liveBadge = document.createElement('div');
       liveBadge.className = 'live-status';
       liveBadge.id = 'mgmt-live-status';
-      liveBadge.innerHTML = '<i class="dot"></i><span>Publisher: 0 active</span>';
+      liveBadge.innerHTML = '<i class="dot"></i><span>Checking status…</span>';
 
       // Order injected before the Settings button (left to right):
       // Wrap them in a single container to prevent React DOM tracking issues
@@ -813,6 +813,12 @@
     }
   }, 1000);
   updateLiveStatus();
+  // Refresh immediately when the tab becomes visible again: the poll interval
+  // is skipped while the page is hidden, so the badge would otherwise show a
+  // stale count until the next interval after focus returns.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) updateLiveStatus();
+  });
   // Resolve the DNS-only host before the user opens the URL modal, so the
   // vendor bundle renders the correct host on its first render.
   setTimeout(function() {
