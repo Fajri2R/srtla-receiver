@@ -26,6 +26,7 @@
   var SRT_MONITOR_URL = isDomain
     ? location.protocol + '//monitor.' + rootDomain + '/'
     : location.protocol + '//' + location.hostname + ':9010/';
+  var BRAND_TITLE = 'ASHVEIL \u00b7 SRT Live Management';
 
   /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
   var fontP1 = document.createElement('link'); fontP1.rel = 'preconnect'; fontP1.href = 'https://fonts.googleapis.com';
@@ -240,7 +241,7 @@
     'body::before { content: "" !important; position: fixed !important; inset: 0 !important; background-image: linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px) !important; background-size: 40px 40px !important; pointer-events: none !important; z-index: 0 !important; }',
     '.navbar, nav, header { background: rgba(17,24,39,.95) !important; border-bottom: 1px solid rgba(255,255,255,.06) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25) !important; padding: 0 24px !important; height: 64px !important; display: flex !important; align-items: center !important; }',
     '.navbar > .container, .navbar > .container-fluid { padding: 0 !important; margin: 0 auto !important; max-width: 1440px !important; height: 100% !important; }',
-    '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 8px; color: #818cf8; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); box-shadow: 0 0 12px rgba(99,102,241,.18); } .mgmt-brand-icon svg { margin: 0 !important; width: 19px !important; height: 19px !important; display: block; } .mgmt-brand-text { color: #f1f5f9; font-size: 16px !important; font-weight: 700; letter-spacing: -.3px; line-height: 1; white-space: nowrap; } .mgmt-brand-text span { color: #818cf8; }',
+    '.navbar-brand.mgmt-brand { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; text-decoration: none !important; } .mgmt-brand-icon { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; border-radius: 9px; background: radial-gradient(120% 120% at 50% 15%, #3a3d3b 0%, #2c2e2d 55%, #232524 100%); border: 1px solid rgba(228,225,217,.28); box-shadow: 0 2px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(228,225,217,.12); overflow: hidden; } .mgmt-brand-icon img { margin: 0 !important; width: 24px !important; height: 24px !important; object-fit: contain; display: block; } .mgmt-brand-text { color: #e4e1d9; font-size: 16px !important; font-weight: 800; letter-spacing: .08em; line-height: 1; white-space: nowrap; display: inline-flex; align-items: baseline; gap: 8px; } .mgmt-brand-sub { color: #94a3b8; font-size: 12px !important; font-weight: 600; letter-spacing: .02em; padding-left: 9px; border-left: 1px solid rgba(255,255,255,.12); font-style: normal; }',
     '::-webkit-scrollbar { width: 6px !important; height: 6px !important; }',
     '::-webkit-scrollbar-track { background: transparent !important; }',
     '::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12) !important; border-radius: 100px !important; }',
@@ -477,9 +478,34 @@
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
       brand.classList.add('mgmt-brand');
-      brand.setAttribute('aria-label', 'SRT Live Server Management');
-      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block;"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></svg></span><span class="mgmt-brand-text">SRT Live <span>Management</span></span>';
+      brand.setAttribute('aria-label', 'ASHVEIL SRT Live Management');
+      brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true">'
+        + '<img src="/ashveil-emblem.png?v=2" alt="" width="24" height="24" decoding="async">'
+        + '</span>'
+        + '<span class="mgmt-brand-text">ASHVEIL<em class="mgmt-brand-sub">SRT Live Management</em></span>';
     });
+  }
+
+  // Give the tab the Ashveil identity as well: the vendor bundle ships a
+  // generic/emoji title and no favicon.
+  function applyBrandIdentity() {
+    if (document.title !== BRAND_TITLE) document.title = BRAND_TITLE;
+    if (!document.querySelector('link[data-ashveil-icon]')) {
+      [['icon', '/ashveil-favicon.png', 'image/png'],
+       ['apple-touch-icon', '/apple-touch-icon.png', 'image/png']].forEach(function (spec) {
+        var link = document.createElement('link');
+        link.rel = spec[0];
+        link.href = spec[1];
+        if (spec[2]) link.type = spec[2];
+        link.setAttribute('data-ashveil-icon', '1');
+        document.head.appendChild(link);
+      });
+      var theme = document.createElement('meta');
+      theme.name = 'theme-color';
+      theme.content = '#2c2e2d';
+      theme.setAttribute('data-ashveil-icon', '1');
+      document.head.appendChild(theme);
+    }
   }
 
   function injectNavTools() {
@@ -561,6 +587,7 @@
   };
 
   function injectButtons() {
+    applyBrandIdentity();
     enhanceNavbarBrand();
     injectNavTools();
     enhanceStreamUrlModal();

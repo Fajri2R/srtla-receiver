@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HLS Manager</title>
+  <title>ASHVEIL · HLS Manager</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#2c2e2d">
+  <meta name="application-name" content="ASHVEIL HLS Manager">
   <meta name="description" content="Live preview dashboard for SRTla receiver streams" />
 
   <!-- HLS.js -->
@@ -105,31 +110,45 @@
       gap: 8px;
     }
     .logo {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 10px;
       text-decoration: none;
     }
-        .logo-icon {
+    .logo:hover { text-decoration: none; }
+    .logo-icon {
       width: 36px;
       height: 36px;
-      border-radius: 8px;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      color: #818cf8;
-      display: flex;
+      flex: 0 0 36px;
+      border-radius: 9px;
+      background: radial-gradient(120% 120% at 50% 15%, #3a3d3b 0%, #2c2e2d 55%, #232524 100%);
+      border: 1px solid rgba(228, 225, 217, 0.28);
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 12px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 2px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(228,225,217,.12);
     }
-    .logo-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; }
+    .logo-icon img { width: 24px; height: 24px; object-fit: contain; display: block; }
     .logo-text {
       font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.3px;
+      font-weight: 800;
+      color: #e4e1d9;
+      letter-spacing: .08em;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      line-height: 1;
+      white-space: nowrap;
     }
-    .logo-text span { color: var(--accent-light); }
+    .logo-sub {
+      font-style: normal;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: .02em;
+      color: var(--text-secondary);
+      padding-left: 9px;
+      border-left: 1px solid var(--border-default);
+    }
 
     .header-spacer { flex: 1; }
     .header-actions {
@@ -353,7 +372,7 @@
       .header-actions { gap: 8px; }
       .header-spacer { display: none; }
       .logo { flex: 1 1 auto; min-width: 0; justify-content: flex-start; }
-      .logo-icon { width: 32px; height: 32px; }
+      .logo-icon { width: 32px; height: 32px; flex: 0 0 32px; } .logo-icon img { width: 21px; height: 21px; }
       .logo-text { font-size: 14px; white-space: nowrap; }
       .header-badge {
         flex: 0 0 auto;
@@ -831,9 +850,9 @@
   <!-- HEADER -->
   <header class="header">
     <div class="header-inner">
-      <a class="logo" href="#">
-        <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;display:block;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8"/><path d="M12 17v4"/><polygon points="10 8 16 10 10 12 10 8" fill="currentColor"/></svg></div>
-        <span class="logo-text">HLS <span>Manager</span></span>
+      <a class="logo" href="#" aria-label="ASHVEIL HLS Manager">
+        <span class="logo-icon"><img src="/ashveil-emblem.png" alt="" width="26" height="26" decoding="async"></span>
+        <span class="logo-text">ASHVEIL<em class="logo-sub">HLS Manager</em></span>
       </a>
 
       <div class="header-spacer"></div>

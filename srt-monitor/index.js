@@ -207,7 +207,18 @@ createServer((req, res) => {
     const initialHistory = entry.history.length > limit ? entry.history.slice(-limit) : entry.history;
     return json(res, 200, { id: entry.id, latest: entry.latest, offlineSince: entry.offlineSince, history: initialHistory });
   }
-  if (url.pathname === "/" || url.pathname === "/index.html") return serveFile(res, "index.html", "text/html; charset=utf-8");
+  const staticFiles = {
+    "/": ["index.html", "text/html; charset=utf-8"],
+    "/index.html": ["index.html", "text/html; charset=utf-8"],
+    "/favicon.ico": ["favicon.ico", "image/x-icon"],
+    "/favicon.png": ["favicon.png", "image/png"],
+    "/favicon-32x32.png": ["favicon-32x32.png", "image/png"],
+    "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
+    "/ashveil-emblem.png": ["ashveil-emblem.png", "image/png"],
+    "/ashveil-logo.png": ["ashveil-logo.png", "image/png"]
+  };
+  const hit = staticFiles[url.pathname];
+  if (hit) return serveFile(res, hit[0], hit[1]);
   return json(res, 404, { error: "Not found" });
 }).listen(PORT, "0.0.0.0", () => console.log(`SRT Monitoring listening on ${PORT}`));
 

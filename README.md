@@ -20,6 +20,22 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 | 🛡 **HTTPS Domain API Proxy** | Management UI API calls use the same HTTPS origin through `mgmt-proxy`, avoiding mixed-content `Failed to fetch` errors |
 | 🔗 **Publisher URL Host Picker** | The **Show URLs** dialog renders one set of URLs with a Host switch — the SRT DNS-only domain when it resolves to the server, otherwise the origin IP |
 | 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager, preview UI, and mgmt-proxy |
+| 🏷 **Ashveil Brand Identity** | All three dashboards share one identity: emblem + `ASHVEIL` wordmark in the header, per-service sub-label, matching favicons, and `ASHVEIL · <Service>` tab titles |
+
+### Brand assets
+
+Every dashboard ships its own copy so it renders without cross-service requests:
+
+| File | Purpose |
+|------|---------|
+| `ashveil-emblem.png` | Header mark (transparent cream emblem) |
+| `ashveil-logo.png` | Full lockup for docs, OG images, and external use |
+| `favicon.ico`, `favicon.png`, `favicon-32x32.png` | Browser tab icon |
+| `apple-touch-icon.png` | iOS home-screen icon |
+
+- HLS Manager serves them from `preview/`; SRT Monitor from `srt-monitor/public/`; the Management UI from `mgmt-proxy/`.
+- The Management UI is a third-party bundle, so `mgmt-proxy/lp-inject.js` applies the identity at runtime: it rewrites the navbar brand, sets the tab title, and injects the favicon links.
+- `preview/nginx.conf` answers missing image requests with `404` instead of the SPA `index.html`. Without that rule a miss returns HTML that browsers reject as an image and CDNs cache under the image URL.
 
 > **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The dashboard checks the hostname over DNS before offering it, so with no such record every URL falls back to the origin IP automatically.
 

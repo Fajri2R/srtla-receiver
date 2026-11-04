@@ -23,6 +23,32 @@ server {
         add_header Content-Type  "application/javascript; charset=utf-8";
     }
 
+    # Brand assets for the Ashveil identity (served from the mounted
+    # mgmt-proxy directory; no deployment hostnames involved).
+    location = /ashveil-emblem.png {
+        alias /etc/nginx/ashveil-emblem.png;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/png";
+    }
+
+    location = /ashveil-favicon.png {
+        alias /etc/nginx/ashveil-favicon.png;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/png";
+    }
+
+    location = /favicon.ico {
+        alias /etc/nginx/ashveil-favicon.ico;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/x-icon";
+    }
+
+    location = /apple-touch-icon.png {
+        alias /etc/nginx/ashveil-favicon.png;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/png";
+    }
+
     # Patch the vendor UI polling countdown at the proxy layer. The bundled
     # app normally refreshes publisher stats every 5/10 seconds; this keeps
     # the original component flow but resets its countdown to one second.

@@ -28,15 +28,15 @@ services:
     ports:
       - "${SLS_MGNT_PORT:-3000}:80"
     environment:
-      # Deployment-specific hosts, read from .env (never committed). The nginx
-      # entrypoint renders mgmt-proxy/default.conf.template with envsubst, and
-      # /lp-config.json exposes the same values to the browser injector.
       LP_VPS_IP:     "${LP_VPS_IP:-}"
       LP_SRT_DOMAIN: "${LP_SRT_DOMAIN:-}"
     volumes:
       - ./mgmt-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./mgmt-proxy/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
+      - ./mgmt-proxy/ashveil-emblem.png:/etc/nginx/ashveil-emblem.png:ro
+      - ./mgmt-proxy/ashveil-favicon.png:/etc/nginx/ashveil-favicon.png:ro
+      - ./mgmt-proxy/ashveil-favicon.ico:/etc/nginx/ashveil-favicon.ico:ro
     logging:
       driver: "json-file"
       options:
@@ -120,7 +120,7 @@ services:
       - "${LIVE_PREVIEW_PORT:-8090}:80"
     volumes:
       - hls-access-logs:/var/log/nginx
-      - ./preview/index.html:/usr/share/nginx/html/index.html:ro
+      - ./preview:/usr/share/nginx/html:ro
       - ./preview/nginx.conf:/etc/nginx/nginx.conf:ro
       - hls-data:/var/www/hls:ro
     logging:
