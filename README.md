@@ -17,7 +17,11 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 | 🔄 **Multi-Stream HLS Manager** | Automatically starts/stops FFmpeg per active stream; zero configuration |
 | 📈 **Advanced Stream Metrics** | Real-time stream stats including Transcode FPS, Uptime, Viewers, RTT, Packet Drops, and dynamic Bitrate (Mbps) |
 | 📡 **SLS API Integration** | Uses the correct SLS REST API endpoints: `/stats/{stream_id}` and `/api/stream-ids` — no CORS issues |
+| 🛡 **HTTPS Domain API Proxy** | Management UI API calls use the same HTTPS origin through `mgmt-proxy`, avoiding mixed-content `Failed to fetch` errors |
+| 🔗 **Publisher URL Variants** | The **Show URLs** dialog includes SRT/SRTLA/player URLs using both the VPS IP and an SRT-only DNS hostname |
 | 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager, preview UI, and mgmt-proxy |
+
+> **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The management UI's domain variant assumes `srt.example.com` is configured this way; use the IP variant until DNS propagation is complete.
 
 ---
 
