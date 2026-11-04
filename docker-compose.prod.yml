@@ -27,8 +27,12 @@ services:
       - sls-management-ui
     ports:
       - "${SLS_MGNT_PORT:-3000}:80"
+    environment:
+      LP_VPS_IP:     "${LP_VPS_IP:-}"
+      LP_SRT_DOMAIN: "${LP_SRT_DOMAIN:-}"
     volumes:
       - ./mgmt-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./mgmt-proxy/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
     logging:
       driver: "json-file"

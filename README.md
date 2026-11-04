@@ -184,13 +184,22 @@ solves this without rebuilding the image:
   becomes `location.origin`, and the publisher stats countdown drops from 10s to 3s.
 - `/hls/` is proxied to `live-preview`, so the HLS player uses the same origin too.
 
-Two per-deployment values live at the top of the injector block in
-`mgmt-proxy/lp-inject.js` and must be edited for your server:
+No hostnames live in the repository. `mgmt-proxy` reads them from the
+environment at container start and exposes them to the browser as
+`/lp-config.json`:
 
-```js
-var VPS_IP     = 'YOUR_VPS_IP';       // public IP of the receiver
-var SRT_DOMAIN = 'srt.example.com';   // DNS-only hostname for SRT/SRTLA
+```yaml
+# docker-compose.yml → mgmt-proxy
+environment:
+  LP_VPS_IP:     "${LP_VPS_IP:-}"      # public IP of the receiver
+  LP_SRT_DOMAIN: "${LP_SRT_DOMAIN:-}"  # DNS-only hostname for SRT/SRTLA
 ```
+
+`mgmt-proxy/nginx.conf` is a minimal `http {}` block that includes
+`/etc/nginx/conf.d/*.conf`; the server block lives in
+`mgmt-proxy/default.conf.template`, which the `nginx:alpine` entrypoint renders
+with `envsubst` on start. Keep the real values in your `.env` (git-ignored),
+never in the tracked files.
 
 When the page is served from a domain, the HLS Manager and SRT Monitor buttons
 point at `preview.<domain>` and `monitor.<domain>`. Publish those as normal

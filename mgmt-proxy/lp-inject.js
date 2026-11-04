@@ -16,12 +16,15 @@
   /* ── Config ──────────────────────────────────────────────────────── */
   var BASE    = location.protocol + '//' + location.host;
   var portStr = location.port ? ':' + location.port : '';
-  var isDomain = location.hostname.endsWith('example.com');
+  var hostParts = location.hostname.split('.');
+  var isIpHost = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(location.hostname);
+  var isDomain = !isIpHost && location.hostname !== 'localhost';
+  var rootDomain = hostParts.length > 1 ? hostParts.slice(1).join('.') : location.hostname;
   var HLS_MANAGER_URL = isDomain
-    ? location.protocol + '//preview.example.com/?mgmt=443'
+    ? location.protocol + '//preview.' + rootDomain + '/?mgmt=' + encodeURIComponent(location.port || (location.protocol === 'https:' ? '443' : '80'))
     : location.protocol + '//' + location.hostname + ':8090/?mgmt=' + encodeURIComponent(location.port || (location.protocol === 'https:' ? '443' : '80'));
   var SRT_MONITOR_URL = isDomain
-    ? location.protocol + '//monitor.example.com/'
+    ? location.protocol + '//monitor.' + rootDomain + '/'
     : location.protocol + '//' + location.hostname + ':9010/';
 
   /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
@@ -569,12 +572,33 @@
   // DNS-only hostname that resolves straight to it. The correct host is
   // chosen automatically and the existing URL fields are rewritten in
   // place — no duplicated list of alternate URLs.
-  var VPS_IP     = 'YOUR_VPS_IP';
-  var SRT_DOMAIN = window.__LP_SRT_DOMAIN || 'srt.example.com';
+  //
+  // No hostnames are hardcoded here: values come from /lp-config.json
+  // (generated from LP_VPS_IP / LP_SRT_DOMAIN on the host) and otherwise
+  // fall back to the page hostname.
+  var cfg = window.__LP_CONFIG || {};
+  var VPS_IP = cfg.vpsIp || window.__LP_VPS_IP || (isIpHost ? location.hostname : '');
+  var SRT_DOMAIN = cfg.srtDomain || window.__LP_SRT_DOMAIN || (isDomain ? 'srt.' + rootDomain : '');
+  var configLoaded = !!(cfg.vpsIp || cfg.srtDomain);
+
+  // Load the per-deployment host config (served by mgmt-proxy from a file
+  // that is generated at container start, never committed).
+  function loadConfig(cb) {
+    if (configLoaded) { cb(); return; }
+    var finish = function () { configLoaded = true; cb(); };
+    fetch('/lp-config.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (d) {
+        if (d && d.vpsIp) VPS_IP = d.vpsIp;
+        if (d && d.srtDomain) SRT_DOMAIN = d.srtDomain;
+        finish();
+      })
+      .catch(finish);
+  }
 
   // The bundle reads this when rendering SRT/SRTLA URLs (see the nginx
   // sub_filter for Uo()), so it must exist before the first modal render.
-  if (!window.__LP_SRT_HOST) window.__LP_SRT_HOST = VPS_IP;
+  if (!window.__LP_SRT_HOST) window.__LP_SRT_HOST = VPS_IP || location.hostname;
 
   var hvState = {
     domainOk: false,
@@ -606,22 +630,24 @@
   // usable when it points at this server (i.e. a DNS-only A record).
   function detectDomain(cb) {
     if (hvState.checked) { cb(hvState.domainOk); return; }
-    var done = function (ok) {
-      hvState.checked = true;
-      hvState.domainOk = ok;
-      cb(ok);
-    };
-    if (!SRT_DOMAIN) { done(false); return; }
-    var timer = setTimeout(function () { done(false); }, 4000);
-    fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(SRT_DOMAIN) + '&type=A',
-          { headers: { Accept: 'application/dns-json' }, cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        clearTimeout(timer);
-        var ips = (d.Answer || []).filter(function (a) { return a.type === 1; }).map(function (a) { return a.data; });
-        done(ips.indexOf(VPS_IP) !== -1);
-      })
-      .catch(function () { clearTimeout(timer); done(false); });
+    loadConfig(function () {
+      var done = function (ok) {
+        hvState.checked = true;
+        hvState.domainOk = ok;
+        cb(ok);
+      };
+      if (!SRT_DOMAIN || !VPS_IP) { done(false); return; }
+      var timer = setTimeout(function () { done(false); }, 4000);
+      fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(SRT_DOMAIN) + '&type=A',
+            { headers: { Accept: 'application/dns-json' }, cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          clearTimeout(timer);
+          var ips = (d.Answer || []).filter(function (a) { return a.type === 1; }).map(function (a) { return a.data; });
+          done(ips.indexOf(VPS_IP) !== -1);
+        })
+        .catch(function () { clearTimeout(timer); done(false); });
+    });
   }
 
   // Rewrite every SRT/SRTLA/stats field so it is reachable. The bundle now

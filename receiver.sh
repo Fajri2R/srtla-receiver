@@ -471,90 +471,37 @@ download_compose_file() {
     done
     if [ "$ok" = "false" ]; then return 1; fi
 
-    # Generate mgmt-proxy/nginx.conf inline (avoids CDN/network download failures)
-    # This nginx proxy sits in front of the Management UI and injects a
-    # floating "Live Preview" button into every HTML page via sub_filter.
+    # Generate the small nginx main config inline. The server template is
+    # downloaded separately so envsubst can inject only deployment-local
+    # LP_VPS_IP / LP_SRT_DOMAIN values at container start.
     echo -e "${INFO}Generating mgmt-proxy config...${NC}"
     mkdir -p mgmt-proxy
-    # ✅ FIX: Remove stale directory if it exists from a previous failed attempt
-    # (curl without -f creates an empty directory when the target path was mkdir'd)
-    rm -rf mgmt-proxy/nginx.conf
     cat > mgmt-proxy/nginx.conf << 'NGINXEOF'
 worker_processes 1;
 error_log /dev/stderr warn;
-pid       /var/run/nginx.pid;
-
+pid /var/run/nginx.pid;
 events { worker_connections 512; }
-
 http {
     access_log /dev/stdout;
-
-    server {
-        listen 80;
-        server_name _;
-
-        # Serve the Live Preview injector script
-        location = /lp-inject.js {
-            alias /etc/nginx/lp-inject.js;
-            add_header Cache-Control "no-cache, no-store";
-            add_header Content-Type  "application/javascript; charset=utf-8";
-        }
-
-        location = /api/hls-health {
-            proxy_pass         http://hls-manager:9090/health;
-            proxy_http_version 1.1;
-            proxy_read_timeout 10s;
-        }
-
-        # Keep the vendor Management UI refresh interval at 3 seconds.
-        location ~ ^/static/js/main\..+\.js$ {
-            proxy_pass         http://sls-management-ui:3000;
-            proxy_http_version 1.1;
-            proxy_set_header   Host              $host;
-            proxy_set_header   X-Real-IP         $remote_addr;
-            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-            proxy_set_header   Accept-Encoding   "";
-            proxy_read_timeout 60s;
-
-            sub_filter_once  on;
-            sub_filter_types application/javascript text/javascript;
-            sub_filter '[s,u]=(0,t.useState)(10);(0,t.useEffect)((()=>{u(a?5:10)}),[a])' '[s,u]=(0,t.useState)(3);(0,t.useEffect)((()=>{u(3)}),[a])';
-            add_header Cache-Control "no-cache, no-store, must-revalidate";
-        }
-
-        location = /api/apikey {
-            proxy_pass         http://hls-manager:9090/api/apikey;
-            proxy_http_version 1.1;
-            proxy_set_header   Host              $host;
-            proxy_set_header   X-Real-IP         $remote_addr;
-            proxy_read_timeout 10s;
-        }
-
-        location / {
-            proxy_pass         http://sls-management-ui:3000;
-            proxy_http_version 1.1;
-            proxy_set_header   Host              $host;
-            proxy_set_header   X-Real-IP         $remote_addr;
-            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-            proxy_set_header   Upgrade           $http_upgrade;
-            proxy_set_header   Connection        "upgrade";
-            proxy_read_timeout 60s;
-
-            sub_filter_once  on;
-            sub_filter_types text/html;
-            sub_filter '</body>' '<script src="/lp-inject.js"></script></body>';
-        }
-    }
+    include /etc/nginx/conf.d/*.conf;
 }
 NGINXEOF
 
-    # Download mgmt-proxy/lp-inject.js from the repo (preferred) with curl,
-    # fallback to a minimal inline version if network is unavailable.
+    echo -e "${INFO}Downloading mgmt-proxy/default.conf.template...${NC}"
+    if curl -sf --max-time 10 \
+        "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/main/mgmt-proxy/default.conf.template" \
+        > mgmt-proxy/default.conf.template 2>/dev/null && [ -s mgmt-proxy/default.conf.template ]; then
+        echo -e "${SUCCESS}  ✓ mgmt-proxy/default.conf.template (from GitHub)${NC}"
+    else
+        echo -e "${ERROR}Unable to download mgmt-proxy/default.conf.template from GitHub.${NC}"
+        return 1
+    fi
+
+    # Download the injector from the repo (deployment values are loaded from
+    # /lp-config.json at runtime, so no hostnames are embedded here).
     echo -e "${INFO}Generating mgmt-proxy/lp-inject.js...${NC}"
-    local lp_port="${live_preview_port:-8090}"
     if curl -sf --max-time 10 \
         "https://raw.githubusercontent.com/Fajri2R/srtla-receiver/main/mgmt-proxy/lp-inject.js" \
-        | sed "s/LP_PORT_PLACEHOLDER/${lp_port}/" \
         > mgmt-proxy/lp-inject.js 2>/dev/null && [ -s mgmt-proxy/lp-inject.js ]; then
         echo -e "${SUCCESS}  ✓ mgmt-proxy/lp-inject.js (from GitHub)${NC}"
     else
@@ -562,7 +509,7 @@ NGINXEOF
         echo -e "${INFO}Check network access and run the installer again so Management UI features stay in sync.${NC}"
         return 1
     fi
-    echo -e "${SUCCESS}  ✓ mgmt-proxy/nginx.conf${NC}"
+    echo -e "${SUCCESS}  ✓ mgmt-proxy config${NC}"
 
     echo -e "${SUCCESS}All files downloaded successfully.${NC}"
     return 0
@@ -578,6 +525,8 @@ create_env_file() {
     local srtla_port="$6"
     local live_preview_port="$7"
     local srt_monitor_port="$8"
+    local detected_ip
+    detected_ip=$(get_public_ip)
     
     cat > .env << EOF
 # Base URL for the application
@@ -616,6 +565,16 @@ SRTLA_LOG_LEVEL=info
 # SLS REST API key (auto-filled by receiver.sh after first start)
 # Required for hls-manager to read stream-ids from /api/stream-ids
 SLS_API_KEY=
+
+# ── SRT/SRTLA host selection (optional) ──────────────────────
+# These stay local: they are rendered into mgmt-proxy by envsubst and served
+# as /lp-config.json, so no hostname is ever stored in the repository.
+# LP_VPS_IP: public IP of this server (auto-detected here, override if NAT).
+LP_VPS_IP=${detected_ip}
+# LP_SRT_DOMAIN: optional DNS-only hostname for SRT/SRTLA. It must resolve
+# directly to the server (no Cloudflare proxy), because SRT uses UDP.
+# Leave empty to advertise the IP only.
+LP_SRT_DOMAIN=
 EOF
     
     echo -e "${SUCCESS}.env file created.${NC}"
