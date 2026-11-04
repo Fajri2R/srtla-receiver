@@ -18,10 +18,10 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 | 📈 **Advanced Stream Metrics** | Real-time stream stats including Transcode FPS, Uptime, Viewers, RTT, Packet Drops, and dynamic Bitrate (Mbps) |
 | 📡 **SLS API Integration** | Uses the correct SLS REST API endpoints: `/stats/{stream_id}` and `/api/stream-ids` — no CORS issues |
 | 🛡 **HTTPS Domain API Proxy** | Management UI API calls use the same HTTPS origin through `mgmt-proxy`, avoiding mixed-content `Failed to fetch` errors |
-| 🔗 **Publisher URL Variants** | The **Show URLs** dialog includes SRT/SRTLA/player URLs using both the VPS IP and an SRT-only DNS hostname |
+| 🔗 **Publisher URL Host Picker** | The **Show URLs** dialog renders one set of URLs with a Host switch — the SRT DNS-only domain when it resolves to the server, otherwise the origin IP |
 | 🛠 **Updated `receiver.sh`** | One command installs everything including hls-manager, preview UI, and mgmt-proxy |
 
-> **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The management UI's domain variant assumes `srt.example.com` is configured this way; use the IP variant until DNS propagation is complete.
+> **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The dashboard checks the hostname over DNS before offering it, so with no such record every URL falls back to the origin IP automatically.
 
 ---
 
@@ -196,13 +196,16 @@ When the page is served from a domain, the HLS Manager and SRT Monitor buttons
 point at `preview.<domain>` and `monitor.<domain>`. Publish those as normal
 HTTPS virtual hosts (ports 8090 and 9010 in this stack).
 
-### Publisher URL variants (IP + domain)
+### Publisher URL host picker (domain or origin IP)
 
-Every **Show URLs** dialog gets an extra **Alternate hosts** block listing the
-same SRT, SRTLA, and player URLs over both `VPS_IP` and `SRT_DOMAIN`, each with a
-copy button. The `SRT_DOMAIN` entry only works once that hostname is an `A`
-record pointing to the VPS with the proxy disabled — UDP does not traverse a
-normal CDN proxy.
+Every **Show URLs** dialog renders a single clean set of fields:
+
+- The UDP host is chosen automatically: if `SRT_DOMAIN` resolves to this server
+  over DNS-over-HTTPS, it is used by default; otherwise the origin IP is used.
+- When both are available, a **Host** switch (`[domain] [ip]`) appears at the
+  bottom of the modal so encoders can be pointed at the raw IP at will.
+- The statistics URL is always kept on the same HTTPS origin so it can be opened
+  directly from a secure dashboard without mixed-content errors.
 
 
 ---

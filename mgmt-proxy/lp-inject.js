@@ -563,96 +563,197 @@
     enhanceStreamUrlModal();
   }
 
-  /* ── Stream URL host variants (VPS IP + SRT-only domain) ─────────── */
-  // SRT/SRTLA run over UDP, so they cannot use the Cloudflare-proxied
-  // hostname. These variants expose the origin IP and a DNS-only host.
-  var VPS_IP = 'YOUR_VPS_IP';
-  var SRT_DOMAIN = 'srt.example.com';
+  /* ── Stream URL host selection (SRT-only domain, else origin IP) ──── */
+  // SRT/SRTLA use UDP: they must never point at the dashboard hostname
+  // (Cloudflare-proxied) and instead need either the origin IP or a
+  // DNS-only hostname that resolves straight to it. The correct host is
+  // chosen automatically and the existing URL fields are rewritten in
+  // place — no duplicated list of alternate URLs.
+  var VPS_IP     = 'YOUR_VPS_IP';
+  var SRT_DOMAIN = window.__LP_SRT_DOMAIN || 'srt.example.com';
+
+  // The bundle reads this when rendering SRT/SRTLA URLs (see the nginx
+  // sub_filter for Uo()), so it must exist before the first modal render.
+  if (!window.__LP_SRT_HOST) window.__LP_SRT_HOST = VPS_IP;
+
+  var hvState = {
+    domainOk: false,
+    checked:  false,
+    mode:     null  // 'domain' | 'ip'
+  };
 
   var hvcss = document.createElement('style');
   hvcss.textContent =
-    '.lp-hv{margin-top:14px;border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:12px 14px;background:rgba(99,102,241,.07)}' +
-    '.lp-hv-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#a5b4fc;margin-bottom:10px}' +
-    '.lp-hv-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}' +
-    '.lp-hv-row:last-child{margin-bottom:0}' +
-    '.lp-hv-tag{flex:0 0 82px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-align:center;padding:3px 0;border-radius:5px;background:rgba(255,255,255,.08);color:#cbd5e1}' +
-    '.lp-hv-tag.ip{background:rgba(34,197,94,.16);color:#4ade80}' +
-    '.lp-hv-tag.dom{background:rgba(59,130,246,.18);color:#60a5fa}' +
-    '.lp-hv-row input{flex:1 1 auto;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.35);color:#e2e8f0}' +
-    '.lp-hv-row button{flex:0 0 auto;font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cbd5e1;cursor:pointer}' +
-    '.lp-hv-row button:hover{background:rgba(255,255,255,.12);color:#fff}' +
-    '.lp-hv-note{margin-top:9px;font-size:10.5px;line-height:1.45;color:#94a3b8}';
+    '.lp-host{margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:#94a3b8}' +
+    '.lp-host-label{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#a5b4fc}' +
+    '.lp-host-btn{font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cbd5e1;cursor:pointer}' +
+    '.lp-host-btn:hover{background:rgba(255,255,255,.12);color:#fff}' +
+    '.lp-host-btn.on{background:rgba(59,130,246,.22);border-color:rgba(96,165,250,.5);color:#93c5fd}' +
+    '.lp-host-note{flex:1 1 100%;font-size:10.5px;line-height:1.45;color:#94a3b8}' +
+    '.lp-host-note.warn{color:#fbbf24}';
   document.head.appendChild(hvcss);
 
   function withHost(url, host) {
     try {
       var u = new URL(url);
+      if (!u.hostname) return null;
       u.hostname = host;
       return u.toString();
     } catch (e) { return null; }
   }
 
-  function enhanceStreamUrlModal() {
+  // Resolve the SRT hostname over DNS-over-HTTPS and only treat it as
+  // usable when it points at this server (i.e. a DNS-only A record).
+  function detectDomain(cb) {
+    if (hvState.checked) { cb(hvState.domainOk); return; }
+    var done = function (ok) {
+      hvState.checked = true;
+      hvState.domainOk = ok;
+      cb(ok);
+    };
+    if (!SRT_DOMAIN) { done(false); return; }
+    var timer = setTimeout(function () { done(false); }, 4000);
+    fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(SRT_DOMAIN) + '&type=A',
+          { headers: { Accept: 'application/dns-json' }, cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(timer);
+        var ips = (d.Answer || []).filter(function (a) { return a.type === 1; }).map(function (a) { return a.data; });
+        done(ips.indexOf(VPS_IP) !== -1);
+      })
+      .catch(function () { clearTimeout(timer); done(false); });
+  }
+
+  // Rewrite every SRT/SRTLA/stats field so it is reachable. The bundle now
+  // derives the UDP host from window.__LP_SRT_HOST, so a modal that opens
+  // after the chooser changes is already correct; this keeps an open modal
+  // in sync as a fallback.
+  function setInputValue(inp, val) {
+    if (!inp || inp.value === val) return;
+    try {
+      var proto = window.HTMLInputElement && window.HTMLInputElement.prototype;
+      var setter = proto && Object.getOwnPropertyDescriptor(proto, 'value');
+      if (setter && setter.set) {
+        setter.set.call(inp, val);
+      } else {
+        inp.value = val;
+      }
+    } catch (e) { inp.value = val; }
+  }
+
+  // Statistics URL: the vendor bundle formats it as http://<udp-host>:<port>.
+  // From an HTTPS dashboard that is both mixed-content and unreachable, so the
+  // value is pinned to the dashboard origin. React owns the input and rewrites
+  // it on every poll, hence the property override instead of a one-off set.
+  function pinStatsUrl(inp) {
+    if (inp.__lpPinned) return;
+    inp.__lpPinned = true;
+    var raw = inp.value;
+    try {
+      Object.defineProperty(inp, 'value', {
+        configurable: true,
+        get: function () {
+          var v = raw || '';
+          if (!/^https?:\/\/.+\/stats\//.test(v)) return v;
+          try {
+            var u = new URL(v);
+            return location.origin + u.pathname + u.search;
+          } catch (e) { return v; }
+        },
+        set: function (next) { raw = next; }
+      });
+    } catch (e) { inp.__lpPinned = false; }
+  }
+
+  function applyHost(mode) {
+    var modal = document.querySelector('.modal.show, .modal.in, .modal');
+    if (!modal) return;
+    var host = mode === 'domain' ? SRT_DOMAIN : VPS_IP;
+
+    [].forEach.call(modal.querySelectorAll('input'), function (inp) {
+      var val = inp.value || '';
+      if (/^(srt|srtla):\/\//.test(val)) {
+        var swapped = withHost(val, host);
+        if (swapped && swapped !== val) setInputValue(inp, swapped);
+      } else if (/^https?:\/\/.+\/stats\//.test(val)) {
+        pinStatsUrl(inp);
+      }
+    });
+  }
+
+  function renderHostSwitch() {
     var modal = document.querySelector('.modal.show, .modal.in');
     if (!modal) return;
     var body = modal.querySelector('.modal-body');
     if (!body) return;
-    if (body.querySelector('.lp-hv')) return;
+    var existing = body.querySelector('.lp-host');
 
-    var seen = {};
-    var rows = [];
+    if (!hvState.domainOk) {
+      if (existing) existing.remove();
+      applyHost('ip');
+      return;
+    }
+    if (existing) {
+      [].forEach.call(existing.querySelectorAll('.lp-host-btn'), function (b) {
+        b.classList.toggle('on', b.getAttribute('data-lp-host') === hvState.mode);
+      });
+      return;
+    }
 
-    [].forEach.call(body.querySelectorAll('input.form-control'), function (inp) {
-      var val = inp.value || '';
-      if (!/^(srt|srtla):\/\//.test(val)) return;
-      if (seen[val]) return;
-      seen[val] = 1;
+    var wrap = document.createElement('div');
+    wrap.className = 'lp-host';
+    wrap.innerHTML =
+      '<span class="lp-host-label">Host</span>' +
+      '<button type="button" class="lp-host-btn" data-lp-host="domain">' + SRT_DOMAIN + '</button>' +
+      '<button type="button" class="lp-host-btn" data-lp-host="ip">' + VPS_IP + '</button>' +
+      '<div class="lp-host-note">Domain memakai record DNS-only langsung ke VPS. Pilih IP bila ingin bypass DNS.</div>';
 
-      var card = inp.closest('.card');
-      var title = card && card.querySelector('h6') ? card.querySelector('h6').innerText.trim() : 'Stream';
-      var ipUrl = withHost(val, VPS_IP);
-      var domUrl = withHost(val, SRT_DOMAIN);
-      if (!ipUrl) return;
-      rows.push({ title: title, ip: ipUrl, dom: domUrl });
-    });
-
-    if (!rows.length) return;
-
-    var box = document.createElement('div');
-    box.className = 'lp-hv';
-    var html = '<div class="lp-hv-title"><i class="bi bi-hdd-network"></i> Alternate hosts</div>';
-    rows.forEach(function (r, i) {
-      html += '<div class="lp-hv-row"><span class="lp-hv-tag ip">IP</span>'
-        + '<input readonly type="text" data-lp-url="' + i + '-ip">'
-        + '<button type="button" data-lp-copy="' + i + '-ip">Copy</button></div>';
-      html += '<div class="lp-hv-row"><span class="lp-hv-tag dom">DOMAIN</span>'
-        + '<input readonly type="text" data-lp-url="' + i + '-dom">'
-        + '<button type="button" data-lp-copy="' + i + '-dom">Copy</button></div>';
-    });
-    html += '<div class="lp-hv-note">SRT/SRTLA memakai UDP &mdash; hostname domain harus berstatus DNS-only (bukan proxy Cloudflare). Pakai baris IP bila domain belum siap.</div>';
-    box.innerHTML = html;
-
-    rows.forEach(function (r, i) {
-      box.querySelector('[data-lp-url="' + i + '-ip"]').value = r.ip;
-      box.querySelector('[data-lp-url="' + i + '-dom"]').value = r.dom;
-    });
-
-    [].forEach.call(box.querySelectorAll('button[data-lp-copy]'), function (btn) {
+    [].forEach.call(wrap.querySelectorAll('.lp-host-btn'), function (btn) {
       btn.addEventListener('click', function () {
-        var input = btn.parentNode.querySelector('input');
-        var text = input.value;
-        var done = function () { showToast('Copied: ' + text, false); };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(done, function () {
-            input.select(); document.execCommand('copy'); done();
-          });
-        } else {
-          input.select(); document.execCommand('copy'); done();
-        }
+        hvState.mode = btn.getAttribute('data-lp-host');
+        window.__LP_SRT_HOST = hvState.mode === 'domain' ? SRT_DOMAIN : VPS_IP;
+        applyHost(hvState.mode);
+        renderHostSwitch();
       });
     });
+    body.appendChild(wrap);
+  }
 
-    body.appendChild(box);
+  function enhanceStreamUrlModal() {
+    var modal = document.querySelector('.modal.show, .modal.in, .modal');
+    if (!modal) return;
+    var body = modal.querySelector('.modal-body') || modal;
+
+    // Only act on the stream-URL modal (it contains publish/play URLs).
+    var hasSrt = [].some.call(modal.querySelectorAll('input'), function (i) {
+      return /^(srt|srtla):\/\//.test(i.value || '');
+    });
+    if (!hasSrt) return;
+
+    detectDomain(function (ok) {
+      if (!hvState.mode) hvState.mode = ok ? 'domain' : 'ip';
+      if (!ok) hvState.mode = 'ip';
+      window.__LP_SRT_HOST = hvState.mode === 'domain' ? SRT_DOMAIN : VPS_IP;
+      applyHost(hvState.mode);
+      renderHostSwitch();
+      watchModal(modal);
+    });
+  }
+
+  // React rewrites the URL inputs on every stats poll, so the chosen host
+  // has to be re-applied right after each re-render.
+  var watchedModal = null;
+  function watchModal(modal) {
+    if (watchedModal === modal) return;
+    watchedModal = modal;
+    var reapply = function () { if (hvState.checked) applyHost(hvState.mode || 'ip'); };
+    try {
+      new MutationObserver(reapply).observe(modal, { childList: true, subtree: true });
+    } catch (e) {}
+    setInterval(function () {
+      if (!document.body.contains(modal)) { watchedModal = null; return; }
+      if (!document.hidden) reapply();
+    }, 400);
   }
 
   function syncApiKeyOnLoad() {
@@ -677,6 +778,23 @@
     subtree:   true,
   });
   [400, 1200, 2500, 5000].forEach(function (t) { setTimeout(injectButtons, t); });
-  setInterval(function() { if (!document.hidden) updateLiveStatus(); }, 3000);
+  setInterval(function() {
+    if (!document.hidden) {
+      updateLiveStatus();
+      // React regenerates the URL fields during polling; keep the selected
+      // valid UDP host and same-origin stats URL after that re-render.
+      enhanceStreamUrlModal();
+    }
+  }, 1000);
   updateLiveStatus();
+  // Resolve the DNS-only host before the user opens the URL modal, so the
+  // vendor bundle renders the correct host on its first render.
+  setTimeout(function() {
+    detectDomain(function(ok) {
+      hvState.domainOk = ok;
+      hvState.checked = true;
+      hvState.mode = ok ? 'domain' : 'ip';
+      window.__LP_SRT_HOST = ok ? SRT_DOMAIN : VPS_IP;
+    });
+  }, 200);
 })();
