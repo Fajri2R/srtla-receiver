@@ -16,8 +16,13 @@
   /* ── Config ──────────────────────────────────────────────────────── */
   var BASE    = location.protocol + '//' + location.host;
   var portStr = location.port ? ':' + location.port : '';
-  var HLS_MANAGER_URL = location.protocol + '//' + location.hostname + ':8090/?mgmt=' + encodeURIComponent(location.port || (location.protocol === 'https:' ? '443' : '80'));
-  var SRT_MONITOR_URL = location.protocol + '//' + location.hostname + ':9010/';
+  var isDomain = location.hostname.endsWith('example.com');
+  var HLS_MANAGER_URL = isDomain
+    ? location.protocol + '//preview.example.com/?mgmt=443'
+    : location.protocol + '//' + location.hostname + ':8090/?mgmt=' + encodeURIComponent(location.port || (location.protocol === 'https:' ? '443' : '80'));
+  var SRT_MONITOR_URL = isDomain
+    ? location.protocol + '//monitor.example.com/'
+    : location.protocol + '//' + location.hostname + ':9010/';
 
   /* ?? Google Fonts (lazy load) ?????????????????????????????????????? */
   var fontP1 = document.createElement('link'); fontP1.rel = 'preconnect'; fontP1.href = 'https://fonts.googleapis.com';
@@ -555,6 +560,99 @@
   function injectButtons() {
     enhanceNavbarBrand();
     injectNavTools();
+    enhanceStreamUrlModal();
+  }
+
+  /* ── Stream URL host variants (VPS IP + SRT-only domain) ─────────── */
+  // SRT/SRTLA run over UDP, so they cannot use the Cloudflare-proxied
+  // hostname. These variants expose the origin IP and a DNS-only host.
+  var VPS_IP = 'YOUR_VPS_IP';
+  var SRT_DOMAIN = 'srt.example.com';
+
+  var hvcss = document.createElement('style');
+  hvcss.textContent =
+    '.lp-hv{margin-top:14px;border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:12px 14px;background:rgba(99,102,241,.07)}' +
+    '.lp-hv-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#a5b4fc;margin-bottom:10px}' +
+    '.lp-hv-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}' +
+    '.lp-hv-row:last-child{margin-bottom:0}' +
+    '.lp-hv-tag{flex:0 0 82px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-align:center;padding:3px 0;border-radius:5px;background:rgba(255,255,255,.08);color:#cbd5e1}' +
+    '.lp-hv-tag.ip{background:rgba(34,197,94,.16);color:#4ade80}' +
+    '.lp-hv-tag.dom{background:rgba(59,130,246,.18);color:#60a5fa}' +
+    '.lp-hv-row input{flex:1 1 auto;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.35);color:#e2e8f0}' +
+    '.lp-hv-row button{flex:0 0 auto;font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#cbd5e1;cursor:pointer}' +
+    '.lp-hv-row button:hover{background:rgba(255,255,255,.12);color:#fff}' +
+    '.lp-hv-note{margin-top:9px;font-size:10.5px;line-height:1.45;color:#94a3b8}';
+  document.head.appendChild(hvcss);
+
+  function withHost(url, host) {
+    try {
+      var u = new URL(url);
+      u.hostname = host;
+      return u.toString();
+    } catch (e) { return null; }
+  }
+
+  function enhanceStreamUrlModal() {
+    var modal = document.querySelector('.modal.show, .modal.in');
+    if (!modal) return;
+    var body = modal.querySelector('.modal-body');
+    if (!body) return;
+    if (body.querySelector('.lp-hv')) return;
+
+    var seen = {};
+    var rows = [];
+
+    [].forEach.call(body.querySelectorAll('input.form-control'), function (inp) {
+      var val = inp.value || '';
+      if (!/^(srt|srtla):\/\//.test(val)) return;
+      if (seen[val]) return;
+      seen[val] = 1;
+
+      var card = inp.closest('.card');
+      var title = card && card.querySelector('h6') ? card.querySelector('h6').innerText.trim() : 'Stream';
+      var ipUrl = withHost(val, VPS_IP);
+      var domUrl = withHost(val, SRT_DOMAIN);
+      if (!ipUrl) return;
+      rows.push({ title: title, ip: ipUrl, dom: domUrl });
+    });
+
+    if (!rows.length) return;
+
+    var box = document.createElement('div');
+    box.className = 'lp-hv';
+    var html = '<div class="lp-hv-title"><i class="bi bi-hdd-network"></i> Alternate hosts</div>';
+    rows.forEach(function (r, i) {
+      html += '<div class="lp-hv-row"><span class="lp-hv-tag ip">IP</span>'
+        + '<input readonly type="text" data-lp-url="' + i + '-ip">'
+        + '<button type="button" data-lp-copy="' + i + '-ip">Copy</button></div>';
+      html += '<div class="lp-hv-row"><span class="lp-hv-tag dom">DOMAIN</span>'
+        + '<input readonly type="text" data-lp-url="' + i + '-dom">'
+        + '<button type="button" data-lp-copy="' + i + '-dom">Copy</button></div>';
+    });
+    html += '<div class="lp-hv-note">SRT/SRTLA memakai UDP &mdash; hostname domain harus berstatus DNS-only (bukan proxy Cloudflare). Pakai baris IP bila domain belum siap.</div>';
+    box.innerHTML = html;
+
+    rows.forEach(function (r, i) {
+      box.querySelector('[data-lp-url="' + i + '-ip"]').value = r.ip;
+      box.querySelector('[data-lp-url="' + i + '-dom"]').value = r.dom;
+    });
+
+    [].forEach.call(box.querySelectorAll('button[data-lp-copy]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var input = btn.parentNode.querySelector('input');
+        var text = input.value;
+        var done = function () { showToast('Copied: ' + text, false); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {
+            input.select(); document.execCommand('copy'); done();
+          });
+        } else {
+          input.select(); document.execCommand('copy'); done();
+        }
+      });
+    });
+
+    body.appendChild(box);
   }
 
   function syncApiKeyOnLoad() {
