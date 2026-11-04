@@ -114,7 +114,8 @@ If you prefer to manage Docker Compose directly:
 git clone https://github.com/Fajri2R/srtla-receiver.git
 cd srtla-receiver
 cp .env.example .env
-# Edit .env — set APP_URL to your server's public IP
+# Edit .env — set APP_URL to your server's public IP or HTTPS domain
+# (e.g., APP_URL=https://sls.example.com or APP_URL=http://YOUR-IP:8080)
 docker compose up -d --build
 ```
 
@@ -126,7 +127,8 @@ docker compose up -d --build
 2. Click **"Configure Settings"** and enter the API key (found in `.apikey` or console output)
 3. Click **"Add Stream"** and optionally fill in a description
 4. Click the arrow icon next to the stream → copy the **publish key** and **play key**
-5. Configure your encoder with the publish URL below
+5. Open **Show URLs** to copy ready-made SRT/SRTLA/player URLs for both the VPS IP and the SRT domain
+6. Configure your encoder with the publish URL below
 
 ### Sending a Stream
 
@@ -136,6 +138,11 @@ docker compose up -d --build
 |-|-----|
 | Schema | `srtla://YOUR-IP:5000?streamid=PUBLISH_KEY` |
 | Example | `srtla://127.0.0.1:5000?streamid=live_7388b95f0a6c4f69954f4519f204a554` |
+
+SRTla needs a bonding-capable sender (`srtla_send`, shipped with OBS-Bonding/IRL tools).
+FFmpeg has no `srtla://` protocol and fails with `Protocol not found`, which is a
+client limitation, not a receiver fault — prove the port with the receiver's
+`srtla_rec` log or by sending from a real bonding encoder.
 
 #### SRT (standard)
 
@@ -163,6 +170,40 @@ Open the **Management UI** at `http://YOUR-IP:3000`. Each stream row has a **�
 - No separate browser tab needed
 
 This is powered by `mgmt-proxy` — a lightweight reverse proxy that injects `/lp-inject.js` into the Management UI page, adding the Live button and modal player to every stream row automatically.
+
+### Serving the Management UI over HTTPS
+
+The Management UI bundle is built with a fixed API base URL, so opening it through
+an HTTPS reverse proxy (Cloudflare, Caddy, Traefik, nginx) makes the browser block
+its HTTP calls and the dashboard shows `Failed to fetch stream IDs`. `mgmt-proxy`
+solves this without rebuilding the image:
+
+- `/api/stream-ids`, `/stats/`, and `/health` are proxied to the `receiver`
+  container, so the UI can talk to `/api/...` on its own origin.
+- The served `main.*.js` is rewritten on the fly: the baked-in API base URL
+  becomes `location.origin`, and the publisher stats countdown drops from 10s to 3s.
+- `/hls/` is proxied to `live-preview`, so the HLS player uses the same origin too.
+
+Two per-deployment values live at the top of the injector block in
+`mgmt-proxy/lp-inject.js` and must be edited for your server:
+
+```js
+var VPS_IP     = 'YOUR_VPS_IP';       // public IP of the receiver
+var SRT_DOMAIN = 'srt.example.com';   // DNS-only hostname for SRT/SRTLA
+```
+
+When the page is served from a domain, the HLS Manager and SRT Monitor buttons
+point at `preview.<domain>` and `monitor.<domain>`. Publish those as normal
+HTTPS virtual hosts (ports 8090 and 9010 in this stack).
+
+### Publisher URL variants (IP + domain)
+
+Every **Show URLs** dialog gets an extra **Alternate hosts** block listing the
+same SRT, SRTLA, and player URLs over both `VPS_IP` and `SRT_DOMAIN`, each with a
+copy button. The `SRT_DOMAIN` entry only works once that hostname is an `A`
+record pointing to the VPS with the proxy disabled — UDP does not traverse a
+normal CDN proxy.
+
 
 ---
 
@@ -310,6 +351,17 @@ docker compose logs hls-manager
 **FFmpeg exits immediately:**
 - The stream may have ended or the stream ID does not match
 - Check that your encoder sends H.264 video + AAC audio
+
+**Dashboard shows `Failed to fetch stream IDs` through an HTTPS domain:**
+- The UI is calling the old `http://IP:8080` API and the browser blocks it as mixed content
+- Confirm `mgmt-proxy` is up: `docker compose ps mgmt-proxy`
+- Test the same-origin API directly: `curl -s https://your-domain/api/stream-ids -H "Authorization: Bearer $KEY"`
+- Recreate the proxy after editing config: `docker compose up -d --force-recreate mgmt-proxy`
+
+**SRT URL with a domain does not connect:**
+- Check what the hostname resolves to: `dig +short A srt.example.com` must return the VPS IP
+- If it returns Cloudflare edge IPs, the record is proxied — switch it to **DNS only**
+- Test against the IP first to separate DNS problems from firewall problems: `ffprobe -rw_timeout 5000000 -i "srt://VPS-IP:4001?streamid=live_test&mode=caller"`
 
 **All required ports:**
 
