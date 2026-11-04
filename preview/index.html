@@ -1010,16 +1010,41 @@ document.addEventListener('DOMContentLoaded', () => {
    CONFIG
 ================================================================ */
 function updateMgmtLink() {
+  // Cross-dashboard links. When served over HTTPS from a domain, the sibling
+  // dashboards live on their own subdomains (sls / preview / monitor); the
+  // legacy ":port" form only applies to direct IP access where every service
+  // is exposed on its own port.
+  const svcUrl = (sub, port) => {
+    const { protocol, hostname } = window.location;
+    if (protocol === 'https:') {
+      const parts = hostname.split('.');
+      // Keep the registrable deployment suffix used by this stack. For
+      // sls.example.com this is example.com; for a three-label host such as
+      // preview.example.co.id it is example.co.id.
+      const root  = parts.length > 2 ? parts.slice(1).join('.') : hostname;
+      const isIp  = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+      if (!isIp && root !== hostname) return `${protocol}//${sub}.${root}/`;
+    }
+    return `${protocol}//${hostname}:${port}/`;
+  };
+
   const srtBtn = document.getElementById('btn-srt-monitor');
-  if (srtBtn) srtBtn.href = window.location.protocol + '//' + window.location.hostname + ':9010/';
+  if (srtBtn) srtBtn.href = svcUrl('monitor', 9010);
+
   const btn = document.getElementById('btn-mgmt');
   if (!btn) return;
   const params = new URLSearchParams(window.location.search);
-  const port = params.get('mgmt') || localStorage.getItem('srtla_mgmt_port') || '3030';
-  if (params.get('mgmt')) localStorage.setItem('srtla_mgmt_port', port);
-  btn.href = port === '80' || port === '443'
-    ? `${window.location.protocol}//${window.location.hostname}`
-    : `${window.location.protocol}//${window.location.hostname}:${port}`;
+  const explicitPort = params.get('mgmt');
+  if (explicitPort) localStorage.setItem('srtla_mgmt_port', explicitPort);
+  const port = explicitPort || localStorage.getItem('srtla_mgmt_port');
+
+  if (window.location.protocol === 'https:' && !/^\d{1,3}(\.\d{1,3}){3}$/.test(window.location.hostname)) {
+    btn.href = svcUrl('sls', 443);
+  } else if (port) {
+    btn.href = `${window.location.protocol}//${window.location.hostname}:${port}`;
+  } else {
+    btn.href = `${window.location.protocol}//${window.location.hostname}:3000`;
+  }
 }
 
 /* ================================================================
@@ -1308,9 +1333,14 @@ function createCard(publisher) {
   card.querySelector('[data-action="preview"]').addEventListener('click', () => startPreview(id));
   card.querySelector('[data-action="stop"]').addEventListener('click',    () => stopPreview(id));
   card.querySelector('[data-action="monitor"]').addEventListener('click', () => {
-    const port = 9010;
-    const url = window.location.protocol + '//' + window.location.hostname + ':' + port + '/?stream=' + encodeURIComponent(id);
-    window.open(url, '_blank');
+    const { protocol, hostname } = window.location;
+    const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+    const parts = hostname.split('.');
+    const root = parts.length > 2 ? parts.slice(1).join('.') : hostname;
+    const base = (protocol === 'https:' && !isIp && root !== hostname)
+      ? `${protocol}//monitor.${root}/`
+      : `${protocol}//${hostname}:9010/`;
+    window.open(`${base}?stream=${encodeURIComponent(id)}`, '_blank');
   });
   card.querySelector('[data-action="copy"]').addEventListener('click',    () => copyStreamUrl(id));
 

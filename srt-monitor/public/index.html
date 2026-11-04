@@ -711,16 +711,34 @@
     }
 
     window.addEventListener('resize', () => renderUI());
+    // Cross-dashboard links: on HTTPS domains each dashboard has its own
+    // subdomain; the ":port" form is only correct for direct IP access.
+    // The deployment suffix is everything after the first label, so
+    // preview.example.com -> example.com and sls.example.co.id -> example.co.id.
+    const svcUrl = (sub, port) => {
+      const { protocol, hostname } = window.location;
+      const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+      const parts = hostname.split('.');
+      const root = parts.length > 2 ? parts.slice(1).join('.') : hostname;
+      if (protocol === 'https:' && !isIp && root !== hostname) return protocol + '//' + sub + '.' + root + '/';
+      return protocol + '//' + hostname + ':' + port + '/';
+    };
+
     const btnHLS = document.getElementById('btn-hls');
-    if (btnHLS) {
-      btnHLS.href = window.location.protocol + '//' + window.location.hostname + ':8090/';
-    }
+    if (btnHLS) btnHLS.href = svcUrl('preview', 8090);
+
     const btnMgmt = document.getElementById('btn-mgmt');
     if (btnMgmt) {
-      const port = new URLSearchParams(window.location.search).get('mgmt') || localStorage.getItem('srtla_mgmt_port') || '3000';
-      btnMgmt.href = (port === '80' || port === '443')
-        ? window.location.protocol + '//' + window.location.hostname
-        : window.location.protocol + '//' + window.location.hostname + ':' + port;
+      const explicitPort = new URLSearchParams(window.location.search).get('mgmt');
+      if (explicitPort) localStorage.setItem('srtla_mgmt_port', explicitPort);
+      const port = explicitPort || localStorage.getItem('srtla_mgmt_port');
+      if (window.location.protocol === 'https:' && !/^\d{1,3}(\.\d{1,3}){3}$/.test(window.location.hostname)) {
+        btnMgmt.href = svcUrl('sls', 443);
+      } else if (port) {
+        btnMgmt.href = window.location.protocol + '//' + window.location.hostname + ':' + port;
+      } else {
+        btnMgmt.href = window.location.protocol + '//' + window.location.hostname + ':3000';
+      }
     }
     async function startLoop() {
       while (true) {
