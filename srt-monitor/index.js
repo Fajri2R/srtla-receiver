@@ -4,6 +4,7 @@ import { join, normalize } from "path";
 import { handleBrandProxy } from "./brand-proxy.js";
 import { HistoryStore } from "./history-store.js";
 import { handleHistoryRoutes } from "./history-routes.js";
+import { deriveCounters } from "./telemetry.js";
 
 const PORT = Number(process.env.PORT || 9091);
 const SLS_BASE = (process.env.SLS_STATS_URL || "http://receiver:8080/stats").replace(/\/stats\/?$/, "");
@@ -165,6 +166,10 @@ async function poll() {
 
         const entry = streams.get(publisherId) || { id: publisherId, latest: null, history: [] };
         const point = snapshot(source);
+        // Cumulative counters (dropped_pkts) only ever grow, so alerting on the
+        // raw total marks a session degraded forever after one bad minute.
+        // Derive per-interval deltas/rates against the previous poll point.
+        Object.assign(point, deriveCounters(entry.latest, point));
         entry.latest = point;
         entry.history.push(point);
         if (HISTORY_SIZE > 0 && entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);

@@ -607,7 +607,7 @@
     /* ============================================================
        RESPONSIVE
     ============================================================ */
-    @media(max-width: 850px) {
+    @media(max-width: 1000px) {
       .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 10px 0; gap: 8px 10px; justify-content: flex-start; }
       .header-controls { display: contents !important; }
       .brand { order: 1; flex: 1 1 auto; }
@@ -968,19 +968,25 @@
   <script>
     function chartColor(key) {
       const light = document.documentElement.getAttribute('data-theme') === 'light';
-      const dark = {recvBitrate:'#82b6e8', rtt:'#34d399', droppedPackets:'#e88b8b', transcoderFps:'#e5bd62', uptime:'#b4a4e6'};
-      const pale = {recvBitrate:'#1d6f9e', rtt:'#0d8a57', droppedPackets:'#b3453f', transcoderFps:'#9a6b10', uptime:'#5b48a0'};
+      const dark = {recvBitrate:'#82b6e8', throughput:'#6fd2c4', rtt:'#34d399', droppedRate:'#e88b8b', droppedPackets:'#e88b8b', recvBuffer:'#b4a4e6', latency:'#e29abd', transcoderFps:'#e5bd62', uptime:'#b4a4e6'};
+      const pale = {recvBitrate:'#1d6f9e', throughput:'#177a70', rtt:'#0d8a57', droppedRate:'#b3453f', droppedPackets:'#b3453f', recvBuffer:'#5b48a0', latency:'#a0487a', transcoderFps:'#9a6b10', uptime:'#5b48a0'};
       return (light ? pale : dark)[key];
     }
     const summaryDefs = [
       {key: 'recvBitrate', label: 'Receive Bitrate', fmt: 'rate'},
+      {key: 'throughput', label: 'Transport Throughput', fmt: 'rate'},
       {key: 'rtt', label: 'Round Trip Time (RTT)', fmt: 'ms'},
-      {key: 'droppedPackets', label: 'Packet Drops', fmt: 'count'},
+      {key: 'droppedRate', label: 'Packet Drops per second', fmt: 'count'},
+      {key: 'recvBuffer', label: 'Receive Buffer', fmt: 'count'},
+      {key: 'latency', label: 'Configured Latency', fmt: 'ms'},
+      {key: 'droppedPackets', label: 'Packet Drops (session total)', fmt: 'count'},
       {key: 'transcoderFps', label: 'Realtime / Source FPS', fmt: 'fps'},
       {key: 'uptime', label: 'Stream Uptime', fmt: 'duration'}
     ];
     summaryDefs.forEach(d => Object.defineProperty(d, 'color', {get: () => chartColor(d.key)}));
-    const defs = summaryDefs.slice(0, 4); // Only the first 4 for graphs
+    // Charts: the four signals that explain a bad minute, plus buffer growth.
+    const chartKeys = ['recvBitrate', 'throughput', 'rtt', 'droppedRate', 'recvBuffer'];
+    const defs = summaryDefs.filter(d => chartKeys.includes(d.key));
 
     // Touch devices get tap wording instead of hover wording.
     if (window.matchMedia('(hover: none)').matches) {
@@ -1354,10 +1360,10 @@
           setStatus("API Error", "error", st.lastError);
         } else {
           const rtt = num(latest.rtt) || 0;
-          const drops = num(latest.droppedPackets) || 0;
-          const theme = (rtt > 250 || drops > 50) ? "error" : (rtt > 100 || drops > 5) ? "warning" : "normal";
+          const drops = num(latest.droppedRate) || 0;
+          const theme = (rtt > 250 || drops > 5) ? "error" : (rtt > 100 || drops > 0.2) ? "warning" : "normal";
           const label = theme === "error" ? "Critical" : theme === "warning" ? "Warning" : "Live";
-          setStatus(label, theme, "RTT " + rtt.toFixed(1) + "ms, drops " + drops);
+          setStatus(label, theme, "RTT " + rtt.toFixed(1) + "ms, drops/s " + drops.toFixed(2));
         }
         renderUI();
       } catch (e) {

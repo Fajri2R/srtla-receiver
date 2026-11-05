@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { METRICS } from './history-store.js';
 
 const source = readFileSync(new URL('./index.js', import.meta.url), 'utf8');
@@ -48,5 +48,19 @@ test('the container image copies every module the server imports', () => {
   assert.ok(imports.length >= 3, 'expected local module imports in index.js');
   for (const file of imports) {
     assert.ok(dockerfile.includes(file), `Dockerfile must COPY ${file}`);
+  }
+});
+
+test('the deployed Dockerfile copies every module too, not only the repo copy', () => {
+  // The build context is the deployed directory, so a repo-only Dockerfile
+  // edit ships an image missing new modules and the container crash-loops
+  // with ERR_MODULE_NOT_FOUND. Guard both copies.
+  const deployed = '/root/srt-monitor/Dockerfile';
+  if (!existsSync(deployed)) return; // not every checkout is a deployment
+  const text = readFileSync(deployed, 'utf8');
+  const index = readFileSync(new URL('./index.js', import.meta.url), 'utf8');
+  const imports = [...index.matchAll(/from\s+["']\.\/([\w.-]+\.js)["']/g)].map((m) => m[1]);
+  for (const file of imports) {
+    assert.ok(text.includes(file), `deployed Dockerfile must COPY ${file}`);
   }
 });

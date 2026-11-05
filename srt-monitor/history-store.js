@@ -35,6 +35,7 @@ export const METRICS = [
   'sendBuffer',
   'linkCapacity',
   'droppedPackets',
+  'droppedRate',
   'uptime',
   'viewers',
   'transcoderFps',
