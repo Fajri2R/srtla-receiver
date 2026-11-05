@@ -388,6 +388,93 @@ OBS/Encoder ─── SRTla:5000 ──▶ [receiver: SLS]
 
 ---
 
+## 📈 SRT Monitor: Live History and Network Quality
+
+The SRT Monitor (`:9010`) records every publisher's telemetry so a session can be
+reviewed after it ends. Press **History** in the navbar to switch from the live
+charts to the archive; press it again to return.
+
+### What is recorded
+
+Each poll (once per second) is folded into **one-minute buckets** and appended to
+`/data/<stream>/agg/<YYYY-MM-DD>.jsonl` inside the `srt-monitor-history` named
+volume, so the archive survives `docker compose up -d --force-recreate`. Every
+bucket keeps `avg`, `min`, `max`, and `p95` per metric — receive/transport
+bitrate, throughput, RTT, jitter, packet loss, retransmissions, receive/send
+buffer, link capacity, dropped packets **and their per-second rate**, uptime,
+viewer count, and the transcoder FPS/speed/frame counters.
+
+A *session* starts when a publisher appears and closes once it has been gone
+longer than the offline grace period, so the list is a set of real broadcasts
+rather than arbitrary time slices.
+
+### Retention
+
+`HISTORY_RETENTION_DAYS` (default **90**) seeds the first boot only; after that
+the value stored in `/data/config.json` is authoritative. Change it at runtime
+either from the **History** toolbar (**Retention (days)** → **Save**) or with:
+
+```shell
+curl -fsS -X POST http://YOUR-IP:9010/api/history/config \
+  -H "Authorization: Bearer ***" \
+  -H "Content-Type: application/json" \
+  -d '{"retentionDays": 30}'
+```
+
+An hourly job prunes day files past the horizon. Writes and reads are plain
+files — back up the volume with `docker run --rm -v root_srt-monitor-history:/d -v "$PWD":/out alpine tar czf /out/history.tgz -C /d .`.
+
+### API
+
+Reads are public (the dashboard is public); every mutation needs the SLS API key
+as `Authorization: Bearer ***`.
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/history/config` | `GET` | — | Current retention and metric list |
+| `/api/history/config` | `POST` | key | Set `retentionDays` (1–3650) |
+| `/api/history/streams` | `GET` | — | Recorded streams with day sizes |
+| `/api/history/sessions` | `GET` | — | Sessions with duration and min/avg/max summary |
+| `/api/history/series` | `GET` | — | Minute buckets for a range (`stream`, `from`, `to`, `metrics`) |
+| `/api/history/quality` | `GET` | — | Quality verdict for a range (add `format=csv` to download it) |
+| `/api/history/export` | `GET` | — | Raw series as CSV |
+| `/api/history/prune` | `POST` | key | Run retention pruning now |
+| `/api/history` | `DELETE` | key | Delete a range (`stream=all` for everything) |
+
+### Quality analysis
+
+Selecting a session shows a 0–100 verdict derived from the recorded minutes:
+**excellent ≥ 95**, **good ≥ 80**, **fair ≥ 60**, otherwise **bad**. Damaged
+minutes subtract a penalty and each one is listed as an incident with its
+timestamp and measured value.
+
+| Signal | Warning | Critical |
+|--------|---------|----------|
+| RTT (p95 per minute) | ≥ 100 ms | ≥ 250 ms |
+| Packet drops (peak per minute) | ≥ 50 | ≥ 100 |
+| Receive buffer (p95, backlog) | ≥ 800 | ≥ 1800 |
+| Receive bitrate vs session baseline | < 50 % | < 20 % |
+
+The baseline is the session's own median bitrate above 300 kbps, so a low-bitrate
+audio-only stream is never reported as collapsing. Thresholds and the baseline
+are returned by the API, which makes every verdict explainable after the fact.
+**Quality CSV** downloads the verdict plus one row per incident for reports.
+
+### Live metrics
+
+The live view shows receive bitrate, transport throughput, RTT, packet drops per
+second, receive buffer, configured latency, session-total drops, FPS and uptime —
+with charts for the four signals that explain a bad minute plus buffer growth.
+Severity uses the **drop rate**, not the lifetime total: `dropped_pkts` is a
+cumulative counter, so alerting on the total would leave a recovered session
+permanently red. A publisher restart resets the counter and the derived rate
+reports zero for that interval instead of a negative spike.
+
+> Note: `node --test srt-monitor/*.test.js` covers storage, routes, quality
+> scoring, counter derivation, and the dashboard contracts.
+
+---
+
 ## Troubleshooting
 
 **Containers not starting:**
