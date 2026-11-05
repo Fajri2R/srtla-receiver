@@ -36,6 +36,7 @@ services:
       - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
       - ./mgmt-proxy/ashveil-sls.css:/etc/nginx/ashveil-sls.css:ro
       - ./mgmt-proxy/ashveil-veil.png:/etc/nginx/ashveil-veil.png:ro
+      - ./mgmt-proxy/brand-mark.svg:/etc/nginx/brand-mark.svg:ro
       - ./mgmt-proxy/favicon.svg:/etc/nginx/favicon.svg:ro
       - ./mgmt-proxy/favicon-dark.svg:/etc/nginx/favicon-dark.svg:ro
       - ./mgmt-proxy/favicon-light.svg:/etc/nginx/favicon-light.svg:ro
@@ -101,6 +102,7 @@ services:
       - hls-access-logs:/logs:ro
       - hls-data:/hls
       - ./.apikey:/apikey
+      - sls-brand:/brand
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:9090/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
       interval: 10s
@@ -161,4 +163,6 @@ volumes:
   hls-access-logs:
     driver: local
   hls-data:
+    driver: local
+  sls-brand:
     driver: local

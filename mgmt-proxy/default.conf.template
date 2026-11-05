@@ -38,6 +38,12 @@ server {
         add_header Content-Type  "image/png";
     }
 
+    location = /brand-mark.svg {
+        alias /etc/nginx/brand-mark.svg;
+        add_header Cache-Control "public, max-age=604800";
+        add_header Content-Type  "image/svg+xml; charset=utf-8";
+    }
+
     location = /favicon.svg {
         alias /etc/nginx/favicon.svg;
         add_header Cache-Control "public, max-age=86400";
@@ -151,6 +157,15 @@ server {
         proxy_read_timeout 10s;
     }
 
+    location = /api/brand {
+        proxy_pass         http://hls-manager:9090/api/brand;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_read_timeout 10s;
+        client_max_body_size 2m;
+    }
+
     location / {
         proxy_pass         http://sls-management-ui:3000;
         proxy_http_version 1.1;
@@ -165,7 +180,7 @@ server {
         # The JS file is served at /lp-inject.js by this same nginx.
         # sub_filter_types defaults to text/html, so it is not repeated here.
         sub_filter_once  on;
-        sub_filter '</head>' '<script>try{var ashT=localStorage.getItem("ashveil-theme");document.documentElement.setAttribute("data-theme",ashT==="light"?"light":"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105g"></head>';
+        sub_filter '</head>' '<script>try{var ashT=localStorage.getItem("ashveil-theme");document.documentElement.setAttribute("data-theme",ashT==="light"?"light":"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105j"></head>';
         sub_filter '</body>' '<script src="/lp-inject.js"></script></body>';
     }
 }

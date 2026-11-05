@@ -9,6 +9,7 @@ import { spawn }             from "child_process";
 import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync, openSync, readSync, closeSync } from "fs";
 import { join }              from "path";
 import { createServer }      from "http";
+import { handleBrandRoutes } from "./brand-routes.js";
 
 // Config
 const SRT_HOST      = process.env.SRT_HOST      || "receiver";
@@ -29,6 +30,7 @@ const SLS_BASE_URL  = process.env.SLS_STATS_URL
 const SLS_STREAMS_URL = process.env.SLS_STREAMS_URL || (SLS_BASE_URL + "/api/stream-ids");
 const VIEWER_LOG_PATH = process.env.VIEWER_LOG_PATH || "/logs/hls-access.log";
 const VIEWER_WINDOW = Math.max(parseInt(process.env.VIEWER_WINDOW || "12", 10), 4) * 1000;
+const BRAND_PATH    = process.env.BRAND_PATH || "/brand/brand.json";
 
 // The mounted file is the source of truth because receiver.sh writes it after
 // SLS creates the initial key. Re-read it during reconciliation so no restart is needed.
@@ -476,6 +478,9 @@ async function reconcile() {
 
 // Health server
 createServer((req, res) => {
+  // Runtime brand identity (logo + label). Public read, API-key-protected write.
+  if (handleBrandRoutes(req, res, { brandPath: BRAND_PATH, apiKey: refreshApiKey })) return;
+
   if (req.url.startsWith("/stream-logs?id=") && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     const id = new URL(req.url, `http://${req.headers.host}`).searchParams.get("id");

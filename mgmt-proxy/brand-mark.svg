@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 20" fill="none">
+  <!-- Neutral default mark (ivory on transparent; inverted in light mode) -->
+  <g stroke="#f4f4ec" fill="none" stroke-linecap="round">
+    <rect x="1.4" y="2.4" width="15.2" height="15.2" rx="3.4" stroke-width="1.8"/>
+    <circle cx="9" cy="10" r="2.9" fill="#f4f4ec" stroke="none"/>
+    <path d="M22 6.4c2.3 2.2 2.3 5 0 7.2M26 4.1c4 3.5 4 8.3 0 11.8M30 1.8c5.5 4.7 5.5 11.7 0 16.4" stroke-width="1.6"/>
+  </g>
+</svg>

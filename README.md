@@ -50,6 +50,26 @@ Head declaration order is the same on every dashboard:
 
 > **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The dashboard checks the hostname over DNS before offering it, so with no such record every URL falls back to the origin IP automatically.
 
+### Change the logo and brand label (no fork required)
+
+This repository ships neutral branding on purpose. A deployment personalizes the Management UI at runtime instead of editing the bundle:
+
+1. Open the Management UI → **Settings** → **Brand Identity**.
+2. Set **Nama Brand** (max 28 chars), **Subjudul** (max 48), and either a **logo URL/path** or upload an image (PNG/JPEG/WebP/SVG, ≤ 300 KB; stored as a data URL).
+3. Click **Simpan Brand**. The header, tab title, and logo update immediately.
+
+Writes go to `POST /api/brand` and are authorized with the same SLS API key already configured in Settings (`Bearer <api key>`); reads are public so the page can paint before login. Values persist in the `sls-brand` Docker volume (`/brand/brand.json`), never in git, so a private monogram stays out of the public repository.
+
+| Endpoint | Method | Auth | Behaviour |
+|----------|--------|------|-----------|
+| `/api/brand` | `GET` | none | Current config (`no-store`) |
+| `/api/brand` | `POST` | `Bearer <SLS API key>` | Replaces config; invalid fields fall back to defaults |
+
+Defaults live in `hls-manager/brand-config.js` (`SRT LIVE` / `Stream Management Console` / `/brand-mark.svg`); the neutral mark is `mgmt-proxy/brand-mark.svg`. Logo schemes other than `http(s)://`, root-relative paths, and `data:image/…;base64` are rejected. Custom logos keep their colours in light mode; the bundled marks invert automatically. To reset, use **Reset ke Default** and save.
+
+> Note: `node --test hls-manager/*.test.js` covers config validation, persistence, and the HTTP routes.
+
+
 ---
 
 ## Project Information

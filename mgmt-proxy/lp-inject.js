@@ -26,7 +26,97 @@
   var SRT_MONITOR_URL = isDomain
     ? location.protocol + '//monitor.' + rootDomain + '/'
     : location.protocol + '//' + location.hostname + ':9010/';
-  var BRAND_TITLE = 'ASHVEIL \u00b7 SRT Live Management';
+  /* ── Brand identity (runtime-configurable) ───────────────────────────
+     The repository is public, so nothing here is Ashveil-specific: a
+     deployment overrides these from Settings → Brand Identity and the
+     values are stored server-side in /brand.json (gitignored). */
+  var BRAND_DEFAULTS = {
+    name:     'SRT LIVE',
+    subtitle: 'Stream Management Console',
+    logo:     '/brand-mark.svg'
+  };
+  var BRAND = {
+    name:     BRAND_DEFAULTS.name,
+    subtitle: BRAND_DEFAULTS.subtitle,
+    logo:     BRAND_DEFAULTS.logo
+  };
+
+  function sanitizeBrand(input) {
+    var src = (input && typeof input === 'object') ? input : {};
+    function txt(v, max, fallback) {
+      if (typeof v !== 'string') return fallback;
+      var clean = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+      return clean || fallback;
+    }
+    function logo(v) {
+      if (typeof v !== 'string') return BRAND_DEFAULTS.logo;
+      var s = v.trim();
+      if (!s || s.length > 700000) return BRAND_DEFAULTS.logo;
+      if (/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/i.test(s)) return s;
+      if (/^https?:\/\/[^\s"'<>\\]+$/i.test(s)) return s;
+      if (/^\/(?!\/)[^\s"'<>\\]*$/.test(s)) return s;
+      return BRAND_DEFAULTS.logo;
+    }
+    return { name: txt(src.name, 28, BRAND_DEFAULTS.name),
+             subtitle: txt(src.subtitle, 48, BRAND_DEFAULTS.subtitle),
+             logo: logo(src.logo) };
+  }
+
+  function loadBrandFromCache() {
+    try {
+      var raw = localStorage.getItem('sls-brand-config');
+      if (raw) BRAND = sanitizeBrand(JSON.parse(raw));
+    } catch (e) {}
+  }
+
+  function cacheBrand() {
+    try { localStorage.setItem('sls-brand-config', JSON.stringify(BRAND)); } catch (e) {}
+  }
+
+  // Paint the header from BRAND; safe to call repeatedly (React re-renders).
+  function paintBrand() {
+    document.title = BRAND.name + ' \u00b7 ' + BRAND.subtitle;
+    var img = document.querySelector('.mgmt-brand-icon img');
+    if (img) {
+      if (img.getAttribute('src') !== BRAND.logo) img.setAttribute('src', BRAND.logo);
+      var invertible = BRAND.logo === BRAND_DEFAULTS.logo || BRAND.logo === '/ashveil-veil.png';
+      if (invertible) img.removeAttribute('data-brand-custom');
+      else img.setAttribute('data-brand-custom', '1');
+      img.setAttribute('alt', BRAND.name);
+      img.onerror = function () {
+        if (img.getAttribute('src') !== BRAND_DEFAULTS.logo) {
+          img.setAttribute('src', BRAND_DEFAULTS.logo);
+        }
+      };
+    }
+    var nameEl = document.querySelector('.mgmt-brand-text');
+    if (nameEl) {
+      var subEl = nameEl.querySelector('.mgmt-brand-sub');
+      var nameNode = nameEl.firstChild;
+      if (!nameNode || nameNode.nodeType !== 3) {
+        nameNode = document.createTextNode(BRAND.name);
+        nameEl.insertBefore(nameNode, subEl || nameEl.firstChild);
+      } else if (nameNode.nodeValue.trim() !== BRAND.name) {
+        nameNode.nodeValue = BRAND.name;
+      }
+      if (subEl && subEl.textContent !== BRAND.subtitle) subEl.textContent = BRAND.subtitle;
+    }
+  }
+
+  function fetchBrand() {
+    return fetch('/api/brand', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        BRAND = sanitizeBrand(d);
+        cacheBrand();
+        paintBrand();
+      })
+      .catch(function () {});
+  }
+
+  loadBrandFromCache();
+  fetchBrand();
 
 
 
@@ -232,12 +322,13 @@
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
       brand.classList.add('mgmt-brand');
-      brand.setAttribute('aria-label', 'ASHVEIL SRT Live Management');
+      brand.setAttribute('aria-label', BRAND.name + ' ' + BRAND.subtitle);
       brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true">'
-        + '<img src="/ashveil-veil.png?v=20261105c" alt="" width="44" height="20" decoding="async">'
+        + '<img src="" alt="" width="44" height="20" decoding="async">'
         + '</span>'
-        + '<span class="mgmt-brand-text">ASHVEIL<em class="mgmt-brand-sub">SRT Live Management</em></span>';
+        + '<span class="mgmt-brand-text"><em class="mgmt-brand-sub"></em></span>';
     });
+    paintBrand();
   }
 
   function applyTheme(t, save) {
@@ -263,7 +354,7 @@
   // the Control Hub (one SVG, one ICO, one 32px PNG, one touch icon),
   // byte-identical artwork, cache-busted together.
   function applyBrandIdentity() {
-    if (document.title !== BRAND_TITLE) document.title = BRAND_TITLE;
+    paintBrand();
     if (!document.querySelector('link[data-ashveil-icon]')) {
       [['icon', '/favicon.svg', 'image/svg+xml', null],
        ['icon', '/favicon-32.png', 'image/png', '32x32'],
@@ -383,6 +474,7 @@
   };
 
   function injectButtons() {
+    enhanceSettingsModal();
     applyBrandIdentity();
     enhanceNavbarBrand();
     injectNavTools();
@@ -562,6 +654,169 @@
     body.appendChild(wrap);
   }
 
+  /* ── Settings → Brand Identity panel ───────────────────────────────────
+     The repo is public, so a deployment personalizes its dashboard here
+     instead of forking the bundle. Values persist in /brand.json on the
+     server (gitignored); writes reuse the SLS API key. */
+  var brandUploadData = null;
+  var brandPanelState = 'idle'; // idle | saving | saved | error
+
+  function getApiKey() {
+    try {
+      return localStorage.getItem('apiKey') || localStorage.getItem('api_key') || localStorage.getItem('srt-api-key') || '';
+    } catch (e) { return ''; }
+  }
+
+  function brandSetMsg(panel, state, text) {
+    brandPanelState = state;
+    var note = panel.querySelector('.lp-brand-msg');
+    if (note) {
+      note.textContent = text || '';
+      note.setAttribute('data-state', state);
+    }
+  }
+
+  function buildBrandPanel(body) {
+    var wrap = document.createElement('div');
+    wrap.className = 'lp-brand-panel';
+    wrap.setAttribute('data-lp-brand-panel', '1');
+    wrap.innerHTML =
+      '<div class="lp-brand-head">'
+      + '<span class="lp-brand-title">Identitas Brand</span>'
+      + '<span class="lp-brand-kicker">logo &amp; label dashboard</span>'
+      + '</div>'
+      + '<div class="lp-brand-grid">'
+      +   '<label class="lp-brand-field"><span>Nama Brand</span>'
+      +     '<input class="lp-brand-input" data-brand-field="name" type="text" maxlength="28" autocomplete="off" spellcheck="false">'
+      +   '</label>'
+      +   '<label class="lp-brand-field"><span>Subjudul</span>'
+      +     '<input class="lp-brand-input" data-brand-field="subtitle" type="text" maxlength="48" autocomplete="off" spellcheck="false">'
+      +   '</label>'
+      +   '<label class="lp-brand-field"><span>Logo \u2014 URL / path</span>'
+      +     '<input class="lp-brand-input" data-brand-field="logo" type="text" autocomplete="off" spellcheck="false" placeholder="/logo.png atau https://\u2026">'
+      +   '</label>'
+      +   '<label class="lp-brand-field"><span>Unggah Logo</span>'
+      +     '<input class="lp-brand-file" data-brand-field="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">'
+      +     '<em class="lp-brand-hint">PNG/JPG/WebP/SVG, maks 300\u00a0KB. Tersimpan di server, tidak masuk repo.</em>'
+      +   '</label>'
+      + '</div>'
+      + '<div class="lp-brand-actions">'
+      +   '<span class="lp-brand-msg" data-state="idle"></span>'
+      +   '<button type="button" class="lp-brand-btn lp-brand-reset">Reset ke Default</button>'
+      +   '<button type="button" class="lp-brand-btn lp-brand-save">Simpan Brand</button>'
+      + '</div>'
+      + '<div class="lp-brand-preview">'
+      +   '<span class="mgmt-brand-icon" aria-hidden="true"><img data-brand-preview alt=""></span>'
+      +   '<span class="lp-brand-preview-text"><strong data-brand-preview-name></strong><em data-brand-preview-sub></em></span>'
+      + '</div>';
+
+    wrap.querySelectorAll('.lp-brand-input').forEach(function (inp) {
+      inp.addEventListener('input', function () { syncBrandPreview(wrap); });
+    });
+
+    var file = wrap.querySelector('[data-brand-field="file"]');
+    file.addEventListener('change', function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      if (f.size > 300 * 1024) {
+        file.value = '';
+        brandUploadData = null;
+        brandSetMsg(wrap, 'error', 'File terlalu besar (maks 300 KB).');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        brandUploadData = String(reader.result || '');
+        var logoInput = wrap.querySelector('[data-brand-field="logo"]');
+        logoInput.value = '';
+        brandSetMsg(wrap, 'idle', 'Logo terunggah: ' + f.name + ' \u2014 klik Simpan Brand.');
+        syncBrandPreview(wrap);
+      };
+      reader.readAsDataURL(f);
+    });
+
+    wrap.querySelector('.lp-brand-reset').addEventListener('click', function () {
+      brandUploadData = null;
+      wrap.querySelector('[data-brand-field="name"]').value = BRAND_DEFAULTS.name;
+      wrap.querySelector('[data-brand-field="subtitle"]').value = BRAND_DEFAULTS.subtitle;
+      wrap.querySelector('[data-brand-field="logo"]').value = BRAND_DEFAULTS.logo;
+      var fileEl = wrap.querySelector('[data-brand-field="file"]');
+      if (fileEl) fileEl.value = '';
+      brandSetMsg(wrap, 'idle', 'Nilai direset ke default \u2014 klik Simpan Brand untuk menerapkan.');
+      syncBrandPreview(wrap);
+    });
+
+    wrap.querySelector('.lp-brand-save').addEventListener('click', function () {
+      var payload = {
+        name: wrap.querySelector('[data-brand-field="name"]').value,
+        subtitle: wrap.querySelector('[data-brand-field="subtitle"]').value,
+        logo: brandUploadData || wrap.querySelector('[data-brand-field="logo"]').value
+      };
+      var key = getApiKey();
+      if (!key) {
+        brandSetMsg(wrap, 'error', 'API key SLS belum tersimpan di browser ini.');
+        return;
+      }
+      brandSetMsg(wrap, 'saving', 'Menyimpan\u2026');
+      fetch('/api/brand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            brandSetMsg(wrap, 'error', 'Gagal menyimpan (' + ((res.d && res.d.error) || ('HTTP ' + res.status)) + ').');
+            return;
+          }
+          BRAND = sanitizeBrand(res.d);
+          brandUploadData = null;
+          cacheBrand();
+          paintBrand();
+          brandSetMsg(wrap, 'saved', 'Tersimpan. Header dan judul tab diperbarui.');
+          fillBrandPanel(wrap);
+        })
+        .catch(function () { brandSetMsg(wrap, 'error', 'Gagal menyimpan \u2014 cek koneksi.'); });
+    });
+
+    // Live preview mirrors the fields as they are typed.
+    var previewImg = wrap.querySelector('[data-brand-preview]');
+    previewImg.onerror = function () { previewImg.style.display = 'none'; };
+    previewImg.onload = function () { previewImg.style.display = ''; };
+    return wrap;
+  }
+
+  function syncBrandPreview(wrap) {
+    var name = wrap.querySelector('[data-brand-field="name"]').value || BRAND_DEFAULTS.name;
+    var sub = wrap.querySelector('[data-brand-field="subtitle"]').value || BRAND_DEFAULTS.subtitle;
+    var logo = brandUploadData || wrap.querySelector('[data-brand-field="logo"]').value || BRAND_DEFAULTS.logo;
+    wrap.querySelector('[data-brand-preview]').src = logo;
+    wrap.querySelector('[data-brand-preview-name]').textContent = name;
+    wrap.querySelector('[data-brand-preview-sub]').textContent = sub;
+  }
+
+  function fillBrandPanel(wrap) {
+    wrap.querySelector('[data-brand-field="name"]').value = BRAND.name;
+    wrap.querySelector('[data-brand-field="subtitle"]').value = BRAND.subtitle;
+    wrap.querySelector('[data-brand-field="logo"]').value = BRAND.logo;
+    syncBrandPreview(wrap);
+  }
+
+  // Injected into the vendor Settings modal whenever React re-renders it.
+  function enhanceSettingsModal() {
+    var modal = document.querySelector('.modal.show, .modal.in, .modal');
+    if (!modal) return;
+    var title = modal.querySelector('.modal-title');
+    if (!title || !/^\s*Settings\s*$/i.test(title.textContent || '')) return;
+    var body = modal.querySelector('.modal-body');
+    if (!body) return;
+    var existing = body.querySelector('[data-lp-brand-panel]');
+    if (existing) { fillBrandPanel(existing); return; }
+    var wrap = buildBrandPanel(body);
+    fillBrandPanel(wrap);
+    body.appendChild(wrap);
+  }
+
+
   function enhanceStreamUrlModal() {
     var modal = document.querySelector('.modal.show, .modal.in, .modal');
     if (!modal) return;
@@ -625,7 +880,10 @@
     updateLiveStatus();
     // React regenerates the URL fields during polling; keep the selected
     // valid UDP host and same-origin stats URL after that re-render.
-    if (!document.hidden) enhanceStreamUrlModal();
+    if (!document.hidden) {
+      enhanceStreamUrlModal();
+      enhanceSettingsModal();
+    }
   }, 1000);
   updateLiveStatus();
   // Refresh immediately when the tab becomes visible again: the poll interval

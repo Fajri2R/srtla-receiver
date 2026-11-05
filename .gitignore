@@ -1,3 +1,4 @@
 ./data/
 .apikey
 .env
+.brand.json
