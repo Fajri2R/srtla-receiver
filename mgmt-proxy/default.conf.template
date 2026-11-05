@@ -157,8 +157,8 @@ server {
         proxy_read_timeout 10s;
     }
 
-    location = /api/brand {
-        proxy_pass         http://hls-manager:9090/api/brand;
+    location /api/brand {
+        proxy_pass         http://hls-manager:9090;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;

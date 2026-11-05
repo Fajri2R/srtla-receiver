@@ -483,6 +483,7 @@
     [data-theme="light"] .theme-btn .moon { display: none; }
 
     [data-theme="light"] .brand-icon img { filter: invert(1); }
+    [data-theme="light"] .brand-icon img[data-brand-custom] { filter: none; }
     [data-theme="light"] .live.warning { border-color: rgba(138,100,16,.32); }
     [data-theme="light"] .live.error { border-color: rgba(179,69,63,.32); }
 
@@ -590,6 +591,14 @@
       .action-fs-main { display: none !important; }
       #btn-hls, #btn-mgmt { order: 2; padding: 0 9px; }
       #btn-hls .btn-text, #btn-mgmt .btn-text { display: none; }
+
+      /* Two charts still fit side by side here, but the header row (name +
+         live value + action buttons) no longer does. Let it wrap instead of
+         pushing the value off the panel. */
+      .panel-head { flex-wrap: wrap; gap: 6px 9px; }
+      .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .current { margin-left: auto; }
+      .actions { order: 3; width: 100%; margin-left: 0; margin-top: 6px; flex-wrap: wrap; }
     }
 
     @media(max-width: 650px) {
@@ -1139,5 +1148,6 @@
     }
     startLoop();
   </script>
+  <script src="/api/brand/brand.js"></script>
 </body>
 </html>

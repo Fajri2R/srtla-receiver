@@ -335,6 +335,7 @@
     [data-theme="light"] .btn-theme .sun { display: block; }
     [data-theme="light"] .btn-theme .moon { display: none; }
     [data-theme="light"] .logo-icon img { filter: invert(1); }
+    [data-theme="light"] .logo-icon img[data-brand-custom] { filter: none; }
     [data-theme="light"] .player-container { background: #0c0f0d; }
     [data-theme="light"] .badge-live { border-color: rgba(19,138,92,.32); }
 
@@ -2264,6 +2265,7 @@ function showToast(msg, type='ok') {
   toastTimer = setTimeout(() => { el.className = 'toast'; }, 3500);
 }
 </script>
+  <script src="/api/brand/brand.js"></script>
 </body>
 </html>
 

@@ -10,7 +10,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev
 
 # Copy application source
-COPY index.js brand-config.js brand-routes.js ./
+COPY index.js brand-config.js brand-routes.js brand-client.js ./
 
 # HLS output directory
 RUN mkdir -p /hls

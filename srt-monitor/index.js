@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { readFileSync, existsSync } from "fs";
 import { join, normalize } from "path";
+import { handleBrandProxy } from "./brand-proxy.js";
 
 const PORT = Number(process.env.PORT || 9091);
 const SLS_BASE = (process.env.SLS_STATS_URL || "http://receiver:8080/stats").replace(/\/stats\/?$/, "");
@@ -16,6 +17,7 @@ const GRACE_PERIOD = Math.max(1000, Number(process.env.OFFLINE_GRACE_MS || 15000
 const HISTORY_SIZE = Math.max(300, Number(process.env.HISTORY_SIZE || 600));
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 2500));
 const publicDir = join(process.cwd(), "public");
+const BRAND_URL = process.env.BRAND_URL || "http://hls-manager:9090";
 const streams = new Map();
 let lastPoll = null;
 let lastError = null;
@@ -192,6 +194,9 @@ function serveFile(res, file, type) {
 }
 
 createServer((req, res) => {
+  // Brand identity mirrors the config from the HLS manager (see SLS Settings).
+  if (handleBrandProxy(req, res, { baseUrl: BRAND_URL })) return;
+
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname === "/api/status") return json(res, 200, { lastPoll, lastError, source: SLS_STREAMS_URL, pollMs: POLL_MS, streams: streams.size });
   if (url.pathname === "/api/streams") return json(res, 200, { streams: [...streams.values()].map(({ id, latest }) => ({ id, latest })) });
