@@ -659,6 +659,121 @@
       main:fullscreen .actions { display: none !important; }
     }
 
+
+    /* ============================================================
+       LIVE HISTORY (riwayat live / arsip telemetri)
+    ============================================================ */
+    body.history-open .eyebrow,
+    body.history-open .title,
+    body.history-open #hint,
+    body.history-open #stats,
+    body.history-open #charts { display: none !important; }
+
+    .history { display: none; }
+    body.history-open .history { display: block; }
+
+    .hist-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .hist-eyebrow {
+      display: block; font: 9px var(--mono); letter-spacing: .16em;
+      text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
+    }
+    .hist-head h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+    .hist-actions { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+    .hist-field {
+      display: flex; flex-direction: column; gap: 5px;
+      font: 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+    }
+    .hist-field select, .hist-field input, .hist-key input {
+      height: 32px; min-width: 108px; padding: 0 9px;
+      background: var(--bg-elevated); border: 1px solid var(--border-default);
+      border-radius: 8px; color: var(--text-primary);
+      font: 11px var(--mono); letter-spacing: .02em;
+    }
+    .hist-field select:focus-visible, .hist-field input:focus-visible,
+    .hist-key input:focus-visible { outline: none; border-color: var(--accent); }
+
+    .hist-layout { display: grid; grid-template-columns: minmax(250px, 330px) minmax(0, 1fr); gap: 12px; align-items: start; }
+    .hist-list {
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 62vh; overflow-y: auto; padding-right: 2px;
+    }
+    .hist-row {
+      text-align: left; width: 100%; cursor: pointer;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 10px; padding: 10px 11px; color: inherit;
+      transition: border-color .16s, background .16s;
+    }
+    .hist-row:hover { border-color: var(--border-default); background: var(--bg-elevated); }
+    .hist-row[aria-selected="true"] { border-color: var(--accent); background: var(--bg-elevated); }
+    .hist-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .hist-row-name { font: 11px var(--mono); letter-spacing: .04em; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; }
+    .hist-row-when { font: 9.5px var(--mono); color: var(--faint); white-space: nowrap; }
+    .hist-row-meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 10px; font: 9.5px var(--mono); color: var(--text-muted); }
+    .hist-row-meta i { width: 6px; height: 6px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+    .hist-detail {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 12px; padding: 13px 14px; min-width: 0;
+    }
+    .hist-detail-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .hist-detail-title {
+      display: block; font: 12.5px var(--mono); letter-spacing: .04em;
+      color: var(--text-primary); word-break: break-all;
+    }
+    .hist-detail-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .hist-detail-actions select {
+      height: 30px; padding: 0 8px; background: var(--bg-elevated);
+      border: 1px solid var(--border-default); border-radius: 8px;
+      color: var(--text-primary); font: 10px var(--mono);
+    }
+    .hist-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .hist-kpi { border: 1px solid var(--border-subtle); border-radius: 9px; padding: 8px 9px; background: var(--bg-elevated); }
+    .hist-kpi .k { font: 8.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .hist-kpi .v { font: 600 14.5px var(--mono); color: var(--text-primary); margin-top: 3px; }
+    .hist-canvas-wrap { position: relative; }
+    #hist-canvas { width: 100%; height: 250px; display: block; }
+
+    .action.danger { color: var(--red); }
+    .action.danger:hover { color: var(--red); border-color: var(--border-default); background: var(--bg-elevated); }
+
+    .hist-note { font: 9.5px var(--mono); color: var(--faint); margin: 8px 0 0; line-height: 1.65; }
+    .hist-error { font: 10px var(--mono); color: var(--red); margin: 10px 0 0; }
+    .hist-empty { font: 10.5px var(--mono); color: var(--faint); padding: 16px 2px; margin: 0; }
+    .hist-key { margin-top: 16px; border-top: 1px solid var(--border-subtle); padding-top: 10px; }
+    .hist-key summary { cursor: pointer; font: 9.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .hist-key-row { display: flex; gap: 8px; align-items: center; margin-top: 9px; flex-wrap: wrap; }
+    .hist-key input { flex: 1 1 210px; }
+
+
+    @media (hover: none) and (pointer: coarse) {
+      .hist-actions .action, .hist-detail-actions .action, .hist-key-row .action {
+        min-height: 40px; padding: 0 13px;
+      }
+      .hist-field select, .hist-field input, .hist-key input { min-height: 40px; }
+      .hist-row { padding: 12px 12px; }
+    }
+
+    @media (max-width: 900px) {
+      .hist-layout { grid-template-columns: 1fr; }
+      .hist-list { max-height: none; }
+    }
+    @media (max-width: 650px) {
+      .hist-head { align-items: stretch; }
+      .hist-actions { justify-content: flex-start; }
+      .hist-detail-actions { width: 100%; }
+      #hist-canvas { height: 210px; }
+    }
+    @media (max-width: 480px) {
+      .hist-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hist-detail-title { font-size: 11.5px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
     }
@@ -690,6 +805,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="btn-text">HLS Manager</span>
         </a>
+        <button class="action nav-action" id="btn-history" type="button" aria-pressed="false" data-tooltip="Live History &amp; Network Quality">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+          <span class="btn-text">History</span>
+        </button>
         <button class="action action-fs-main nav-action" onclick="toggleMainFullscreen()" data-tooltip="Fullscreen Entire Dashboard" aria-label="Fullscreen entire dashboard" style="padding: 0 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
             <polyline points="15 3 21 3 21 9"></polyline>
@@ -715,6 +834,68 @@
     <p class="sub" id="hint">Hover a graph for its timestamp and exact metric value.</p>
     <section class="stats" id="stats"></section>
     <section class="charts" id="charts"></section>
+
+    <section class="history" id="history" aria-label="Live history">
+      <div class="hist-head">
+        <div>
+          <span class="hist-eyebrow">arsip telemetri &middot; per sesi live</span>
+          <h2>Live History</h2>
+        </div>
+        <div class="hist-actions">
+          <label class="hist-field">Stream
+            <select id="hist-stream"><option value="all">All streams</option></select>
+          </label>
+          <label class="hist-field">Retention (days)
+            <input id="hist-retention" type="number" min="1" max="3650" step="1" inputmode="numeric" aria-label="Retention in days">
+          </label>
+          <button class="action nav-action" id="hist-save-retention" type="button">Save</button>
+          <button class="action nav-action" id="hist-refresh" type="button">Refresh</button>
+          <button class="action nav-action danger" id="hist-delete-all" type="button">Delete all</button>
+        </div>
+      </div>
+
+      <div class="hist-layout">
+        <div>
+          <div class="hist-list" id="hist-list" role="listbox" aria-label="Recorded sessions"></div>
+          <p class="hist-empty" id="hist-empty">No sessions recorded yet. History is written while a publisher is live.</p>
+        </div>
+
+        <div class="hist-detail" id="hist-detail" hidden>
+          <div class="hist-detail-head">
+            <div>
+              <span class="hist-eyebrow">session</span>
+              <strong class="hist-detail-title" id="hist-detail-title">&mdash;</strong>
+            </div>
+            <div class="hist-detail-actions">
+              <select id="hist-metric" aria-label="Metric">
+                <option value="rtt">RTT</option>
+                <option value="recvBitrate">Receive bitrate</option>
+                <option value="throughput">Throughput</option>
+                <option value="recvBuffer">Receive buffer</option>
+                <option value="droppedPackets">Packet drops</option>
+                <option value="transcoderFps">FPS</option>
+              </select>
+              <a class="action nav-action" id="hist-export" href="#" download>CSV</a>
+              <button class="action nav-action danger" id="hist-delete-session" type="button">Delete session</button>
+            </div>
+          </div>
+          <div class="hist-kpis" id="hist-kpis"></div>
+          <div class="hist-canvas-wrap"><canvas id="hist-canvas"></canvas></div>
+          <p class="hist-note" id="hist-note"></p>
+        </div>
+      </div>
+
+      <p class="hist-error" id="hist-error" hidden></p>
+
+      <details class="hist-key">
+        <summary>API key</summary>
+        <div class="hist-key-row">
+          <input id="hist-key" type="password" placeholder="SLS API key (needed to delete history or change retention)" autocomplete="off">
+          <button class="action nav-action" id="hist-key-save" type="button">Remember</button>
+        </div>
+        <p class="hist-note">Stored in this browser only (localStorage) and sent solely to this dashboard's API.</p>
+      </details>
+    </section>
   </main>
 
   <script>
@@ -1175,6 +1356,421 @@
     }
     startLoop();
   </script>
+
+  <script>
+    // ---- live history -------------------------------------------------------
+    (function () {
+      'use strict';
+      const $ = (id) => document.getElementById(id);
+      const listEl = $('hist-list'), emptyEl = $('hist-empty'), errEl = $('hist-error');
+      const detailEl = $('hist-detail'), titleEl = $('hist-detail-title'), kpiEl = $('hist-kpis');
+      const canvasEl = $('hist-canvas'), noteEl = $('hist-note');
+      const streamSel = $('hist-stream'), retentionIn = $('hist-retention');
+      const metricSel = $('hist-metric'), exportEl = $('hist-export');
+      const histBtn = $('btn-history');
+      const KEY_STORE = 'srt-history-key';
+      const FMT = {
+        rtt: 'ms', recvBitrate: 'rate', throughput: 'rate', latency: 'ms',
+        recvBuffer: 'count', droppedPackets: 'count', transcoderFps: 'fps', uptime: 'duration'
+      };
+      const METRIC_LABEL = {
+        rtt: 'RTT', recvBitrate: 'Receive bitrate', throughput: 'Throughput',
+        recvBuffer: 'Receive buffer', droppedPackets: 'Packet drops', transcoderFps: 'FPS'
+      };
+      let isOpen = false;
+      let sessions = [];
+      let current = null;
+      let series = [];
+      let hoverX = null;
+
+      const apiKey = () => { try { return (localStorage.getItem(KEY_STORE) || '').trim(); } catch (_) { return ''; } };
+      const pad2 = (n) => String(n).padStart(2, '0');
+      const hm = (ms) => { const d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
+      const shortTime = (ms) => {
+        const d = new Date(ms);
+        return pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + hm(ms);
+      };
+      const shortDur = (ms) => {
+        const sec = Math.round(ms / 1000);
+        const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+        if (h) return h + 'h ' + m + 'm';
+        if (m) return m + 'm ' + (sec % 60) + 's';
+        return sec + 's';
+      };
+      const show = (metric, v) => fmt(v, FMT[metric] || 'count');
+
+      function showError(msg) {
+        if (!msg) { errEl.hidden = true; errEl.textContent = ''; return; }
+        errEl.hidden = false;
+        errEl.textContent = msg;
+      }
+
+      async function fetchJson(url, options) {
+        const res = await fetch(url, Object.assign({ cache: 'no-store' }, options));
+        if (res.status === 401) throw Object.assign(new Error('API key rejected — paste the SLS API key under "API key" below.'), { unauthorized: true });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }
+
+      /* ── config (retention) ─────────────────────────────────────────────── */
+
+      async function loadConfig() {
+        try {
+          const cfg = await fetchJson('/api/history/config');
+          retentionIn.value = cfg.retentionDays;
+        } catch (e) { showError(e.message); }
+      }
+
+      async function saveRetention() {
+        const key = apiKey();
+        if (!key) { showError('An API key is required to change retention — see "API key" below.'); return; }
+        const days = Math.floor(Number(retentionIn.value));
+        if (!Number.isFinite(days) || days < 1 || days > 3650) { showError('Retention must be between 1 and 3650 days.'); return; }
+        try {
+          const res = await fetch('/api/history/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+            body: JSON.stringify({ retentionDays: days })
+          });
+          if (res.status === 401) { showError('API key rejected — retention not changed.'); return; }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const cfg = await res.json();
+          retentionIn.value = cfg.retentionDays;
+          showError('');
+        } catch (e) { showError(e.message || 'Could not save retention.'); }
+      }
+
+      /* ── sessions ───────────────────────────────────────────────────────── */
+
+      async function loadStreams() {
+        try {
+          const out = await fetchJson('/api/history/streams');
+          const keep = streamSel.value;
+          while (streamSel.options.length > 1) streamSel.remove(1);
+          for (const row of out.streams || []) {
+            const opt = document.createElement('option');
+            opt.value = row.stream;
+            opt.textContent = row.stream;
+            streamSel.appendChild(opt);
+          }
+          if (keep && Array.from(streamSel.options).some((o) => o.value === keep)) streamSel.value = keep;
+        } catch (e) { showError(e.message); }
+      }
+
+      async function loadSessions() {
+        const stream = streamSel.value || 'all';
+        try {
+          const out = await fetchJson('/api/history/sessions?stream=' + encodeURIComponent(stream) + '&limit=200');
+          sessions = out.sessions || [];
+          showError('');
+        } catch (e) {
+          sessions = [];
+          showError(e.message || 'Could not load sessions.');
+        }
+        renderSessionList();
+      }
+
+      function renderSessionList() {
+        listEl.textContent = '';
+        emptyEl.hidden = sessions.length > 0;
+        for (const s of sessions) {
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'hist-row';
+          row.setAttribute('role', 'option');
+          row.setAttribute('aria-selected', current && current.sid === s.sid ? 'true' : 'false');
+          const top = document.createElement('div');
+          top.className = 'hist-row-top';
+          const nm = document.createElement('span');
+          nm.className = 'hist-row-name';
+          nm.textContent = s.stream;
+          const when = document.createElement('span');
+          when.className = 'hist-row-when';
+          when.textContent = shortTime(s.start) + ' · ' + shortDur(s.durationMs || 0);
+          top.append(nm, when);
+          const meta = document.createElement('div');
+          meta.className = 'hist-row-meta';
+          const sum = s.summary || {};
+          const chips = [];
+          if (sum.rtt) chips.push(['rtt', 'rtt ' + show('rtt', sum.rtt.avg)]);
+          if (sum.recvBitrate) chips.push(['recvBitrate', 'avg ' + show('recvBitrate', sum.recvBitrate.avg)]);
+          if (sum.droppedPackets) chips.push(['droppedPackets', 'drop ' + show('droppedPackets', sum.droppedPackets.max)]);
+          for (const [metricKey, label] of chips) {
+            const span = document.createElement('span');
+            const dot = document.createElement('i');
+            dot.style.background = chartColor(metricKey) || 'transparent';
+            span.append(dot, document.createTextNode(label));
+            meta.appendChild(span);
+          }
+          const samples = document.createElement('span');
+          samples.textContent = (s.samples || 0) + ' samples';
+          meta.appendChild(samples);
+          row.append(top, meta);
+          row.onclick = () => selectSession(s);
+          listEl.appendChild(row);
+        }
+      }
+
+      function selectSession(s) {
+        current = s;
+        detailEl.hidden = false;
+        titleEl.textContent = s.stream + ' · ' + shortTime(s.start) + ' → ' + (s.end ? hm(s.end) : 'now');
+        kpiEl.textContent = '';
+        const sum = s.summary || {};
+        const kpis = [
+          ['duration', shortDur(s.durationMs || 0)],
+          ['samples', String(s.samples || 0)]
+        ];
+        if (sum.rtt) kpis.push(['rtt avg', show('rtt', sum.rtt.avg)], ['rtt max', show('rtt', sum.rtt.max)]);
+        if (sum.recvBitrate) kpis.push(['bitrate avg', show('recvBitrate', sum.recvBitrate.avg)]);
+        if (sum.throughput) kpis.push(['throughput', show('throughput', sum.throughput.avg)]);
+        if (sum.droppedPackets) kpis.push(['drops max', show('droppedPackets', sum.droppedPackets.max)]);
+        if (sum.transcoderFps) kpis.push(['fps avg', show('transcoderFps', sum.transcoderFps.avg)]);
+        for (const [label, value] of kpis) {
+          const card = document.createElement('div');
+          card.className = 'hist-kpi';
+          const k = document.createElement('div');
+          k.className = 'k';
+          k.textContent = label;
+          const v = document.createElement('div');
+          v.className = 'v';
+          v.textContent = value;
+          card.append(k, v);
+          kpiEl.appendChild(card);
+        }
+        renderSessionList();
+        loadSeries();
+      }
+
+      /* ── series & chart ─────────────────────────────────────────────────── */
+
+      async function loadSeries() {
+        if (!current) return;
+        const MINUTE = 60000;
+        // Buckets are minute-aligned, so snap the range to whole minutes;
+        // otherwise the edges show misleading partial gaps.
+        const from = Math.floor(current.start / MINUTE) * MINUTE;
+        const to = Math.floor((current.end || Date.now()) / MINUTE) * MINUTE;
+        try {
+          const out = await fetchJson('/api/history/series?stream=' + encodeURIComponent(current.stream)
+            + '&from=' + from + '&to=' + to
+            + '&metrics=rtt,recvBitrate,throughput,recvBuffer,droppedPackets,transcoderFps');
+          series = out.series || [];
+        } catch (e) {
+          series = [];
+          showError(e.message || 'Could not load series.');
+        }
+        exportEl.href = '/api/history/export?stream=' + encodeURIComponent(current.stream) + '&from=' + from + '&to=' + to;
+        drawHist();
+      }
+
+      function drawHist() {
+        const metricSelValue = metricSel.value;
+        const rows = series.filter((b) => b && b.m && b.m[metricSelValue]);
+        noteEl.textContent = rows.length
+          ? METRIC_LABEL[metricSelValue] + ' · ' + rows.length + ' minute buckets · band = min/max, line = average'
+          : (series.length ? 'No data for this metric in the selected session.' : 'This session recorded no minute buckets yet.');
+        const r = canvasEl.getBoundingClientRect();
+        const d = window.devicePixelRatio || 1;
+        const w = r.width, h = r.height;
+        if (!w || !h) return;
+        canvasEl.width = w * d;
+        canvasEl.height = h * d;
+        const c = canvasEl.getContext('2d');
+        c.setTransform(d, 0, 0, d, 0, 0);
+        // Wipe first: switching to a metric this session never recorded must
+        // leave an empty frame, not the previous metric's line.
+        c.clearRect(0, 0, w, h);
+        if (!rows.length) return;
+
+        const color = chartColor(metricSelValue) || cssVar('--accent');
+        const type = FMT[metricSelValue] || 'count';
+        const pts = rows.map((b) => ({
+          t: b.t,
+          lo: b.m[metricSelValue].min,
+          hi: b.m[metricSelValue].max,
+          v: b.m[metricSelValue].avg
+        }));
+        let lo = Infinity, hi = -Infinity;
+        for (const p of pts) { lo = Math.min(lo, p.lo); hi = Math.max(hi, p.hi); }
+        if (lo === hi) { const pad = (Math.abs(lo) || 1) * 0.15; lo = Math.max(0, lo - pad); hi = hi + pad; }
+        else { const pad = (hi - lo) * 0.12; lo = Math.max(0, lo - pad); hi = hi + pad; }
+        if (type === 'count' && hi <= 1) { lo = 0; hi = 3; }
+
+        c.font = "10px 'JetBrains Mono', monospace";
+        let tickWidth = 0;
+        for (let i = 0; i <= 4; i++) tickWidth = Math.max(tickWidth, c.measureText(fmt(lo + (hi - lo) * i / 4, type)).width);
+        const L = Math.max(64, Math.ceil(tickWidth + 14)), R2 = 18, T = 12, B = 24;
+        const PW = w - L - R2, PH = h - T - B;
+        if (PW <= 0 || PH <= 0) return;
+        const X = (i) => L + (pts.length === 1 ? PW / 2 : i / (pts.length - 1) * PW);
+        const Y = (v) => T + PH - (v - lo) / (hi - lo) * PH;
+
+        c.strokeStyle = cssVar('--chart-grid');
+        c.fillStyle = (document.documentElement.getAttribute('data-theme') === 'light') ? '#33423a' : '#9fa5a0';
+        c.textAlign = 'right';
+        for (let i = 0; i <= 4; i++) {
+          const yy = T + PH - i * PH / 4;
+          const tick = (type === 'count') ? Math.round(lo + (hi - lo) * i / 4) : lo + (hi - lo) * i / 4;
+          c.beginPath(); c.moveTo(L, yy); c.lineTo(L + PW, yy); c.stroke();
+          c.fillText(fmt(tick, type), L - 7, yy + 3);
+        }
+        const xSteps = PW < 340 ? [0, 2, 4] : [0, 1, 2, 3, 4];
+        let prevLabel = null;
+        for (const step of xSteps) {
+          const idx = Math.round((pts.length - 1) * step / 4);
+          if (!pts[idx]) continue;
+          const label = hm(pts[idx].t);
+          if (label === prevLabel) continue;
+          const tx = L + PW * step / 4;
+          c.textAlign = step === 0 ? 'left' : step === 4 ? 'right' : 'center';
+          c.fillText(label, tx, h - 7);
+          prevLabel = label;
+        }
+
+        // min/max band
+        c.globalAlpha = 0.18;
+        c.fillStyle = color;
+        c.beginPath();
+        pts.forEach((p, i) => (i ? c.lineTo(X(i), Y(p.hi)) : c.moveTo(X(i), Y(p.hi))));
+        for (let i = pts.length - 1; i >= 0; i--) c.lineTo(X(i), Y(pts[i].lo));
+        c.closePath();
+        c.fill();
+        c.globalAlpha = 1;
+
+        // average line
+        c.beginPath();
+        pts.forEach((p, i) => (i ? c.lineTo(X(i), Y(p.v)) : c.moveTo(X(i), Y(p.v))));
+        c.strokeStyle = color;
+        c.lineWidth = 2;
+        c.stroke();
+
+        // hover crosshair + tooltip
+        if (hoverX !== null && hoverX >= L && hoverX <= L + PW) {
+          const i = Math.max(0, Math.min(pts.length - 1, Math.round((hoverX - L) / PW * (pts.length - 1))));
+          const p = pts[i];
+          const px = X(i), py = Y(p.v);
+          c.strokeStyle = cssVar('--chart-crosshair');
+          c.setLineDash([4, 4]);
+          c.beginPath(); c.moveTo(px, T); c.lineTo(px, T + PH); c.stroke();
+          c.setLineDash([]);
+          const label = shortTime(p.t) + ' · avg ' + fmt(p.v, type) + ' · ' + fmt(p.lo, type) + '\u2013' + fmt(p.hi, type);
+          c.font = "500 10.5px 'JetBrains Mono', monospace";
+          const bw = c.measureText(label).width + 16;
+          const tx = Math.max(L, Math.min(px - bw / 2, L + PW - bw));
+          const ty = py < T + 35 ? py + 12 : py - 34;
+          c.fillStyle = cssVar('--chart-tip-bg');
+          c.strokeStyle = cssVar('--chart-tip-border');
+          c.beginPath(); c.roundRect(tx, ty, bw, 23, 4); c.fill(); c.stroke();
+          c.fillStyle = cssVar('--chart-tip-fg');
+          c.textAlign = 'left';
+          c.fillText(label, tx + 8, ty + 15);
+          c.fillStyle = color;
+          c.beginPath(); c.arc(px, py, 3.5, 0, Math.PI * 2); c.fill();
+        }
+      }
+
+      /* ── deletion ───────────────────────────────────────────────────────── */
+
+      async function deleteRange(stream, from, to, what) {
+        const key = apiKey();
+        if (!key) { showError('An API key is required to delete history — see "API key" below.'); return false; }
+        if (!confirm('Delete ' + what + '? This cannot be undone.')) return false;
+        try {
+          const res = await fetch('/api/history?stream=' + encodeURIComponent(stream) + '&from=' + from + '&to=' + to, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${key}` }
+          });
+          if (res.status === 401) { showError('API key rejected — deletion cancelled.'); return false; }
+          if (!res.ok) { showError('Delete failed (HTTP ' + res.status + ').'); return false; }
+          const out = await res.json();
+          current = null;
+          detailEl.hidden = true;
+          series = [];
+          showError('');
+          await loadStreams();
+          await loadSessions();
+          return true;
+        } catch (e) {
+          showError(e.message || 'Delete failed.');
+          return false;
+        }
+      }
+
+      /* ── wiring ─────────────────────────────────────────────────────────── */
+
+      function setOpen(next) {
+        isOpen = next;
+        document.body.classList.toggle('history-open', isOpen);
+        histBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+        if (isOpen) {
+          showError('');
+          loadStreams();
+          loadConfig();
+          loadSessions();
+        }
+      }
+      histBtn.addEventListener('click', () => setOpen(!isOpen));
+
+      $('hist-refresh').addEventListener('click', () => { showError(''); loadStreams(); loadConfig(); loadSessions(); });
+      $('hist-save-retention').addEventListener('click', saveRetention);
+      retentionIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveRetention(); });
+      streamSel.addEventListener('change', () => { current = null; detailEl.hidden = true; loadSessions(); });
+      metricSel.addEventListener('change', drawHist);
+      exportEl.addEventListener('click', (e) => { if (exportEl.getAttribute('href') === '#') e.preventDefault(); });
+
+      $('hist-delete-session').addEventListener('click', () => {
+        if (!current) return;
+        deleteRange(current.stream, current.start - 1, (current.end || Date.now()) + 1, 'this session');
+      });
+      $('hist-delete-all').addEventListener('click', () => {
+        const stream = streamSel.value || 'all';
+        const what = stream === 'all' ? 'ALL recorded history' : 'all history for ' + stream;
+        deleteRange(stream, 0, Date.now() + 60000, what);
+      });
+
+      $('hist-key-save').addEventListener('click', () => {
+        const input = $('hist-key');
+        try {
+          localStorage.setItem(KEY_STORE, input.value.trim());
+          input.value = '';
+          showError('');
+        } catch (_) { showError('This browser blocks localStorage — the key cannot be remembered.'); }
+      });
+      try {
+        if (apiKey()) document.querySelector('.hist-key').removeAttribute('open');
+      } catch (_) {}
+
+      canvasEl.addEventListener('mousemove', (e) => {
+        const rect = canvasEl.getBoundingClientRect();
+        hoverX = e.clientX - rect.left;
+        drawHist();
+      });
+      canvasEl.addEventListener('mouseleave', () => { hoverX = null; drawHist(); });
+      canvasEl.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length) {
+          const rect = canvasEl.getBoundingClientRect();
+          hoverX = e.touches[0].clientX - rect.left;
+          drawHist();
+        }
+      }, { passive: true });
+      canvasEl.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length) {
+          const rect = canvasEl.getBoundingClientRect();
+          hoverX = e.touches[0].clientX - rect.left;
+          drawHist();
+        }
+      }, { passive: true });
+      canvasEl.addEventListener('touchend', () => { hoverX = null; drawHist(); });
+
+      window.addEventListener('resize', () => { if (isOpen) drawHist(); });
+
+      // Canvas does not inherit CSS colors: redraw when the palette flips.
+      new MutationObserver(() => { if (isOpen) drawHist(); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    })();
+  </script>
+
   <script src="/api/brand/brand.js"></script>
 </body>
 </html>
