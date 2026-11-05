@@ -152,10 +152,18 @@ test('shown modals cancel the Bootstrap entrance transform', () => {
   assert.match(rule, /transition:\s*none\s*!important/i, 'a paused transition must not freeze the entrance offset');
 });
 
-test('responsive language control has compact mobile treatment and no forced header overflow', () => {
-  assert.match(css, /@media\s*\(max-width:\s*560px\)/);
-  assert.match(css, /\.mgmt-lang-btn/);
-  assert.match(css, /\.navbar[^}]*height\s*:\s*auto/is);
-  assert.match(css, /\.navbar\s+\.ms-auto[^}]*flex-wrap\s*:\s*wrap/is);
-}
-);
+test('phone header groups all action controls in one row and sizes them uniformly', () => {
+  const blocks = [];
+  const re = /@media\s*\(max-width:\s*600px\)\s*\{([\s\S]*?)\n\}/g;
+  let m;
+  while ((m = re.exec(css))) blocks.push(m[1]);
+  assert.ok(blocks.length, 'expected a max-width:600px mobile block in CSS');
+  const block = blocks.join('\n');
+  assert.match(block, /\.mgmt-nav-tools\s*\{[^}]*gap:\s*6px/,
+    'all icon buttons should share a 6px gap');
+  assert.match(block, /\.mgmt-lang-btn[^{]*\{[^}]*justify-content:\s*center/,
+    'EN/ID text must be centered in its button');
+  assert.match(block, /\.live-status\s*\{[^}]*height:\s*2[68]px/,
+    'live status pill must stay compact');
+});
+

@@ -58,7 +58,10 @@ test('records a session with start, end, and quality summary once the stream goe
 test('interval flush only persists completed minutes, never partial duplicates', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'hist-'));
   const store = newStore(dir);
-  const minute = Date.UTC(2026, 10, 5, 12, 0, 0);
+  // Keep this bucket in the future so flush(false) must treat it as partial.
+  // A fixed Nov 2026 timestamp became "completed" when the calendar reached
+  // that date, making this clock-dependent test fail without a code change.
+  const minute = Math.floor((Date.now() + 3_600_000) / 60_000) * 60_000;
   for (let i = 0; i < 20; i++) store.record('live_h', sample(minute + i * 1000, 1, 5));
 
   // A mid-minute interval flush must not write the in-progress bucket…

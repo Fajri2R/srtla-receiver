@@ -57,3 +57,20 @@ test('the history stream filter keeps readable width instead of halving evenly',
   assert.match(narrow, /\.hist-field:first-of-type\s*\{[^}]*flex:\s*\d+\s+1\s+\d+px/,
     'the stream filter must claim a larger share on very narrow screens');
 });
+
+test('phone header controls keep a uniform 36-38px touch target and centered label', () => {
+  const block = phoneRules();
+  assert.match(block, /#lang-toggle\s*\{[^}]*justify-content:\s*center/,
+    'EN/ID text in SRT header must be centered in its button');
+  assert.match(block, /\.theme-btn\s*\{[^}]*width:\s*3[68]px/,
+    'theme button must match the sibling nav actions');
+  assert.match(block, /\.header-controls\s*>\s*\.action[^{]*\{[^}]*height:\s*3[68]px/,
+    'header nav actions on phones must be at least 36px tall');
+});
+
+test('SRT status badge on narrow screens does not blow out the header into 4 rows', () => {
+  const narrow = mediaBlocks(650).join('\n');
+  assert.match(narrow, /\.live\s*\{[^}]*height:\s*2[68]px/,
+    'live status pill on phones must stay compact');
+});
+

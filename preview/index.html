@@ -378,6 +378,7 @@
       color: #18231d;
     }
     .btn-refresh svg, .btn-mgmt svg, #btn-srt-monitor svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .btn-lang { font-weight: 600; min-width: 38px; padding: 0 8px; justify-content: center; text-align: center; }
     .btn-refresh.spinning svg { animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -1134,20 +1135,26 @@
     @media (max-width: 768px) {
       .header { padding: 0 14px; }
       .header-inner { height: auto; min-height: 56px; padding: 8px 0; flex-wrap: wrap; gap: 8px; }
-      .header-actions { gap: 6px; flex-wrap: nowrap; }
+      .header-actions { gap: 8px; flex-wrap: nowrap; }
       .header-spacer { display: none; }
       .logo { flex: 1 1 auto; min-width: 0; order: 1; }
       .logo-icon { width: 34px; height: 16px; flex: 0 0 34px; }
       .logo-text b { font-size: 12px; letter-spacing: .28em; }
       .logo-sub { font-size: 8px; letter-spacing: .2em; }
       .header-actions { order: 2; }
-      .header-badge { order: 3; flex: 0 0 auto; height: 30px; }
-      .btn-theme { flex: 0 0 32px; width: 32px; height: 32px; }
+      .header-badge { order: 3; flex: 0 0 auto; height: 28px; }
+      .header .header-actions > .nav-action {
+        flex: 0 0 38px;
+        width: 38px;
+        min-width: 38px;
+        height: 38px;
+        padding: 0;
+        gap: 0;
+        align-items: center;
+        justify-content: center;
+      }
+      #lang-toggle { justify-content: center; text-align: center; }
       .btn-refresh, .btn-mgmt, #btn-srt-monitor {
-        flex: 0 0 32px;
-        width: 32px;
-        min-width: 32px;
-        height: 32px;
         justify-content: center;
         padding: 0;
         gap: 0;
@@ -1162,8 +1169,27 @@
     }
 
     @media (max-width: 560px) {
-      .header-actions { flex: 1 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-      .header-badge { flex: 1 1 100%; order: 9; justify-content: center; }
+      /* Two-row header grid: controls on the first row, status pill below.
+         The badge previously used flex:1 1 100%, which inflated a small
+         "hls: ready" chip into a full-width bar. As a grid item with
+         justify-self it sizes to its own content. */
+      .header-inner {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas: "logo actions" "badge badge";
+        align-items: center;
+      }
+      .logo { grid-area: logo; }
+      .header-actions { grid-area: actions; justify-content: flex-end; gap: 8px; flex-wrap: nowrap; }
+      .header-badge {
+        grid-area: badge;
+        flex: 0 0 auto;
+        justify-self: start;
+        height: 26px;
+        padding: 0 10px;
+        font-size: 9.5px;
+        gap: 6px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -1174,10 +1200,10 @@
       .header-inner { gap: 6px; }
       .logo { gap: 8px; }
       .logo-text { display: none; }
-      .header-badge { padding: 0 9px; gap: 5px; height: 28px; font-size: 9px; }
-      .btn-theme { flex-basis: 32px; width: 32px; height: 32px; }
-      .btn-refresh, .btn-mgmt, #btn-srt-monitor { flex-basis: 32px; min-width: 32px; height: 32px; }
-      .btn-lang { flex-basis: 34px; min-width: 34px; height: 32px; padding: 0 6px; }
+      .header-actions { gap: 6px; }
+      .header .header-actions > .nav-action { flex: 0 0 36px; width: 36px; min-width: 36px; height: 36px; }
+      .btn-lang { flex-basis: 36px; min-width: 36px; height: 36px; padding: 0; }
+      .header-badge { padding: 0 9px; gap: 5px; height: 26px; font-size: 9px; }
       .stats-overview { grid-template-columns: 1fr 1fr; gap: 8px; }
       .stat-card { padding: 10px 11px; }
       .stat-card:last-child { grid-column: 1 / -1; }
@@ -1207,7 +1233,7 @@
       <div class="header-spacer"></div>
 
       <div class="header-actions">
-        <button class="btn-lang nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang" style="font-weight:600;min-width:38px;padding:0 8px;">EN</button>
+        <button class="btn-lang nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang">EN</button>
         <button class="btn-theme nav-action" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
@@ -1232,11 +1258,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           <span class="btn-mgmt-text" data-i18n="nav.srtMonitor">SRT Monitor</span>
         </a>
-        <div class="header-badge" id="hls-status" role="status" aria-live="polite"
-             title="Checking HLS service status" style="cursor:default">
-          <div class="pulse-dot" style="background:var(--yellow)"></div>
-          <span data-i18n="status.checking">HLS: checking…</span>
-        </div>
+      </div>
+
+      <div class="header-badge" id="hls-status" role="status" aria-live="polite"
+           title="Checking HLS service status" style="cursor:default">
+        <div class="pulse-dot" style="background:var(--yellow)"></div>
+        <span data-i18n="status.checking">HLS: checking…</span>
       </div>
     </div>
   </header>

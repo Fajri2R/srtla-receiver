@@ -638,13 +638,69 @@
     }
 
     @media(max-width: 650px) {
-      .header { padding: 0 14px; }
-      .brand-icon { width: 34px; height: 16px; flex: 0 0 34px; }
-      .brand-text b { font-size: 12px; letter-spacing: .28em; }
-      .brand-sub { font-size: 8px; letter-spacing: .2em; }
-      .live { height: 30px; padding: 0 9px; font-size: 9.5px; }
-      .theme-btn { width: 30px; height: 30px; }
-      #lang-toggle { height: 30px; min-width: 30px; font-size: 9.5px; padding: 0 5px; }
+      .header { padding: 0 12px; }
+      /* One predictable header: brand + icon group, then the status pill, then
+         the full-width stream selector. Previously every control carried its
+         own order value and mixed 35/38/32px widths, so they scattered over
+         three rows with uneven gaps. */
+      .header-inner {
+        display: grid;
+        grid-template-columns: auto 1fr repeat(5, auto);
+        grid-template-areas:
+          "brand . mgmt hls history lang theme"
+          "live live live live live live live"
+          "selector selector selector selector selector selector selector";
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 6px;
+        padding: 10px 0;
+        height: auto;
+        min-height: 0;
+      }
+      .brand { grid-area: brand; min-width: 0; }
+      .brand-icon { width: 32px; height: 15px; flex: 0 0 32px; }
+      .brand-text b { font-size: 11.5px; letter-spacing: .26em; }
+      .brand-sub { font-size: 7.5px; letter-spacing: .18em; }
+      /* Flatten the wrapper so the pill and selector can span the full header
+         width instead of being boxed into the icon cluster's column. */
+      .header-controls { display: contents !important; }
+      #btn-mgmt { grid-area: mgmt; }
+      #btn-hls { grid-area: hls; }
+      #btn-history { grid-area: history; }
+      #lang-toggle { grid-area: lang; }
+      #theme-btn { grid-area: theme; }
+      .header-controls > .action,
+      .header-controls > .theme-btn {
+        flex: 0 0 36px;
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+        padding: 0;
+        gap: 0;
+        justify-content: center;
+        align-items: center;
+      }
+      .theme-btn { width: 36px; height: 36px; }
+      #lang-toggle {
+        flex: 0 0 40px;
+        width: 40px;
+        min-width: 40px;
+        height: 36px;
+        padding: 0;
+        font-size: 10px;
+        justify-content: center;
+        text-align: center;
+      }
+      .live {
+        grid-area: live;
+        justify-self: start;
+        height: 26px;
+        padding: 0 10px;
+        font-size: 9.5px;
+        gap: 6px;
+      }
+      .selector { grid-area: selector; width: 100%; margin: 0; }
+      select { width: 100%; max-width: none; height: 36px; }
       /* Keep the back affordance visible and full-row on phones so it is the
          first thing a thumb reaches when leaving the archive. */
       .hist-actions #hist-back { width: 100%; justify-content: center; }
@@ -822,6 +878,8 @@
       }
       .hist-field:first-of-type { flex: 2 1 150px; }
       .hist-field:last-of-type { flex: 1 1 90px; }
+      .brand-text { display: none !important; }
+      .brand-icon { width: 32px; height: 16px; }
     }
 
     @media (max-width: 650px) {
@@ -902,7 +960,7 @@
             <line x1="3" y1="21" x2="10" y2="14"></line>
           </svg>
         </button>
-        <button class="action nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang" style="font-weight:600;min-width:38px;padding:0 8px;">EN</button>
+        <button class="action nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang">EN</button>
         <button class="theme-btn nav-action" id="theme-btn" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>

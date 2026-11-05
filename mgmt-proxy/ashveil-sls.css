@@ -566,6 +566,38 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
   .publisher-card-publisher-name { font-size:12px !important; }
   #lp-bx { padding:14px !important; }
   #lp-badge, #lp-hint { display:none !important; }
+
+  /* Header: one control cluster instead of islands. The tool group used to
+     inherit .ms-auto's display:contents while the vendor settings button kept
+     its own nav-link, so the icons split across two rows with 48px dead gaps. */
+  .navbar > .container-fluid {
+    flex-wrap:wrap !important;
+    gap:8px !important;
+    align-items:center !important;
+  }
+  .mgmt-brand-text { display:none !important; }
+  .mgmt-brand-icon, .mgmt-brand-icon img { width:32px !important; height:17px !important; flex-basis:32px !important; }
+  /* Keep the flattening from the 992px block so the pill can take its own row,
+     but make the four icons one unbreakable, right-aligned cluster. */
+  .navbar .ms-auto { display:contents !important; }
+  .mgmt-nav-tools {
+    order:2 !important;
+    display:flex !important;
+    flex-wrap:nowrap !important;
+    align-items:center !important;
+    gap:6px !important;
+    margin-left:auto !important;
+  }
+  .mgmt-nav-btn, button[data-mgmt-settings], .mgmt-theme-btn, .mgmt-lang-btn {
+    width:36px !important; min-width:36px !important; height:36px !important;
+    flex:0 0 36px !important; padding:0 !important; order:3 !important;
+    display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  }
+  .mgmt-nav-tools > .mgmt-nav-btn { order:0 !important; }
+  .mgmt-nav-btn .btn-text, .mgmt-settings-label { display:none !important; }
+  .mgmt-lang-btn { justify-content:center !important; text-align:center !important; font-size:10px !important; }
+  .mgmt-nav-btn svg, .mgmt-theme-btn svg, button[data-mgmt-settings] svg { width:15px !important; height:15px !important; }
+  .live-status { order:4 !important; height:26px !important; padding:0 9px !important; font-size:9px !important; gap:5px !important; flex:0 0 auto !important; margin-left:0 !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation:none !important; transition:none !important; }
@@ -734,8 +766,11 @@ html[data-theme="light"] .mgmt-theme-btn:focus-visible { background:#ffffff !imp
 }
 html[data-theme="light"] .mgmt-lang-btn { color:var(--accent) !important; }
 @media (max-width: 991.98px) {
-  .mgmt-theme-btn { width:30px !important; height:30px !important; }
-  .mgmt-lang-btn { width:34px !important; min-width:34px !important; height:30px !important; flex-basis:34px !important; padding:0 5px !important; }
+  /* Keep the compact header but stay on the same 36px rhythm as the other
+     controls; 30px here was overriding the phone block and leaving the theme
+     and language buttons visibly shorter than their neighbours. */
+  .mgmt-theme-btn { width:36px !important; min-width:36px !important; height:36px !important; flex:0 0 36px !important; }
+  .mgmt-lang-btn { width:40px !important; min-width:40px !important; height:36px !important; flex-basis:40px !important; padding:0 !important; justify-content:center !important; text-align:center !important; }
 }
 @media (max-width: 560px) {
   .navbar, nav.navbar, header { height:auto !important; min-height:56px !important; }
