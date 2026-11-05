@@ -57,13 +57,16 @@ This repository ships neutral branding on purpose. A deployment personalizes the
 1. Open the Management UI → **Settings** → **Brand Identity**.
 2. Set **Nama Brand** (max 28 chars), **Subjudul** (max 48), and either a **logo URL/path** or upload an image (PNG/JPEG/WebP/SVG, ≤ 300 KB; stored as a data URL).
 3. Click **Simpan Brand**. The header, tab title, and logo update immediately.
+4. Open the **HLS Manager** or **SRT Monitor** — both mirror the exact same identity, served through their own same-origin `/api/brand` proxy. Edits propagate live to all three dashboards within 30 seconds without reloading.
 
 Writes go to `POST /api/brand` and are authorized with the same SLS API key already configured in Settings (`Bearer <api key>`); reads are public so the page can paint before login. Values persist in the `sls-brand` Docker volume (`/brand/brand.json`), never in git, so a private monogram stays out of the public repository.
 
 | Endpoint | Method | Auth | Behaviour |
 |----------|--------|------|-----------|
-| `/api/brand` | `GET` | none | Current config (`no-store`) |
+| `/api/brand` | `GET` | none | Current config (`no-store`), proxied by all three dashboards |
 | `/api/brand` | `POST` | `Bearer <SLS API key>` | Replaces config; invalid fields fall back to defaults |
+| `/api/brand/asset` | `GET` | none | Serves data URLs, root-relative logos from `/assets`, or redirects |
+| `/api/brand/brand.js` | `GET` | none | Shared client runtime that keeps HLS and SRT in sync |
 
 Defaults live in `hls-manager/brand-config.js` (`SRT LIVE` / `Stream Management Console` / `/brand-mark.svg`); the neutral mark is `mgmt-proxy/brand-mark.svg`. Logo schemes other than `http(s)://`, root-relative paths, and `data:image/…;base64` are rejected. Custom logos keep their colours in light mode; the bundled marks invert automatically. To reset, use **Reset ke Default** and save.
 
