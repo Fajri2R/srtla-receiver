@@ -34,8 +34,7 @@
 
 /* ── Light theme (token contract matches Control Hub) ───────────────── */
 :root[data-theme="light"],
-html[data-theme="light"],
-[data-theme="light"] {
+html[data-theme="light"] {
   --bg:#eef1ed; --surface:#fbfcfa; --surface-2:#e5ebe6; --surface-3:#ffffff;
   --border:#b8c5bc; --border-soft:#cad3cc;
   --text:#18231d; --muted:#36463e; --faint:#55655c;
