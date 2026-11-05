@@ -165,7 +165,7 @@ server {
         # The JS file is served at /lp-inject.js by this same nginx.
         # sub_filter_types defaults to text/html, so it is not repeated here.
         sub_filter_once  on;
-        sub_filter '</head>' '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105b"></head>';
+        sub_filter '</head>' '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105d"></head>';
         sub_filter '</body>' '<script src="/lp-inject.js"></script></body>';
     }
 }

@@ -90,7 +90,7 @@ body::after {
   box-shadow:none !important; border-radius:0 !important; overflow:visible !important;
 }
 .mgmt-brand-icon img {
-  width:44px !important; height:15px !important; margin:0 !important;
+  width:100% !important; height:100% !important; margin:0 !important;
   object-fit:contain !important; object-position:left center !important; display:block !important;
 }
 .mgmt-brand-text {

@@ -234,7 +234,7 @@
       brand.classList.add('mgmt-brand');
       brand.setAttribute('aria-label', 'ASHVEIL SRT Live Management');
       brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true">'
-        + '<img src="/ashveil-veil.png?v=20261105c" alt="" width="42" height="14" decoding="async">'
+        + '<img src="/ashveil-veil.png?v=20261105c" alt="" width="44" height="20" decoding="async">'
         + '</span>'
         + '<span class="mgmt-brand-text">ASHVEIL<em class="mgmt-brand-sub">SRT Live Management</em></span>';
     });

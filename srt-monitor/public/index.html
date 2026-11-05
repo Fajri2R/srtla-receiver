@@ -105,10 +105,17 @@
       border: 0;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       box-shadow: none;
+      overflow: visible;
     }
-    .brand-icon img { width: 44px; height: 15px; object-fit: contain; display: block; }
+    .brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: left center;
+      display: block;
+    }
     .brand-text { white-space: nowrap; }
 
     
