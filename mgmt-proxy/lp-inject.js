@@ -661,9 +661,30 @@
   var brandUploadData = null;
   var brandPanelState = 'idle'; // idle | saving | saved | error
 
+  // localStorage only holds the key after the vendor's own Save button runs, so
+  // also read the value the user just typed into the Settings form.
+  function getApiKeyFromModal() {
+    var modal = document.querySelector('.modal.show, .modal.in');
+    if (!modal) return '';
+    var inputs = modal.querySelectorAll('input[type="password"], input[type="text"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var inp = inputs[i];
+      if (inp.closest('[data-lp-brand-panel]')) continue;
+      var label = (inp.getAttribute('placeholder') || '') + ' ' + (inp.name || '') + ' ' + (inp.id || '');
+      var wrapper = inp.closest('.mb-3, .form-group, .settings-field, label');
+      if (wrapper) label += ' ' + (wrapper.textContent || '');
+      if (/api[\s_-]?key/i.test(label) && String(inp.value || '').trim()) return String(inp.value).trim();
+    }
+    return '';
+  }
+
   function getApiKey() {
     try {
-      return localStorage.getItem('apiKey') || localStorage.getItem('api_key') || localStorage.getItem('srt-api-key') || '';
+      return getApiKeyFromModal()
+        || localStorage.getItem('srt-api-key')
+        || localStorage.getItem('apiKey')
+        || localStorage.getItem('api_key')
+        || '';
     } catch (e) { return ''; }
   }
 
@@ -711,7 +732,10 @@
       + '</div>';
 
     wrap.querySelectorAll('.lp-brand-input').forEach(function (inp) {
-      inp.addEventListener('input', function () { syncBrandPreview(wrap); });
+      inp.addEventListener('input', function () {
+        wrap.dataset.brandDirty = '1';
+        syncBrandPreview(wrap);
+      });
     });
 
     var file = wrap.querySelector('[data-brand-field="file"]');
@@ -727,6 +751,7 @@
       var reader = new FileReader();
       reader.onload = function () {
         brandUploadData = String(reader.result || '');
+        wrap.dataset.brandDirty = '1';
         var logoInput = wrap.querySelector('[data-brand-field="logo"]');
         logoInput.value = '';
         brandSetMsg(wrap, 'idle', 'Logo terunggah: ' + f.name + ' \u2014 klik Simpan Brand.');
@@ -737,6 +762,7 @@
 
     wrap.querySelector('.lp-brand-reset').addEventListener('click', function () {
       brandUploadData = null;
+      wrap.dataset.brandDirty = '1';
       wrap.querySelector('[data-brand-field="name"]').value = BRAND_DEFAULTS.name;
       wrap.querySelector('[data-brand-field="subtitle"]').value = BRAND_DEFAULTS.subtitle;
       wrap.querySelector('[data-brand-field="logo"]').value = BRAND_DEFAULTS.logo;
@@ -773,7 +799,7 @@
           cacheBrand();
           paintBrand();
           brandSetMsg(wrap, 'saved', 'Tersimpan. Header dan judul tab diperbarui.');
-          fillBrandPanel(wrap);
+          fillBrandPanel(wrap);  // also clears the dirty flag
         })
         .catch(function () { brandSetMsg(wrap, 'error', 'Gagal menyimpan \u2014 cek koneksi.'); });
     });
@@ -798,6 +824,35 @@
     wrap.querySelector('[data-brand-field="name"]').value = BRAND.name;
     wrap.querySelector('[data-brand-field="subtitle"]').value = BRAND.subtitle;
     wrap.querySelector('[data-brand-field="logo"]').value = BRAND.logo;
+    wrap.dataset.brandRendered = BRAND.name + '\u0000' + BRAND.subtitle + '\u0000' + BRAND.logo;
+    wrap.dataset.brandDirty = '0';
+    syncBrandPreview(wrap);
+  }
+
+  /**
+   * The Settings modal is re-scanned on a 1s poll, so repainting inputs blindly
+   * would erase whatever the user is typing. Only adopt server values when the
+   * panel is untouched and the config actually changed.
+   */
+  function shouldRefillPanel(opts) {
+    var o = opts || {};
+    if (o.dirty || o.focused) return false;
+    return o.rendered !== o.server;
+  }
+
+  function brandSnapshot() {
+    return BRAND.name + '\u0000' + BRAND.subtitle + '\u0000' + BRAND.logo;
+  }
+
+  function syncBrandPanel(wrap) {
+    var active = document.activeElement;
+    var focused = !!(active && wrap.contains(active));
+    var dirty = wrap.dataset.brandDirty === '1';
+    var rendered = wrap.dataset.brandRendered || '';
+    if (shouldRefillPanel({ dirty: dirty, focused: focused, rendered: rendered, server: brandSnapshot() })) {
+      fillBrandPanel(wrap);
+      return;
+    }
     syncBrandPreview(wrap);
   }
 
@@ -810,7 +865,7 @@
     var body = modal.querySelector('.modal-body');
     if (!body) return;
     var existing = body.querySelector('[data-lp-brand-panel]');
-    if (existing) { fillBrandPanel(existing); return; }
+    if (existing) { syncBrandPanel(existing); return; }
     var wrap = buildBrandPanel(body);
     fillBrandPanel(wrap);
     body.appendChild(wrap);
