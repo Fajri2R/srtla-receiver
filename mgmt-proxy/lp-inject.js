@@ -240,6 +240,24 @@
     });
   }
 
+  function applyTheme(t, save) {
+    document.documentElement.setAttribute('data-theme', t);
+    var theme = document.querySelector('meta[name="theme-color"]');
+    if (theme) theme.content = t === 'light' ? '#f4f6f1' : '#2b2d2c';
+    var svgIcon = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+    if (svgIcon) svgIcon.href = '/favicon-' + t + '.svg?v=20261105c';
+    var btn = document.getElementById('mgmt-theme-btn');
+    if (btn) btn.setAttribute('aria-label', t === 'light' ? 'Aktifkan mode gelap' : 'Aktifkan mode terang');
+    if (save) { try { localStorage.setItem('ashveil-theme', t); } catch (_) {} }
+  }
+
+  function initTheme() {
+    var saved = null;
+    try { saved = localStorage.getItem('ashveil-theme'); } catch (_) {}
+    applyTheme(saved === 'light' ? 'light' : 'dark', false);
+  }
+  initTheme();
+
   // Give the tab the Ashveil identity as well: the vendor bundle ships a
   // generic/emoji title and no favicon. Declares the same canonical set as
   // the Control Hub (one SVG, one ICO, one 32px PNG, one touch icon),
@@ -268,7 +286,7 @@
       theme.name = 'theme-color';
       document.head.appendChild(theme);
     }
-    if (theme.content !== '#2b2d2c') theme.content = '#2b2d2c';
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark', false);
   }
 
   function injectNavTools() {
@@ -286,7 +304,21 @@
 
       if (settingsBtn.parentNode.querySelector('.mgmt-nav-tools')) return;
 
-      // 1. SRT Monitor Button
+      // 1. Theme toggle (dark / light), mirrors the Control Hub control
+      var themeBtn = document.createElement('button');
+      themeBtn.className = 'mgmt-nav-btn mgmt-theme-btn';
+      themeBtn.id = 'mgmt-theme-btn';
+      themeBtn.type = 'button';
+      themeBtn.setAttribute('aria-label', 'Aktifkan mode terang');
+      themeBtn.setAttribute('data-tooltip', 'Ganti dark/light mode');
+      themeBtn.innerHTML = '<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>'
+        + '<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>';
+      themeBtn.addEventListener('click', function () {
+        var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        applyTheme(next, true);
+      });
+
+      // 2. SRT Monitor Button
       var srtBtn = document.createElement('a');
       srtBtn.className = 'mgmt-nav-btn';
       srtBtn.href = SRT_MONITOR_URL;
@@ -317,6 +349,7 @@
       var container = document.createElement('div');
       container.className = 'mgmt-nav-tools';
       container.style.display = 'contents';
+      container.appendChild(themeBtn);
       container.appendChild(hlsBtn);
       container.appendChild(srtBtn);
 

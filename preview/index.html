@@ -9,6 +9,16 @@
   <link rel="shortcut icon" href="/favicon.ico?v=20261105c">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261105c">
   <meta name="theme-color" content="#2b2d2c">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('ashveil-theme');
+        document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <meta name="application-name" content="ASHVEIL HLS Manager">
   <meta name="description" content="Live preview dashboard for SRTla receiver streams" />
 
@@ -83,6 +93,61 @@
     }
 
     /* ============================================================
+       LIGHT THEME — mirrors Ashveil Control Hub
+    ============================================================ */
+    :root[data-theme="light"] {
+      --bg:             #eef1ed;
+      --bg-base:        #eef1ed;
+      --surface:        #fbfcfa;
+      --bg-surface:     #fbfcfa;
+      --surface-2:      #e5ebe6;
+      --bg-elevated:    #e5ebe6;
+      --bg-card:        #fbfcfa;
+      --bg-overlay:     rgba(244,248,244,0.94);
+
+      --border:         #c9d3cc;
+      --border-default: #c9d3cc;
+      --border-soft:    #d8e0da;
+      --border-subtle:  #d8e0da;
+      --border-accent:  rgba(19,138,92,0.34);
+
+      --accent:         #138a5c;
+      --accent-light:   #0b6b47;
+      --accent-dim:     #d8efe4;
+      --accent-glow:    rgba(19,138,92,0.10);
+      --green:          #138a5c;
+      --green-dim:      rgba(19,138,92,0.12);
+      --red:            #b3453f;
+      --red-dim:        rgba(179,69,63,0.10);
+      --yellow:         #8a6410;
+      --yellow-dim:     rgba(138,100,16,0.10);
+      --violet:         #5b48a0;
+      --blue:           #1d6f9e;
+
+      --text-primary:   #18231d;
+      --text:           #18231d;
+      --text-secondary: #3f5048;
+      --muted:          #3f5048;
+      --text-muted:     #55655c;
+      --faint:          #708078;
+
+      --brand-ivory:    #18231d;
+      --term-bg:        #ffffff;
+      --term-fg:        #16241c;
+      --term-cmt:       #4a5c52;
+
+      --pat-line:       rgba(24,35,29,.20);
+      --pat-accent:     rgba(19,138,92,.20);
+      --bg-glow: radial-gradient(900px 400px at 15% -5%, rgba(19,138,92,.11), transparent 70%), radial-gradient(700px 400px at 85% 0%, rgba(60,130,246,.08), transparent 70%);
+      --scrollbar-thumb: #c2ccc5;
+      --scrollbar-thumb-hover: #a8b5ad;
+
+      --shadow-card: 0 1px 2px rgba(24,35,29,0.06);
+      --shadow-glow: 0 0 0 1px rgba(19,138,92,.10), 0 18px 40px -26px rgba(19,138,92,.18);
+      color-scheme: light;
+    }
+
+    /* ============================================================
        RESET & BASE
     ============================================================ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -106,9 +171,7 @@
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      background-image:
-        radial-gradient(900px 400px at 15% -5%, rgba(52,211,153,.07), transparent 70%),
-        radial-gradient(700px 400px at 85% 0%, rgba(96,165,250,.05), transparent 70%);
+      background-image: var(--bg-glow, radial-gradient(900px 400px at 15% -5%, rgba(52,211,153,.07), transparent 70%), radial-gradient(700px 400px at 85% 0%, rgba(96,165,250,.05), transparent 70%));
     }
     /* Layer 2 — 32px hairline grid, faded toward the fold */
     body::after {
@@ -244,6 +307,36 @@
       0%,100% { opacity: 1; }
       50%     { opacity: .45; }
     }
+
+    .btn-theme {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .btn-theme:hover, .btn-theme:focus-visible {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--surface-2);
+      outline: none;
+    }
+    .btn-theme svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-theme .sun { display: none; }
+    .btn-theme .moon { display: block; }
+    [data-theme="light"] .btn-theme .sun { display: block; }
+    [data-theme="light"] .btn-theme .moon { display: none; }
+    [data-theme="light"] .logo-icon img { filter: invert(1); }
+    [data-theme="light"] .player-container { background: #0c0f0d; }
+    [data-theme="light"] .badge-live { border-color: rgba(19,138,92,.32); }
 
     .btn-refresh, .btn-mgmt, #btn-srt-monitor {
       display: inline-flex;
@@ -1016,8 +1109,8 @@
     ============================================================ */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #33393a; border-radius: 100px; }
-    ::-webkit-scrollbar-thumb:hover { background: #454c4d; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #33393a); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover, #454c4d); }
 
     /* ============================================================
        RESPONSIVE
@@ -1028,14 +1121,16 @@
 
     @media (max-width: 768px) {
       .header { padding: 0 14px; }
-      .header-inner { height: 56px; padding: 0; flex-wrap: nowrap; gap: 8px; }
-      .header-actions { gap: 6px; }
+      .header-inner { height: auto; min-height: 56px; padding: 8px 0; flex-wrap: wrap; gap: 8px; }
+      .header-actions { gap: 6px; flex-wrap: nowrap; }
       .header-spacer { display: none; }
-      .logo { flex: 1 1 auto; min-width: 0; }
+      .logo { flex: 1 1 auto; min-width: 0; order: 1; }
       .logo-icon { width: 34px; height: 16px; flex: 0 0 34px; }
       .logo-text b { font-size: 12px; letter-spacing: .28em; }
       .logo-sub { font-size: 8px; letter-spacing: .2em; }
-      .header-badge { flex: 0 0 auto; }
+      .header-actions { order: 2; }
+      .header-badge { order: 3; flex: 0 0 auto; height: 30px; }
+      .btn-theme { flex: 0 0 32px; width: 32px; height: 32px; }
       .btn-refresh, .btn-mgmt, #btn-srt-monitor {
         flex: 0 0 32px;
         width: 32px;
@@ -1052,13 +1147,19 @@
       .streams-grid { grid-template-columns: 1fr; }
     }
 
+    @media (max-width: 560px) {
+      .header-actions { flex: 1 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+      .header-badge { flex: 1 1 100%; order: 9; justify-content: center; }
+    }
+
     @media (max-width: 480px) {
       .header { padding: 0 12px; }
       .eyebrow { font-size: 9px; letter-spacing: .1em; white-space: nowrap; }
       .header-inner { gap: 6px; }
       .logo { gap: 8px; }
       .logo-text { display: none; }
-      .header-badge { padding: 0 9px; gap: 5px; height: 30px; font-size: 9.5px; }
+      .header-badge { padding: 0 9px; gap: 5px; height: 28px; font-size: 9px; }
+      .btn-theme { flex-basis: 30px; width: 30px; height: 30px; }
       .btn-refresh, .btn-mgmt, #btn-srt-monitor { flex-basis: 30px; min-width: 30px; height: 30px; }
       .stats-overview { grid-template-columns: 1fr 1fr; gap: 8px; }
       .stat-card { padding: 10px 11px; }
@@ -1089,6 +1190,10 @@
       <div class="header-spacer"></div>
 
       <div class="header-actions">
+        <button class="btn-theme" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode">
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+        </button>
         <button class="btn-refresh" id="btn-refresh" data-tooltip="Refresh streams" onclick="refreshAll()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -1936,14 +2041,14 @@ function drawStreamGraph(id) {
   const pad = { top: 22, right: 18, bottom: 26, left: 46 };
   const chartWidth = width - pad.left - pad.right;
   const chartHeight = height - pad.top - pad.bottom;
-  ctx.strokeStyle = 'rgba(240,240,232,.07)';
+  ctx.strokeStyle = (document.documentElement.getAttribute('data-theme') === 'light') ? 'rgba(24,35,29,.14)' : 'rgba(240,240,232,.07)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + (chartHeight / 4) * i;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke();
   }
   if (!history.length) {
-    ctx.fillStyle = '#9fa5a0'; ctx.font = '10px \'JetBrains Mono\', monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = (document.documentElement.getAttribute('data-theme') === 'light') ? '#55655c' : '#9fa5a0'; ctx.font = '10px \'JetBrains Mono\', monospace'; ctx.textAlign = 'center';
     ctx.fillText('Collecting realtime data?', width / 2, height / 2); return;
   }
   const maxBitrate = Math.max(1, ...history.map((point) => point.bitrate));
@@ -1961,7 +2066,7 @@ function drawStreamGraph(id) {
   drawLine('bitrate', maxBitrate, '#82b6e8');
   drawLine('fps', maxFps, '#34d399');
   drawLine('viewers', maxViewers, '#e5bd62');
-  ctx.fillStyle = '#9fa5a0'; ctx.font = '10px \'JetBrains Mono\', monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = (document.documentElement.getAttribute('data-theme') === 'light') ? '#55655c' : '#9fa5a0'; ctx.font = '10px \'JetBrains Mono\', monospace'; ctx.textAlign = 'left';
   ctx.fillText(`0`, 4, pad.top + chartHeight + 3);
   ctx.fillText(`${formatBitrate(maxBitrate)}`, 4, pad.top + 4);
   const last = history[history.length - 1];
@@ -1970,6 +2075,33 @@ function drawStreamGraph(id) {
     <div class="monitor-summary-item"><div class="monitor-summary-label">FPS</div><div class="monitor-summary-value">${last.fps ? `${last.fps.toFixed(1)} FPS` : '?'}</div></div>
     <div class="monitor-summary-item"><div class="monitor-summary-label">Viewers</div><div class="monitor-summary-value">${last.viewers}</div></div>`;
 }
+
+/* ================================================================
+   THEME TOGGLE (dark / light) — shares 'ashveil-theme' with sibling dashboards
+================================================================ */
+(function () {
+  function applyTheme(t, save) {
+    document.documentElement.setAttribute('data-theme', t);
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', t === 'light' ? '#f4f6f1' : '#2b2d2c');
+    const iconLink = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+    if (iconLink) iconLink.setAttribute('href', '/favicon-' + t + '.svg?v=20261105c');
+    const btn = document.getElementById('btn-theme');
+    if (btn) btn.setAttribute('aria-label', t === 'light' ? 'Aktifkan mode gelap' : 'Aktifkan mode terang');
+    if (save) { try { localStorage.setItem('ashveil-theme', t); } catch (_) {} }
+  }
+  function currentTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(currentTheme(), false);
+    const btn = document.getElementById('btn-theme');
+    if (btn) btn.addEventListener('click', () => {
+      applyTheme(currentTheme() === 'light' ? 'dark' : 'light', true);
+      if (typeof refreshStreamMonitor === 'function') refreshStreamMonitor();
+    });
+  });
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('monitor-close').addEventListener('click', closeStreamMonitor);
