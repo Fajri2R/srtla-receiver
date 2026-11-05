@@ -10,6 +10,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20261105c">
   <meta name="theme-color" content="#2b2d2c">
   <script>
+    const t = (k, fb, vars) => (window.AshveilI18n ? window.AshveilI18n.t(k, fb, vars) : (fb || k));
     (function () {
       try {
         var saved = localStorage.getItem('ashveil-theme');
@@ -24,6 +25,7 @@
 
   <!-- HLS.js -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+  <script src="/i18n.js?v=20261105i18n"></script>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1194,40 +1196,41 @@
     <div class="header-inner">
       <a class="logo" href="/" aria-label="ASHVEIL HLS Manager">
         <span class="logo-icon"><img src="/ashveil-veil.png?v=20261105c" alt="ASHVEIL"></span>
-        <span class="logo-text"><b>ASHVEIL</b><em class="logo-sub">HLS MANAGER</em></span>
+        <span class="logo-text"><b>ASHVEIL</b><em class="logo-sub" data-i18n="brand.sub">HLS MANAGER</em></span>
       </a>
 
       <div class="header-spacer"></div>
 
       <div class="header-actions">
-        <button class="btn-theme nav-action" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode">
+        <button class="btn-lang nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang" style="font-weight:600;min-width:38px;padding:0 8px;">EN</button>
+        <button class="btn-theme nav-action" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
         </button>
-        <button class="btn-refresh nav-action" id="btn-refresh" data-tooltip="Refresh streams" onclick="refreshAll()">
+        <button class="btn-refresh nav-action" id="btn-refresh" data-tooltip="Refresh streams" data-i18n-tooltip="nav.refreshTip" onclick="refreshAll()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          <span class="btn-mgmt-text">Refresh</span>
+          <span class="btn-mgmt-text" data-i18n="nav.refresh">Refresh</span>
         </button>
 
-        <a class="btn-mgmt nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" style="text-decoration:none;">
+        <a class="btn-mgmt nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <line x1="9" y1="3" x2="9" y2="21"/>
           </svg>
-          <span class="btn-mgmt-text">Management UI</span>
+          <span class="btn-mgmt-text" data-i18n="nav.management">Management UI</span>
         </a>
 
-        <a class="btn-mgmt nav-action" id="btn-srt-monitor" href="#" target="_blank" data-tooltip="Open SRT Monitor" style="text-decoration:none;">
+        <a class="btn-mgmt nav-action" id="btn-srt-monitor" href="#" target="_blank" data-tooltip="Open SRT Monitor" data-i18n-tooltip="nav.srtMonitorTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          <span class="btn-mgmt-text">SRT Monitor</span>
+          <span class="btn-mgmt-text" data-i18n="nav.srtMonitor">SRT Monitor</span>
         </a>
         <div class="header-badge" id="hls-status" role="status" aria-live="polite"
              title="Checking HLS service status" style="cursor:default">
           <div class="pulse-dot" style="background:var(--yellow)"></div>
-          <span>HLS: checking...</span>
+          <span data-i18n="status.checking">HLS: checking…</span>
         </div>
       </div>
     </div>
@@ -1236,42 +1239,42 @@
   <!-- MAIN -->
   <main class="main">
 
-    <div class="eyebrow">live preview &middot; hls output &middot; srtla receiver</div>
+    <div class="eyebrow" data-i18n="eyebrow.live">live preview &middot; hls output &middot; srtla receiver</div>
 
     <!-- STATS OVERVIEW -->
     <div class="stats-overview">
       <div class="stat-card">
-        <div class="stat-label">Active Streams</div>
+        <div class="stat-label" data-i18n="stat.active">Active Streams</div>
         <div class="stat-value green" id="stat-active">—</div>
-        <div class="stat-sub">Currently live</div>
+        <div class="stat-sub" data-i18n="stat.activeSub">Currently live</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Publishers</div>
+        <div class="stat-label" data-i18n="stat.total">Total Publishers</div>
         <div class="stat-value" id="stat-total">—</div>
-        <div class="stat-sub">Registered</div>
+        <div class="stat-sub" data-i18n="stat.totalSub">Registered</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Bitrate</div>
+        <div class="stat-label" data-i18n="stat.bitrate">Total Bitrate</div>
         <!-- ✅ FIX #21: consistent Mbps unit in overview too -->
         <div class="stat-value" id="stat-bitrate">—</div>
-        <div class="stat-sub" id="stat-bitrate-sub">Mbps combined</div>
+        <div class="stat-sub" id="stat-bitrate-sub" data-i18n="stat.bitrateSub">Mbps combined</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Previewing</div>
+        <div class="stat-label" data-i18n="stat.previewing">Previewing</div>
         <div class="stat-value" id="stat-previewing">0</div>
-        <div class="stat-sub">/ 4 max simultaneous</div>
+        <div class="stat-sub" data-i18n="stat.previewingSub">/ 4 max simultaneous</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Last Updated</div>
+        <div class="stat-label" data-i18n="stat.updated">Last Updated</div>
         <div class="stat-value" id="stat-updated" style="font-size:16px;padding-top:4px;">—</div>
-        <div class="stat-sub">Auto-refresh every 2.5s</div>
+        <div class="stat-sub" data-i18n="stat.updatedSub">Auto-refresh every 2.5s</div>
       </div>
     </div>
 
     <!-- STREAMS SECTION -->
     <div class="section-header">
       <div class="section-title">
-        Live Streams
+        <span data-i18n="section.liveStreams">Live Streams</span>
         <span class="badge" id="streams-count">0</span>
       </div>
     </div>
@@ -1290,27 +1293,27 @@
   <div class="monitor-panel" role="dialog" aria-modal="true" aria-labelledby="monitor-title">
     <div class="monitor-header">
       <div style="min-width:0">
-        <div class="monitor-title" id="monitor-title">Stream Monitor</div>
+        <div class="monitor-title" id="monitor-title" data-i18n="monitor.title">Stream Monitor</div>
         <div class="monitor-subtitle" id="monitor-subtitle">?</div>
       </div>
-      <button class="monitor-close" id="monitor-close" title="Close monitoring panel" aria-label="Close monitoring panel">?</button>
+      <button class="monitor-close" id="monitor-close" title="Close monitoring panel" aria-label="Close monitoring panel" data-i18n-title="monitor.close">?</button>
     </div>
     <div class="monitor-tabs">
-      <button class="monitor-tab active" data-monitor-tab="graph">Graph</button>
-      <button class="monitor-tab" data-monitor-tab="logs">Logs</button>
+      <button class="monitor-tab active" data-monitor-tab="graph" data-i18n="monitor.graph">Graph</button>
+      <button class="monitor-tab" data-monitor-tab="logs" data-i18n="monitor.logs">Logs</button>
     </div>
     <div class="monitor-content">
       <section class="monitor-view active" id="monitor-graph-view">
         <canvas class="monitor-chart" id="monitor-chart"></canvas>
         <div class="monitor-legend">
-          <span><i style="background:#82b6e8"></i>Bitrate</span>
-          <span><i style="background:#34d399"></i>FPS</span>
-          <span><i style="background:#e5bd62"></i>Viewers</span>
+          <span><i style="background:#82b6e8"></i><span data-i18n="monitor.bitrate">Bitrate</span></span>
+          <span><i style="background:#34d399"></i><span data-i18n="monitor.fps">FPS</span></span>
+          <span><i style="background:#e5bd62"></i><span data-i18n="monitor.viewers">Viewers</span></span>
         </div>
         <div class="monitor-summary" id="monitor-summary"></div>
       </section>
       <section class="monitor-view" id="monitor-logs-view">
-        <div class="monitor-logs" id="monitor-logs"><div class="monitor-log-empty">Loading transcoder logs?</div></div>
+        <div class="monitor-logs" id="monitor-logs"><div class="monitor-log-empty" data-i18n="monitor.loadingLogs">Loading transcoder logs…</div></div>
       </section>
     </div>
   </div>
@@ -1417,6 +1420,15 @@ function updateMgmtLink() {
 /* ================================================================
    AUTO REFRESH
 ================================================================ */
+// Repaint every dynamic surface when the language flips, without a reload.
+document.addEventListener('ashveil:langchange', () => {
+  // renderDashboard rewrites markup from templates, so repaint first and then
+  // re-apply the dictionary to the freshly generated nodes.
+  if (lastDashboardData) renderDashboard(lastDashboardData);
+  if (monitorStreamId) refreshStreamMonitor();
+  if (window.AshveilI18n) window.AshveilI18n.apply(document);
+});
+
 function startAutoRefresh() {
   if (refreshTimer) clearTimeout(refreshTimer);
   const loop = () => {
@@ -1489,11 +1501,11 @@ function updateHlsStatus(running, errorMessage) {
   if (!badge) return;
 
   if (errorMessage) {
-    badge.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div><span>HLS: offline</span>`;
-    badge.title = 'HLS Manager API is unreachable';
+    badge.innerHTML = `<div class="pulse-dot" style="background:var(--red)"></div><span>${t('status.offline', 'HLS: offline')}</span>`;
+    badge.title = t('status.apiUnreachable', 'HLS Manager API is unreachable');
     badge.setAttribute('aria-label', badge.title);
     if (hlsStatusState !== 'offline') {
-      showToast(`HLS Manager unavailable: ${errorMessage}`, 'error');
+      showToast(t('status.unavailable', 'HLS Manager unavailable') + ': ' + errorMessage, 'error');
     }
     hlsStatusState = 'offline';
     return;
@@ -1502,10 +1514,12 @@ function updateHlsStatus(running, errorMessage) {
   const activeStreams = Math.max(0, Number.parseInt(running, 10) || 0);
   const isActive = activeStreams > 0;
   hlsStatusState = isActive ? 'active' : 'ready';
-  const label = isActive ? `HLS: ${activeStreams} active` : 'HLS: ready';
+  const label = isActive
+    ? t('status.active', 'HLS: {count} active', { count: activeStreams })
+    : t('status.ready', 'HLS: ready');
   const description = isActive
-    ? `HLS service online - ${activeStreams} stream${activeStreams === 1 ? '' : 's'} transcoding`
-    : 'HLS service online - waiting for a live stream';
+    ? t('status.activeDesc', 'HLS service online', { count: activeStreams })
+    : t('status.readyDesc', 'HLS service online — waiting for a live stream');
   const color = 'var(--accent)';
 
   badge.innerHTML = `<div class="pulse-dot" style="background:${color}"></div><span>${label}</span>`;
@@ -1550,7 +1564,10 @@ function recordMetricHistory(publishers) {
   });
 }
 
+let lastDashboardData = null;
+
 function renderDashboard(data) {
+  lastDashboardData = data;
   const publishers = data.publishers || data.Publishers || [];
   recordMetricHistory(publishers);
   if (monitorStreamId) refreshStreamMonitor();
@@ -1582,8 +1599,8 @@ function renderDashboard(data) {
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
         </div>
-        <div class="empty-title">No streams found</div>
-        <div class="empty-sub">No active publishers are registered. Send a stream to the SRTLA receiver to get started.</div>
+        <div class="empty-title" data-i18n="empty.noStreams">No streams found</div>
+        <div class="empty-sub" data-i18n="empty.noStreamsSub">No active publishers are registered. Send a stream to the SRTLA receiver to get started.</div>
       </div>`;
     return;
   }
@@ -1608,6 +1625,10 @@ function renderDashboard(data) {
       }
     }
   });
+
+  // Card templates and the empty state are rebuilt from strings, so re-apply
+  // the dictionary after every render (also covers the first paint).
+  if (window.AshveilI18n) window.AshveilI18n.apply(document);
 }
 
 function streamId(p) {
@@ -1643,15 +1664,15 @@ function createCard(publisher) {
 
       <div class="video-overlay" id="unsupported-${CSS.escape(id)}" style="display:${unsupported ? 'flex' : 'none'}; background:rgba(0,0,0,0.8); z-index:20; flex-direction:column; justify-content:center; text-align:center; padding:20px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width:32px;height:32px;margin:0 auto 12px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        <div style="font-size:14px;font-weight:600;color:#e88b8b;margin-bottom:6px;">Preview Unsupported</div>
-        <div style="font-size:12px;color:#c4c8c4;line-height:1.4;">Stream uses HEVC or Opus.<br>Set encoder to H.264 & AAC.</div>
+        <div style="font-size:14px;font-weight:600;color:#e88b8b;margin-bottom:6px;" data-i18n="stream.unsupportedTitle">Preview Unsupported</div>
+        <div style="font-size:12px;color:#c4c8c4;line-height:1.4;" data-i18n-html="stream.unsupportedSub">Stream uses HEVC or Opus.<br>Set encoder to H.264 & AAC.</div>
       </div>
 
       <div class="video-overlay" id="overlay-${CSS.escape(id)}" style="display:${unsupported ? 'none' : ''}">
         <div class="overlay-icon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
         </div>
-        <span class="overlay-text">Click ▶ Preview to start watching</span>
+        <span class="overlay-text" data-i18n="stream.clickToWatch">Click ▶ Preview to start watching</span>
       </div>
 
       ${online ? '<div class="video-badge badge-live">LIVE</div>' : ''}
@@ -1668,7 +1689,7 @@ function createCard(publisher) {
         </div>
         <div class="status-chip ${online ? 'online' : 'offline'}" id="status-${CSS.escape(id)}">
           <div class="dot"></div>
-          ${online ? 'Live' : 'Offline'}
+          ${online ? t('stream.live', 'Live') : t('stream.offline', 'Offline')}
         </div>
       </div>
 
@@ -1679,19 +1700,19 @@ function createCard(publisher) {
       <div class="card-actions">
         <button class="btn-action btn-play" id="btn-play-${CSS.escape(id)}" data-action="preview" style="display:${unsupported ? 'none' : ''}">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          Preview
+          ${t('stream.preview', 'Preview')}
         </button>
         <button class="btn-action btn-stop" id="btn-stop-${CSS.escape(id)}" data-action="stop" style="display:none">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
-          Stop
+          ${t('stream.stop', 'Stop')}
         </button>
-        <button class="btn-action btn-secondary-action" data-action="monitor" title="View Stream Dashboard">
+        <button class="btn-action btn-secondary-action" data-action="monitor" title="View Stream Dashboard" data-i18n-title="stream.monitorTip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
-          Monitor
+          ${t('stream.monitor', 'Monitor')}
         </button>
         <button class="btn-action btn-secondary-action" data-action="copy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy URL
+          ${t('stream.copy', 'Copy URL')}
         </button>
       </div>
     </div>`;
@@ -1739,29 +1760,29 @@ function updateCard(card, publisher) {
 
   const statusEl = document.getElementById(`status-${eid}`);
   if (statusEl) {
-    let statusText = online ? 'Live' : 'Offline';
+    let statusText = online ? t('stream.live', 'Live') : t('stream.offline', 'Offline');
     let statusTheme = online ? 'online' : 'offline';
     let tooltip = '';
     
     if (publisher.status === 'unsupported_codec') {
-      statusText = 'Unsupported';
+      statusText = t('status.unsupported', 'Unsupported');
       statusTheme = 'unsupported';
-      tooltip = 'Preview unsupported for HEVC / Opus codec';
+      tooltip = t('status.unsupportedTip', 'Preview unsupported for HEVC / Opus codec');
     } else if (publisher.offlineGraceAt) {
-      statusText = 'Disconnecting... (' + Math.max(0, Math.ceil((15000 - (Date.now() - publisher.offlineGraceAt)) / 1000)) + 's)';
+      statusText = t('status.disconnecting', 'Disconnecting…', { s: Math.max(0, Math.ceil((15000 - (Date.now() - publisher.offlineGraceAt)) / 1000)) });
       statusTheme = 'warning';
-      tooltip = 'Stream disconnected, awaiting reconnection grace period';
+      tooltip = t('status.disconnectTip', 'Stream disconnected, awaiting reconnection grace period');
     } else if (online) {
       const rtt = Number(publisher.publisherStats?.rtt || 0);
       const drops = Number(publisher.publisherStats?.dropped_pkts || 0);
       if (drops > 50 || rtt > 250) {
         statusTheme = 'error';
-        tooltip = 'Critical network health: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+        tooltip = t('status.healthCritical', 'Critical network health', { rtt: rtt.toFixed(0), drops: drops });
       } else if (drops > 5 || rtt > 100) {
         statusTheme = 'warning';
-        tooltip = 'Degraded network health: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+        tooltip = t('status.healthDegraded', 'Degraded network health', { rtt: rtt.toFixed(0), drops: drops });
       } else {
-        tooltip = 'Healthy: RTT ' + rtt.toFixed(0) + 'ms, drops ' + drops;
+        tooltip = t('status.healthHealthy', 'Healthy', { rtt: rtt.toFixed(0), drops: drops });
       }
     }
     
@@ -1803,7 +1824,7 @@ const MAX_SIMULTANEOUS_PREVIEWS = 4;
 function startPreview(id, retryAttempt = 0) {
   // ✅ FIX #13: Warn and block if too many streams playing simultaneously
   if (!playingStreams.has(id) && playingStreams.size >= MAX_SIMULTANEOUS_PREVIEWS) {
-    showToast(`Max ${MAX_SIMULTANEOUS_PREVIEWS} simultaneous previews. Stop one first.`, 'error');
+    showToast(t('stream.maxPreviews', 'Max simultaneous previews', { max: MAX_SIMULTANEOUS_PREVIEWS }), 'error');
     return;
   }
 
@@ -1869,9 +1890,9 @@ function startPreview(id, retryAttempt = 0) {
          <div class="overlay-icon">
            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
          </div>
-         <span class="overlay-text">Stream unavailable — check HLS transcoder</span>`;
+         <span class="overlay-text">${t('stream.unavailableTranscoder', 'Stream unavailable — check HLS transcoder')}</span>`;
        overlay.classList.remove('hidden');
-       showToast(`Stream error: ${data.type || 'network error'}`, 'error');
+       showToast(t('stream.error', 'Stream error', { type: data.type || 'network error' }), 'error');
         if (btnPlay) btnPlay.style.display = '';
         if (btnStop) btnStop.style.display = 'none';
         playingStreams.delete(id);
@@ -1893,11 +1914,11 @@ function startPreview(id, retryAttempt = 0) {
       updatePreviewCount();
     }, { once: true });
     videoEl.addEventListener('error', () => {
-      overlay.innerHTML = `<div class="overlay-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg></div><span class="overlay-text">Stream unavailable</span>`;
+      overlay.innerHTML = `<div class="overlay-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg></div><span class="overlay-text">${t('stream.unavailable', 'Stream unavailable')}</span>`;
       overlay.classList.remove('hidden');
     }, { once: true });
   } else {
-    showToast('HLS not supported in this browser.', 'error');
+    showToast(t('stream.hlsNotSupported', 'HLS not supported in this browser.'), 'error');
   }
 }
 
@@ -1958,12 +1979,12 @@ function fallbackCopyText(text) {
     const successful = document.execCommand('copy');
     document.body.removeChild(ta);
     if (successful) {
-      showToast('HLS URL copied to clipboard!', 'ok');
+      showToast(t('stream.copied', 'HLS URL copied to clipboard!'), 'ok');
     } else {
       throw new Error('execCommand failed');
     }
   } catch (_) {
-    window.prompt('Copy HLS URL manually:', text);
+    window.prompt(t('stream.copyFailed', 'Copy HLS URL manually:'), text);
   }
 }
 
@@ -1971,7 +1992,7 @@ function copyStreamUrl(id) {
   const hlsUrl = `${config.hlsBase}/${safeId(id)}/stream.m3u8?cache=${Date.now()}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(hlsUrl)
-      .then(() => showToast('HLS URL copied to clipboard!', 'ok'))
+      .then(() => showToast(t('stream.copied', 'HLS URL copied to clipboard!'), 'ok'))
       .catch(() => fallbackCopyText(hlsUrl));
   } else {
     fallbackCopyText(hlsUrl);
@@ -2139,7 +2160,7 @@ function renderMetrics(p) {
   const sourceLatency = Number(publisherStats?.latency);
 
   if (sourceMedia || publisherStats) {
-    mediaChips += `<span class="metric-label">Source Asli (SRT)</span>`;
+    mediaChips += `<span class="metric-label" data-i18n="source.label">Source (SRT)</span>`;
     if (sourceMedia && sourceMedia.video) {
       const video = sourceMedia.video;
       const resolution = video.width && video.height ? `${video.width}x${video.height}` : "Unknown resolution";

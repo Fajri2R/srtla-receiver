@@ -247,6 +247,8 @@ const server = createServer(async (req, res) => {
   const staticFiles = {
     "/": ["index.html", "text/html; charset=utf-8"],
     "/index.html": ["index.html", "text/html; charset=utf-8"],
+    "/i18n.json": ["i18n.json", "application/json; charset=utf-8"],
+    "/i18n.js": ["i18n.js", "text/javascript; charset=utf-8"],
     "/favicon.ico": ["favicon.ico", "image/x-icon"],
     "/favicon.svg": ["favicon.svg", "image/svg+xml"],
     "/favicon-dark.svg": ["favicon-dark.svg", "image/svg+xml"],

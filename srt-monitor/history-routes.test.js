@@ -160,7 +160,7 @@ test('GET /api/history/quality scores a range and lists incidents', async () => 
   const store = new HistoryStore({ dir });
   const t = Date.UTC(2026, 10, 5, 9, 0, 0);
   store.record('streamQ', { at: t, rtt: 3, recvBitrate: 2_000_000, droppedPackets: 0 });
-  store.record('streamQ', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120 });
+  store.record('streamQ', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120, droppedRate: 9 });
   await store.flush();
 
   const srv = await setupServer(store);
@@ -222,7 +222,7 @@ test('GET /api/history/quality?format=csv exports the analysis as a table', asyn
   const store = new HistoryStore({ dir });
   const t = Date.UTC(2026, 10, 5, 10, 0, 0);
   store.record('streamQC', { at: t, rtt: 3, recvBitrate: 2_000_000, droppedPackets: 0 });
-  store.record('streamQC', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120 });
+  store.record('streamQC', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120, droppedRate: 9 });
   await store.flush();
 
   const srv = await setupServer(store);

@@ -17,6 +17,7 @@
       }
     })();
   </script>
+  <script src="/i18n.js"></script>
   <style>
     /* ============================================================
        ASHVEIL DESIGN SYSTEM — SRT Monitor
@@ -607,7 +608,10 @@
     /* ============================================================
        RESPONSIVE
     ============================================================ */
-    @media(max-width: 1000px) {
+    /* The header owns brand + stream selector + four nav actions + language +
+       theme + status. Below 1120px that row no longer fits, so wrap it there
+       rather than letting the status badge push past the viewport. */
+    @media(max-width: 1120px) {
       .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 10px 0; gap: 8px 10px; justify-content: flex-start; }
       .header-controls { display: contents !important; }
       .brand { order: 1; flex: 1 1 auto; }
@@ -618,6 +622,11 @@
       .action-fs-main { display: none !important; }
       #btn-hls, #btn-mgmt { order: 2; padding: 0 9px; }
       #btn-hls .btn-text, #btn-mgmt .btn-text { display: none; }
+      /* History / language controls stay reachable: icon-only from 1000px down,
+         and the language pill shrinks rather than pushing the status badge. */
+      #btn-history { order: 2; padding: 0 9px; }
+      #btn-history .btn-text { display: none; }
+      #lang-toggle { order: 2; min-width: 34px; padding: 0 6px; }
 
       /* Two charts still fit side by side here, but the header row (name +
          live value + action buttons) no longer does. Let it wrap instead of
@@ -635,6 +644,10 @@
       .brand-sub { font-size: 8px; letter-spacing: .2em; }
       .live { height: 30px; padding: 0 9px; font-size: 9.5px; }
       .theme-btn { width: 30px; height: 30px; }
+      #lang-toggle { height: 30px; min-width: 30px; font-size: 9.5px; padding: 0 5px; }
+      /* Keep the back affordance visible and full-row on phones so it is the
+         first thing a thumb reaches when leaving the archive. */
+      .hist-actions #hist-back { width: 100%; justify-content: center; }
       .dot { width: 5px; height: 5px; flex: 0 0 5px; }
       .main { padding: 16px 14px 36px; }
       .eyebrow { font-size: 9px; letter-spacing: .1em; }
@@ -839,22 +852,22 @@
           <label>Stream</label>
           <select id="stream"></select>
         </div>
-        <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" style="text-decoration:none;">
+        <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <line x1="9" y1="3" x2="9" y2="21"/>
           </svg>
-          <span class="btn-text">Management UI</span>
+          <span class="btn-text" data-i18n="nav.management">Management UI</span>
         </a>
-        <a class="action nav-action" id="btn-hls" href="#" target="_blank" data-tooltip="Open HLS Manager" style="text-decoration:none;">
+        <a class="action nav-action" id="btn-hls" href="#" target="_blank" data-tooltip="Open HLS Manager" data-i18n-tooltip="nav.hlsTip" style="text-decoration:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span class="btn-text">HLS Manager</span>
+            <span class="btn-text" data-i18n="nav.hls">HLS Manager</span>
         </a>
-        <button class="action nav-action" id="btn-history" type="button" aria-pressed="false" data-tooltip="Live History &amp; Network Quality">
+        <button class="action nav-action" id="btn-history" type="button" aria-pressed="false" data-tooltip="Live History &amp; Network Quality" data-i18n-tooltip="nav.historyTip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
-          <span class="btn-text">History</span>
+          <span class="btn-text" data-i18n="nav.history">History</span>
         </button>
-        <button class="action action-fs-main nav-action" onclick="toggleMainFullscreen()" data-tooltip="Fullscreen Entire Dashboard" aria-label="Fullscreen entire dashboard" style="padding: 0 10px;">
+        <button class="action action-fs-main nav-action" onclick="toggleMainFullscreen()" data-tooltip="Fullscreen Entire Dashboard" aria-label="Fullscreen entire dashboard" data-i18n-title="nav.fullscreen" style="padding: 0 10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
             <polyline points="15 3 21 3 21 9"></polyline>
             <polyline points="9 21 3 21 3 15"></polyline>
@@ -862,66 +875,71 @@
             <line x1="3" y1="21" x2="10" y2="14"></line>
           </svg>
         </button>
-        <button class="theme-btn nav-action" id="theme-btn" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode">
+        <button class="action nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang" style="font-weight:600;min-width:38px;padding:0 8px;">EN</button>
+        <button class="theme-btn nav-action" id="theme-btn" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
         </button>
-        <div class="live status-indicator error"><i class="dot"></i><span>Disconnected</span></div>
+        <div class="live status-indicator error"><i class="dot"></i><span data-i18n="status.disconnected">Disconnected</span></div>
       </div>
     </div>
   </header>
   <main class="main">
-    <div class="eyebrow">live telemetry &middot; srt ingest &middot; per-stream metrics</div>
+    <div class="eyebrow" data-i18n="eyebrow.live">live telemetry &middot; srt ingest &middot; per-stream metrics</div>
     <h1 class="title">
-      Metrics <code id="stream-name">-</code>
-      <div class="live status-indicator fs-only-status error"><i class="dot"></i><span>Disconnected</span></div>
+      <span data-i18n="title.metrics">Metrics</span> <code id="stream-name">-</code>
+      <div class="live status-indicator fs-only-status error"><i class="dot"></i><span data-i18n="status.disconnected">Disconnected</span></div>
     </h1>
-    <p class="sub" id="hint">Hover a graph for its timestamp and exact metric value.</p>
+    <p class="sub" id="hint" data-i18n="hint.hover">Hover a graph for its timestamp and exact metric value.</p>
     <section class="stats" id="stats"></section>
     <section class="charts" id="charts"></section>
 
     <section class="history" id="history" aria-label="Live history">
       <div class="hist-head">
         <div>
-          <span class="hist-eyebrow">arsip telemetri &middot; per sesi live</span>
-          <h2>Live History</h2>
+          <span class="hist-eyebrow" data-i18n="history.subtitle">telemetry archive &middot; per-session playback</span>
+          <h2 data-i18n="history.title">Live History</h2>
         </div>
         <div class="hist-actions">
-          <label class="hist-field">Stream
-            <select id="hist-stream"><option value="all">All streams</option></select>
+          <button class="action nav-action" id="hist-back" type="button" data-tooltip="Back to live" data-i18n-tooltip="nav.backTip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span class="btn-text" data-i18n="history.back">Back to live</span>
+          </button>
+          <label class="hist-field"><span data-i18n="history.streamFilter">Stream</span>
+            <select id="hist-stream"><option value="all" data-i18n="history.allStreams">All streams</option></select>
           </label>
-          <label class="hist-field">Retention (days)
-            <input id="hist-retention" type="number" min="1" max="3650" step="1" inputmode="numeric" aria-label="Retention in days">
+          <label class="hist-field"><span data-i18n="history.retention">Retention (days)</span>
+            <input id="hist-retention" type="number" min="1" max="3650" step="1" inputmode="numeric" aria-label="Retention in days" data-i18n-title="history.retention">
           </label>
-          <button class="action nav-action" id="hist-save-retention" type="button">Save</button>
-          <button class="action nav-action" id="hist-refresh" type="button">Refresh</button>
-          <button class="action nav-action danger" id="hist-delete-all" type="button">Delete all</button>
+          <button class="action nav-action" id="hist-save-retention" type="button" data-i18n="history.save">Save</button>
+          <button class="action nav-action" id="hist-refresh" type="button" data-i18n="history.refresh">Refresh</button>
+          <button class="action nav-action danger" id="hist-delete-all" type="button" data-i18n="history.deleteAll">Delete all</button>
         </div>
       </div>
 
       <div class="hist-layout">
         <div>
-          <div class="hist-list" id="hist-list" role="listbox" aria-label="Recorded sessions"></div>
-          <p class="hist-empty" id="hist-empty">No sessions recorded yet. History is written while a publisher is live.</p>
+          <div class="hist-list" id="hist-list" role="listbox" aria-label="Recorded sessions" data-i18n-title="history.list"></div>
+          <p class="hist-empty" id="hist-empty" data-i18n="history.empty">No sessions recorded yet. History is written while a publisher is live.</p>
         </div>
 
         <div class="hist-detail" id="hist-detail" hidden>
           <div class="hist-detail-head">
             <div>
-              <span class="hist-eyebrow">session</span>
+              <span class="hist-eyebrow" data-i18n="history.session">session</span>
               <strong class="hist-detail-title" id="hist-detail-title">&mdash;</strong>
             </div>
             <div class="hist-detail-actions">
-              <select id="hist-metric" aria-label="Metric">
-                <option value="rtt">RTT</option>
-                <option value="recvBitrate">Receive bitrate</option>
-                <option value="throughput">Throughput</option>
-                <option value="recvBuffer">Receive buffer</option>
-                <option value="droppedPackets">Packet drops</option>
-                <option value="transcoderFps">FPS</option>
+              <select id="hist-metric" aria-label="Metric" data-i18n-title="history.metricLabel">
+                <option value="rtt" data-i18n="metric.rtt">RTT</option>
+                <option value="recvBitrate" data-i18n="metric.recvBitrate">Receive bitrate</option>
+                <option value="throughput" data-i18n="metric.throughput">Throughput</option>
+                <option value="recvBuffer" data-i18n="metric.recvBuffer">Receive buffer</option>
+                <option value="droppedPackets" data-i18n="metric.droppedPackets">Packet drops</option>
+                <option value="transcoderFps" data-i18n="metric.transcoderFps">FPS</option>
               </select>
-              <a class="action nav-action" id="hist-export" href="#" download>CSV</a>
-              <button class="action nav-action danger" id="hist-delete-session" type="button">Delete session</button>
+              <a class="action nav-action" id="hist-export" href="#" download data-i18n="history.csv">CSV</a>
+              <button class="action nav-action danger" id="hist-delete-session" type="button" data-i18n="history.deleteSession">Delete session</button>
             </div>
           </div>
           <div class="hist-kpis" id="hist-kpis"></div>
@@ -929,19 +947,19 @@
           <section class="hist-quality" id="hist-quality" aria-live="polite">
             <div class="hist-quality-top">
               <div>
-                <span class="hist-eyebrow">network quality</span>
+                <span class="hist-eyebrow" data-i18n="quality.title">network quality</span>
                 <span class="hist-quality-score" id="hist-quality-score">&mdash;<small>/100</small></span>
               </div>
               <span class="hist-quality-grade" id="hist-quality-grade">&mdash;</span>
             </div>
             <div class="hist-quality-bar"><span id="hist-quality-fill"></span></div>
-            <p class="hist-quality-health" id="hist-quality-health">Analysing recorded minutes…</p>
+            <p class="hist-quality-health" id="hist-quality-health" data-i18n="quality.analysing">Analysing recorded minutes…</p>
             <div class="hist-incidents" id="hist-incidents"></div>
-            <p class="hist-incidents-empty" id="hist-incidents-empty" hidden>No incidents detected in this session.</p>
+            <p class="hist-incidents-empty" id="hist-incidents-empty" hidden data-i18n="quality.empty">No incidents detected in this session.</p>
             <div class="hist-quality-foot">
-              <a class="action nav-action" id="hist-quality-export" href="#" download>Quality CSV</a>
+              <a class="action nav-action" id="hist-quality-export" href="#" download data-i18n="quality.export" data-i18n-title="quality.export">Quality CSV</a>
               <details class="hist-thresholds" id="hist-thresholds">
-                <summary>Thresholds</summary>
+                <summary data-i18n="quality.thresholds">Thresholds</summary>
                 <p class="hist-note" id="hist-threshold-list"></p>
               </details>
             </div>
@@ -955,12 +973,12 @@
       <p class="hist-error" id="hist-error" hidden></p>
 
       <details class="hist-key">
-        <summary>API key</summary>
+        <summary data-i18n="key.title">API key</summary>
         <div class="hist-key-row">
-          <input id="hist-key" type="password" placeholder="SLS API key (needed to delete history or change retention)" autocomplete="off">
-          <button class="action nav-action" id="hist-key-save" type="button">Remember</button>
+          <input id="hist-key" type="password" placeholder="SLS API key (needed to delete history or change retention)" autocomplete="off" data-i18n-ph="key.placeholder">
+          <button class="action nav-action" id="hist-key-save" type="button" data-i18n="key.remember">Remember</button>
         </div>
-        <p class="hist-note">Stored in this browser only (localStorage) and sent solely to this dashboard's API.</p>
+        <p class="hist-note" data-i18n="key.note">Stored in this browser only (localStorage) and sent solely to this dashboard's API.</p>
       </details>
     </section>
   </main>
@@ -972,16 +990,17 @@
       const pale = {recvBitrate:'#1d6f9e', throughput:'#177a70', rtt:'#0d8a57', droppedRate:'#b3453f', droppedPackets:'#b3453f', recvBuffer:'#5b48a0', latency:'#a0487a', transcoderFps:'#9a6b10', uptime:'#5b48a0'};
       return (light ? pale : dark)[key];
     }
+    const t = (k, fb, vars) => (window.AshveilI18n ? window.AshveilI18n.t(k, fb, vars) : (fb || k));
     const summaryDefs = [
-      {key: 'recvBitrate', label: 'Receive Bitrate', fmt: 'rate'},
-      {key: 'throughput', label: 'Transport Throughput', fmt: 'rate'},
-      {key: 'rtt', label: 'Round Trip Time (RTT)', fmt: 'ms'},
-      {key: 'droppedRate', label: 'Packet Drops per second', fmt: 'count'},
-      {key: 'recvBuffer', label: 'Receive Buffer', fmt: 'count'},
-      {key: 'latency', label: 'Configured Latency', fmt: 'ms'},
-      {key: 'droppedPackets', label: 'Packet Drops (session total)', fmt: 'count'},
-      {key: 'transcoderFps', label: 'Realtime / Source FPS', fmt: 'fps'},
-      {key: 'uptime', label: 'Stream Uptime', fmt: 'duration'}
+      {key: 'recvBitrate', get label() { return t('metric.recvBitrate', 'Receive Bitrate'); }, fmt: 'rate'},
+      {key: 'throughput', get label() { return t('metric.throughput', 'Transport Throughput'); }, fmt: 'rate'},
+      {key: 'rtt', get label() { return t('metric.rtt', 'Round Trip Time (RTT)'); }, fmt: 'ms'},
+      {key: 'droppedRate', get label() { return t('metric.droppedRate', 'Packet Drops per second'); }, fmt: 'count'},
+      {key: 'recvBuffer', get label() { return t('metric.recvBuffer', 'Receive Buffer'); }, fmt: 'count'},
+      {key: 'latency', get label() { return t('metric.latency', 'Configured Latency'); }, fmt: 'ms'},
+      {key: 'droppedPackets', get label() { return t('metric.droppedPackets', 'Packet Drops (session total)'); }, fmt: 'count'},
+      {key: 'transcoderFps', get label() { return t('metric.transcoderFps', 'Realtime / Source FPS'); }, fmt: 'fps'},
+      {key: 'uptime', get label() { return t('metric.uptime', 'Stream Uptime'); }, fmt: 'duration'}
     ];
     summaryDefs.forEach(d => Object.defineProperty(d, 'color', {get: () => chartColor(d.key)}));
     // Charts: the four signals that explain a bad minute, plus buffer growth.
@@ -989,10 +1008,20 @@
     const defs = summaryDefs.filter(d => chartKeys.includes(d.key));
 
     // Touch devices get tap wording instead of hover wording.
-    if (window.matchMedia('(hover: none)').matches) {
+    function updateHint() {
       const hint = document.getElementById('hint');
-      if (hint) hint.textContent = 'Tap a graph for its timestamp and exact metric value.';
+      if (!hint) return;
+      const touch = window.matchMedia('(hover: none)').matches;
+      hint.textContent = touch ? t('hint.touch', 'Tap a graph for its timestamp and exact metric value.') : t('hint.hover', 'Hover a graph for its timestamp and exact metric value.');
     }
+    updateHint();
+    function onLangChanged() {
+      updateHint();
+      if (statsEl) statsEl.innerHTML = '';
+      renderUI(true);
+    }
+    document.addEventListener('ashveil:langready', onLangChanged);
+    document.addEventListener('ashveil:langchange', onLangChanged);
 
     const qs = new URLSearchParams(location.search);
     const external = qs.get('display') === '1';
@@ -1110,7 +1139,7 @@
       }
 
       if (!m.length) {
-        chartsEl.innerHTML = '<div class="empty">Waiting for supported metrics…</div>';
+        chartsEl.innerHTML = '<div class="empty">' + t('chart.waiting', 'Waiting for supported metrics…') + '</div>';
         return;
       }
 
@@ -1121,16 +1150,16 @@
       if (currentKeys !== newKeys || forceRebuild) {
         chartsEl.innerHTML = m.map(d => {
           const actions = external ? '' :
-            '<button class="action" type="button" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? 'Show' : 'Hide') + '</button>' +
-            '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Fullscreen this metric">Fullscreen</button>' +
-            '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">Ext Window</button>';
+            '<button class="action" type="button" onclick="toggleChart(\'' + d.key + '\')">' + (hidden[d.key] ? t('chart.show', 'Show') : t('chart.hide', 'Hide')) + '</button>' +
+            '<button class="action" onclick="toggleNativeFullscreen(\'' + d.key + '\')" title="Fullscreen this metric">' + t('chart.fullscreen', 'Fullscreen') + '</button>' +
+            '<button class="action" onclick="openExternal(\'' + d.key + '\')" title="External Monitor Popup">' + t('chart.external', 'Ext Window') + '</button>';
           const panelClass = 'panel' + (hidden[d.key] && !external ? ' hidden-chart' : '');
           return '<article class="' + panelClass + '" data-key="' + d.key + '">' +
             '<div class="panel-head">' +
               '<i class="key" style="background:' + d.color + '"></i>' +
               '<strong class="name">' + d.label + '</strong>' +
               '<div class="actions">' + actions + '</div>' +
-              '<span class="current" id="current-' + d.key + '">Current: ' + fmt(latest[d.key], d.fmt) + '</span>' +
+              '<span class="current" id="current-' + d.key + '">' + t('chart.current', 'Current') + ': ' + fmt(latest[d.key], d.fmt) + '</span>' +
             '</div>' +
             '<canvas id="canvas-' + d.key + '" data-key="' + d.key + '" data-color="' + d.color + '" data-fmt="' + d.fmt + '"></canvas>' +
           '</article>';
@@ -1324,11 +1353,11 @@
         let streams = ls.streams || [];
         
         if (!streams.length) {
-          select.innerHTML = '<option>No active stream</option>';
+          select.innerHTML = '<option>' + t('status.noStream', 'No active stream') + '</option>';
           selected = '';
           history = [];
           latest = {};
-          setStatus(st.lastError ? 'API: ' + st.lastError : 'Disconnected', 'error', st.lastError || 'No active SRT publisher');
+          setStatus(st.lastError ? 'API: ' + st.lastError : t('status.disconnected', 'Disconnected'), 'error', st.lastError || 'No active SRT publisher');
           renderUI();
           return;
         }
@@ -1355,19 +1384,19 @@
         }
         latest = d.latest || {};
         if (d.offlineSince) {
-          setStatus("Disconnecting...", "warning", "Offline grace period active (" + Math.round((Date.now() - d.offlineSince)/1000) + "s)");
+          setStatus(t('status.disconnecting', 'Disconnecting…'), "warning", t('status.graceTooltip', 'Offline grace period active') + " (" + Math.round((Date.now() - d.offlineSince)/1000) + "s)");
         } else if (st.lastError) {
-          setStatus("API Error", "error", st.lastError);
+          setStatus(t('status.apiError', 'API Error'), "error", st.lastError);
         } else {
           const rtt = num(latest.rtt) || 0;
           const drops = num(latest.droppedRate) || 0;
           const theme = (rtt > 250 || drops > 5) ? "error" : (rtt > 100 || drops > 0.2) ? "warning" : "normal";
-          const label = theme === "error" ? "Critical" : theme === "warning" ? "Warning" : "Live";
-          setStatus(label, theme, "RTT " + rtt.toFixed(1) + "ms, drops/s " + drops.toFixed(2));
+          const label = theme === "error" ? t('status.critical', 'Critical') : theme === "warning" ? t('status.warning', 'Warning') : t('status.live', 'Live');
+          setStatus(label, theme, t('status.tipRtt', 'RTT') + " " + rtt.toFixed(1) + "ms, " + t('status.tipDrops', 'drops/s') + " " + drops.toFixed(2));
         }
         renderUI();
       } catch (e) {
-        setStatus('Monitor unavailable', 'error', e && e.message ? e.message : 'API unreachable');
+        setStatus(t('status.unavailable', 'Monitor unavailable'), 'error', e && e.message ? e.message : 'API unreachable');
       }
     }
 
@@ -1435,6 +1464,7 @@
     (function () {
       'use strict';
       const $ = (id) => document.getElementById(id);
+      const t = (k, fb, vars) => (window.AshveilI18n ? window.AshveilI18n.t(k, fb, vars) : (fb || k));
       const listEl = $('hist-list'), emptyEl = $('hist-empty'), errEl = $('hist-error');
       const detailEl = $('hist-detail'), titleEl = $('hist-detail-title'), kpiEl = $('hist-kpis');
       const canvasEl = $('hist-canvas'), noteEl = $('hist-note');
@@ -1451,10 +1481,14 @@
         rtt: 'ms', recvBitrate: 'rate', throughput: 'rate', latency: 'ms',
         recvBuffer: 'count', droppedPackets: 'count', transcoderFps: 'fps', uptime: 'duration'
       };
-      const METRIC_LABEL = {
-        rtt: 'RTT', recvBitrate: 'Receive bitrate', throughput: 'Throughput',
-        recvBuffer: 'Receive buffer', droppedPackets: 'Packet drops', transcoderFps: 'FPS'
+      const METRIC_KEYS = {
+        rtt: 'metric.rtt', recvBitrate: 'metric.recvBitrate', throughput: 'metric.throughput',
+        recvBuffer: 'metric.recvBuffer', droppedPackets: 'metric.droppedPackets',
+        transcoderFps: 'metric.transcoderFps', latency: 'metric.latency', uptime: 'metric.uptime'
       };
+      const METRIC_LABEL = new Proxy(METRIC_KEYS, {
+        get: (o, k) => { const key = o[k]; if (!key) return k; return t(key, k); }
+      });
       let isOpen = false;
       let sessions = [];
       let current = null;
@@ -1485,7 +1519,7 @@
 
       async function fetchJson(url, options) {
         const res = await fetch(url, Object.assign({ cache: 'no-store' }, options));
-        if (res.status === 401) throw Object.assign(new Error('API key rejected — paste the SLS API key under "API key" below.'), { unauthorized: true });
+        if (res.status === 401) throw Object.assign(new Error(t('key.rejected', 'API key rejected — paste the SLS API key under "API key" below.')), { unauthorized: true });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       }
@@ -1501,21 +1535,21 @@
 
       async function saveRetention() {
         const key = apiKey();
-        if (!key) { showError('An API key is required to change retention — see "API key" below.'); return; }
+        if (!key) { showError(t('key.required', 'An API key is required to change retention — see "API key" below.')); return; }
         const days = Math.floor(Number(retentionIn.value));
-        if (!Number.isFinite(days) || days < 1 || days > 3650) { showError('Retention must be between 1 and 3650 days.'); return; }
+        if (!Number.isFinite(days) || days < 1 || days > 3650) { showError(t('error.retentionRange', 'Retention must be between 1 and 3650 days.')); return; }
         try {
           const res = await fetch('/api/history/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
             body: JSON.stringify({ retentionDays: days })
           });
-          if (res.status === 401) { showError('API key rejected — retention not changed.'); return; }
+          if (res.status === 401) { showError(t('key.rejectedRetention', 'API key rejected — retention not changed.')); return; }
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const cfg = await res.json();
           retentionIn.value = cfg.retentionDays;
           showError('');
-        } catch (e) { showError(e.message || 'Could not save retention.'); }
+        } catch (e) { showError(e.message || t('error.retentionSave', 'Could not save retention.')); }
       }
 
       /* ── sessions ───────────────────────────────────────────────────────── */
@@ -1543,7 +1577,7 @@
           showError('');
         } catch (e) {
           sessions = [];
-          showError(e.message || 'Could not load sessions.');
+          showError(e.message || t('error.sessions', 'Could not load sessions.'));
         }
         renderSessionList();
       }
@@ -1581,7 +1615,7 @@
             meta.appendChild(span);
           }
           const samples = document.createElement('span');
-          samples.textContent = (s.samples || 0) + ' samples';
+          samples.textContent = (s.samples || 0) + ' ' + t('history.samples', 'samples');
           meta.appendChild(samples);
           row.append(top, meta);
           row.onclick = () => selectSession(s);
@@ -1596,14 +1630,14 @@
         kpiEl.textContent = '';
         const sum = s.summary || {};
         const kpis = [
-          ['duration', shortDur(s.durationMs || 0)],
-          ['samples', String(s.samples || 0)]
+          [t('history.duration', 'duration'), shortDur(s.durationMs || 0)],
+          [t('history.samples', 'samples'), String(s.samples || 0)]
         ];
-        if (sum.rtt) kpis.push(['rtt avg', show('rtt', sum.rtt.avg)], ['rtt max', show('rtt', sum.rtt.max)]);
-        if (sum.recvBitrate) kpis.push(['bitrate avg', show('recvBitrate', sum.recvBitrate.avg)]);
-        if (sum.throughput) kpis.push(['throughput', show('throughput', sum.throughput.avg)]);
-        if (sum.droppedPackets) kpis.push(['drops max', show('droppedPackets', sum.droppedPackets.max)]);
-        if (sum.transcoderFps) kpis.push(['fps avg', show('transcoderFps', sum.transcoderFps.avg)]);
+        if (sum.rtt) kpis.push([t('quality.rttAvg', 'rtt avg'), show('rtt', sum.rtt.avg)], [t('quality.rttMax', 'rtt max'), show('rtt', sum.rtt.max)]);
+        if (sum.recvBitrate) kpis.push([t('quality.bitrateAvg', 'bitrate avg'), show('recvBitrate', sum.recvBitrate.avg)]);
+        if (sum.throughput) kpis.push([t('quality.throughput', 'throughput'), show('throughput', sum.throughput.avg)]);
+        if (sum.droppedPackets) kpis.push([t('quality.dropsMax', 'drops/s max'), show('droppedPackets', sum.droppedPackets.max)]);
+        if (sum.transcoderFps) kpis.push([t('quality.fpsAvg', 'fps avg'), show('transcoderFps', sum.transcoderFps.avg)]);
         for (const [label, value] of kpis) {
           const card = document.createElement('div');
           card.className = 'hist-kpi';
@@ -1637,7 +1671,7 @@
           series = out.series || [];
         } catch (e) {
           series = [];
-          showError(e.message || 'Could not load series.');
+          showError(e.message || t('error.series', 'Could not load series.'));
         }
         exportEl.href = '/api/history/export?stream=' + encodeURIComponent(current.stream) + '&from=' + from + '&to=' + to;
         drawHist();
@@ -1647,8 +1681,8 @@
         const metricSelValue = metricSel.value;
         const rows = series.filter((b) => b && b.m && b.m[metricSelValue]);
         noteEl.textContent = rows.length
-          ? METRIC_LABEL[metricSelValue] + ' · ' + rows.length + ' minute buckets · band = min/max, line = average'
-          : (series.length ? 'No data for this metric in the selected session.' : 'This session recorded no minute buckets yet.');
+          ? METRIC_LABEL[metricSelValue] + ' · ' + rows.length + ' ' + t('history.noteMinutes', 'minute buckets · band = min/max, line = average')
+          : (series.length ? t('history.noMetricData', 'No data for this metric in the selected session.') : t('history.noBuckets', 'This session recorded no minute buckets yet.'));
         const r = canvasEl.getBoundingClientRect();
         const d = window.devicePixelRatio || 1;
         const w = r.width, h = r.height;
@@ -1772,7 +1806,7 @@
 
       function renderQuality(q) {
         if (!q || q.score == null) {
-          resetQuality('This session has no recorded minutes to analyse yet.');
+          resetQuality(t('quality.noMinutes', 'This session has no recorded minutes to analyse yet.'));
           return;
         }
         qualityScoreEl.textContent = '';
@@ -1784,8 +1818,8 @@
         if (q.grade) qualityGradeEl.setAttribute('data-grade', q.grade);
         qualityFillEl.style.width = Math.max(0, Math.min(100, q.score)) + '%';
         qualityFillEl.style.background = (GRADE_COLOR[q.grade] || GRADE_COLOR.good)[0];
-        qualityHealthEl.textContent = q.healthyMinutes + '/' + q.minutes + ' minutes healthy · '
-          + (q.incidents ? q.incidents.length : 0) + ' incident' + ((q.incidents && q.incidents.length === 1) ? '' : 's');
+        qualityHealthEl.textContent = q.healthyMinutes + '/' + q.minutes + ' ' + t('quality.minutes', 'minutes') + ' ' + t('quality.healthy', 'healthy') + ' · '
+          + (q.incidents ? q.incidents.length : 0) + ' ' + ((q.incidents && q.incidents.length === 1) ? t('quality.incident', 'incident') : t('quality.incidents', 'incidents'));
 
         incidentsEl.textContent = '';
         qualityExportEl.href = '/api/history/quality?stream=' + encodeURIComponent(current.stream)
@@ -1793,10 +1827,14 @@
           + '&to=' + (Math.floor((current.end || Date.now()) / 60000) * 60000 + 59999)
           + '&format=csv';
         const th = q.thresholds || {};
-        thresholdListEl.textContent = 'RTT warn ' + (th.rttWarnMs ?? '—') + ' ms / critical ' + (th.rttBadMs ?? '—') + ' ms'
-          + ' · drops/s warn ' + (th.dropsWarn ?? '—') + ' / critical ' + (th.dropsBad ?? '—')
-          + ' · receive buffer warn ' + (th.bufferWarn ?? '—') + ' / critical ' + (th.bufferBad ?? '—')
-          + ' · bitrate collapse below ' + Math.round((th.bitrateCollapseRatio ?? 0.5) * 100) + '% of session baseline (critical ' + Math.round((th.bitrateCriticalRatio ?? 0.2) * 100) + '%)';
+        thresholdListEl.textContent = t('quality.thresholdDesc',
+          'RTT warn {rttWarn} ms / critical {rttBad} ms · drops/s warn {dropsWarn} / critical {dropsBad} · receive buffer warn {bufWarn} / critical {bufBad} · bitrate collapse below {bitrateWarn}% of session baseline (critical {bitrateCrit}%)', {
+            rttWarn: th.rttWarnMs ?? '—', rttBad: th.rttBadMs ?? '—',
+            dropsWarn: th.dropsWarn ?? '—', dropsBad: th.dropsBad ?? '—',
+            bufWarn: th.bufferWarn ?? '—', bufBad: th.bufferBad ?? '—',
+            bitrateWarn: Math.round((th.bitrateCollapseRatio ?? 0.5) * 100),
+            bitrateCrit: Math.round((th.bitrateCriticalRatio ?? 0.2) * 100)
+          });
 
         const list = q.incidents || [];
         incidentsEmptyEl.hidden = list.length > 0;
@@ -1820,7 +1858,7 @@
 
       async function loadQuality() {
         if (!current) return;
-        resetQuality('Analysing recorded minutes…');
+        resetQuality(t('quality.analysing', 'Analysing recorded minutes…'));
         const MINUTE = 60000;
         const from = Math.floor(current.start / MINUTE) * MINUTE;
         const to = Math.floor((current.end || Date.now()) / MINUTE) * MINUTE + MINUTE - 1;
@@ -1829,7 +1867,7 @@
             + '&from=' + from + '&to=' + to);
           renderQuality(q);
         } catch (e) {
-          resetQuality(e.message || 'Quality analysis unavailable.');
+          resetQuality(e.message || t('quality.unavailable', 'Quality analysis unavailable.'));
         }
       }
 
@@ -1837,20 +1875,25 @@
 
       async function deleteRange(stream, from, to, what) {
         const key = apiKey();
-        if (!key) { showError('An API key is required to delete history — see "API key" below.'); return false; }
-        if (!confirm('Delete ' + what + '? This cannot be undone.')) return false;
+        if (!key) { showError(t('key.requiredDelete', 'An API key is required to delete history — see "API key" below.')); return false; }
+        const confirmMsg = what === 'this session'
+          ? t('confirm.deleteSession', 'Delete this session? This cannot be undone.')
+          : (what === 'all history'
+            ? t('confirm.deleteAll', 'Delete ALL recorded history? This cannot be undone.')
+            : t('confirm.deleteStream', 'Delete all history for this stream? This cannot be undone.'));
+        if (!confirm(confirmMsg)) return false;
         try {
           const res = await fetch('/api/history?stream=' + encodeURIComponent(stream) + '&from=' + from + '&to=' + to, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${key}` }
           });
-          if (res.status === 401) { showError('API key rejected — deletion cancelled.'); return false; }
-          if (!res.ok) { showError('Delete failed (HTTP ' + res.status + ').'); return false; }
+          if (res.status === 401) { showError(t('key.rejectedDelete', 'API key rejected — deletion cancelled.')); return false; }
+          if (!res.ok) { showError(t('error.deleteHttp', 'Delete failed') + ' (HTTP ' + res.status + ').'); return false; }
           const out = await res.json();
           current = null;
           detailEl.hidden = true;
           series = [];
-          resetQuality('Select a session to analyse.');
+          resetQuality(t('quality.selectSession', 'Select a session to analyse.'));
           showError('');
           await loadStreams();
           await loadSessions();
@@ -1875,6 +1918,7 @@
         }
       }
       histBtn.addEventListener('click', () => setOpen(!isOpen));
+      document.getElementById('hist-back').addEventListener('click', () => setOpen(false));
 
       $('hist-refresh').addEventListener('click', () => { showError(''); loadStreams(); loadConfig(); loadSessions(); });
       $('hist-save-retention').addEventListener('click', saveRetention);
@@ -1928,6 +1972,16 @@
       canvasEl.addEventListener('touchend', () => { hoverX = null; drawHist(); });
 
       window.addEventListener('resize', () => { if (isOpen) drawHist(); });
+
+      function onHistoryLangChanged() {
+        renderSessionList();
+        if (current) {
+          selectSession(current);
+          loadQuality();
+        }
+      }
+      document.addEventListener('ashveil:langready', onHistoryLangChanged);
+      document.addEventListener('ashveil:langchange', onHistoryLangChanged);
 
       // Canvas does not inherit CSS colors: redraw when the palette flips.
       new MutationObserver(() => { if (isOpen) drawHist(); })

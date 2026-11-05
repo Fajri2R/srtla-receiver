@@ -15,6 +15,7 @@ function cleanBucket(t, over = {}) {
       rtt: { avg: 1, min: 0.8, max: 1.2, p95: 1.1 },
       recvBitrate: { avg: 2_600_000, min: 2_500_000, max: 2_700_000, p95: 2_650_000 },
       droppedPackets: { avg: 0, min: 0, max: 0, p95: 0 },
+      droppedRate: { avg: 0, min: 0, max: 0, p95: 0 },
       recvBuffer: { avg: 160, min: 150, max: 170, p95: 165 },
       transcoderFps: { avg: 30, min: 29, max: 31, p95: 30 },
       ...(over.m || {}),
@@ -68,7 +69,7 @@ test('severe RTT is classified as critical, not warning', () => {
 test('a packet-drop burst is reported per affected minute', () => {
   const at = minute(0);
   const buckets = [cleanBucket(at(0)), cleanBucket(at(1), {
-    m: { droppedPackets: { avg: 30, min: 0, max: 80, p95: 70 } },
+    m: { droppedRate: { avg: 0.4, min: 0, max: 1.2, p95: 0.8 } },
   }), cleanBucket(at(2))];
   const { incidents } = scoreFromBuckets(buckets);
   assert.equal(incidents.length, 1);
@@ -79,10 +80,27 @@ test('a packet-drop burst is reported per affected minute', () => {
 test('severe drops are critical', () => {
   const at = minute(0);
   const buckets = [cleanBucket(at(0), {
-    m: { droppedPackets: { avg: 60, min: 10, max: 120, p95: 110 } },
+    m: { droppedRate: { avg: 3, min: 1, max: 8, p95: 6 } },
   })];
   const { incidents } = scoreFromBuckets(buckets);
   assert.equal(incidents[0].severity, 'critical');
+});
+
+test('a high lifetime drop total with zero new drops does not create incidents', () => {
+  const at = minute(0);
+  const buckets = [
+    cleanBucket(at(0), { m: {
+      droppedPackets: { avg: 10_000, min: 10_000, max: 10_000, p95: 10_000 },
+      droppedRate: { avg: 0, min: 0, max: 0, p95: 0 },
+    }}),
+    cleanBucket(at(1), { m: {
+      droppedPackets: { avg: 10_000, min: 10_000, max: 10_000, p95: 10_000 },
+      droppedRate: { avg: 0, min: 0, max: 0, p95: 0 },
+    }}),
+  ];
+  const out = scoreFromBuckets(buckets);
+  assert.equal(out.score, 100);
+  assert.deepEqual(out.incidents, []);
 });
 
 test('receiver buffer bloat raises a buffer incident', () => {
@@ -123,7 +141,7 @@ test('grades descend monotonically as damage accumulates', () => {
   const at = minute(0);
   const clean = cleanBucket(at(0));
   const hurt = (t, over) => cleanBucket(t, over);
-  const dropBurst = { m: { droppedPackets: { avg: 60, min: 10, max: 120, p95: 110 } } };
+  const dropBurst = { m: { droppedRate: { avg: 3, min: 1, max: 8, p95: 6 } } };
   const rttSpike = { m: { rtt: { avg: 320, min: 300, max: 340, p95: 330 } } };
   const bloat = { m: { recvBuffer: { avg: 2_000, min: 1_900, max: 2_100, p95: 2_050 } } };
   const collapse = { m: { recvBitrate: { avg: 700_000, min: 600_000, max: 800_000, p95: 750_000 } } };
