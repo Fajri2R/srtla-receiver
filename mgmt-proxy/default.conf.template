@@ -19,65 +19,65 @@ server {
     # Serve the Live Preview injector script (mounted from host)
     location = /lp-inject.js {
         alias /etc/nginx/lp-inject.js;
+        default_type application/javascript;
         add_header Cache-Control "no-cache, no-store";
-        add_header Content-Type  "application/javascript; charset=utf-8";
     }
 
     # Ashveil design-system skin for the vendor SPA. Injected into <head> so it
     # paints with the first frame instead of flashing the default theme.
     location = /ashveil-sls.css {
         alias /etc/nginx/ashveil-sls.css;
+        default_type text/css;
         add_header Cache-Control "no-cache, must-revalidate";
-        add_header Content-Type  "text/css; charset=utf-8";
     }
 
     # Canonical identity assets — byte-identical to the Control Hub set.
     location = /ashveil-veil.png {
         alias /etc/nginx/ashveil-veil.png;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/png";
+        default_type image/png;
     }
 
     location = /brand-mark.svg {
         alias /etc/nginx/brand-mark.svg;
         add_header Cache-Control "public, max-age=604800";
-        add_header Content-Type  "image/svg+xml; charset=utf-8";
+        default_type image/svg+xml;
     }
 
     location = /favicon.svg {
         alias /etc/nginx/favicon.svg;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/svg+xml";
+        default_type image/svg+xml;
     }
 
     location = /favicon-dark.svg {
         alias /etc/nginx/favicon-dark.svg;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/svg+xml";
+        default_type image/svg+xml;
     }
 
     location = /favicon-light.svg {
         alias /etc/nginx/favicon-light.svg;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/svg+xml";
+        default_type image/svg+xml;
     }
 
     location = /favicon-32.png {
         alias /etc/nginx/favicon-32.png;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/png";
+        default_type image/png;
     }
 
     location = /favicon.ico {
         alias /etc/nginx/favicon.ico;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/x-icon";
+        default_type image/x-icon;
     }
 
     location = /apple-touch-icon.png {
         alias /etc/nginx/apple-touch-icon.png;
         add_header Cache-Control "public, max-age=86400";
-        add_header Content-Type  "image/png";
+        default_type image/png;
     }
 
     # Patch the vendor UI polling countdown at the proxy layer. The bundled
@@ -180,7 +180,7 @@ server {
         # The JS file is served at /lp-inject.js by this same nginx.
         # sub_filter_types defaults to text/html, so it is not repeated here.
         sub_filter_once  on;
-        sub_filter '</head>' '<script>try{var ashT=localStorage.getItem("ashveil-theme");document.documentElement.setAttribute("data-theme",ashT==="light"?"light":"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105j"></head>';
+        sub_filter '</head>' '<script>try{var ashT=localStorage.getItem("ashveil-theme"),ashL=localStorage.getItem("ashveil-lang");if(ashL!=="id"&&ashL!=="en")ashL=(""+(navigator.language||"")).toLowerCase().slice(0,2)==="id"?"id":"en";document.documentElement.setAttribute("data-theme",ashT==="light"?"light":"dark");document.documentElement.setAttribute("lang",ashL);document.documentElement.setAttribute("data-lang",ashL)}catch(e){document.documentElement.setAttribute("data-theme","dark");document.documentElement.setAttribute("lang","en");document.documentElement.setAttribute("data-lang","en")}</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105l"></head>';
         sub_filter '</body>' '<script src="/lp-inject.js"></script></body>';
     }
 }

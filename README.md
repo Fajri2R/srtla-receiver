@@ -458,7 +458,23 @@ timestamp and measured value.
 The baseline is the session's own median bitrate above 300 kbps, so a low-bitrate
 audio-only stream is never reported as collapsing. Thresholds and the baseline
 are returned by the API, which makes every verdict explainable after the fact.
+
 **Quality CSV** downloads the verdict plus one row per incident for reports.
+
+## Language: English / Bahasa Indonesia
+
+The SLS Management UI, standalone HLS Manager, and SRT Monitor each provide an
+**EN / ID** control in the header. The selected language is shared between all
+three dashboards through the browser's `localStorage['ashveil-lang']`, so moving
+from one dashboard to another keeps the same language. On a first visit, the
+browser locale is used (`id-*` selects Bahasa Indonesia; all other locales use
+English). Switching languages repaints live statuses, generated stream cards,
+tooltips, history/quality labels, empty states, and error messages immediately
+without reloading the page.
+
+In SRT Monitor, **History** opens the archive and **Back to live** returns to the
+live graphs. Both controls follow the selected language.
+
 
 ### Live metrics
 

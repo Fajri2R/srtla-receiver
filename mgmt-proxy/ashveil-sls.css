@@ -715,8 +715,23 @@ html[data-theme="light"] .mgmt-theme-btn .sun { display:block; }
 html[data-theme="light"] .mgmt-theme-btn .moon { display:none; }
 html[data-theme="light"] .mgmt-theme-btn:hover,
 html[data-theme="light"] .mgmt-theme-btn:focus-visible { background:#ffffff !important; border-color:#a9b8af !important; color:#18231d !important; }
+
+/* language toggle: compact, textual, and never hidden */
+.mgmt-lang-btn {
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  min-width:38px !important; width:38px !important; height:32px !important; padding:0 7px !important;
+  font:600 10px var(--mono) !important; letter-spacing:.09em !important;
+  color:var(--accent-soft) !important; flex:0 0 38px !important;
+}
+html[data-theme="light"] .mgmt-lang-btn { color:var(--accent) !important; }
 @media (max-width: 991.98px) {
   .mgmt-theme-btn { width:30px !important; height:30px !important; }
+  .mgmt-lang-btn { width:34px !important; min-width:34px !important; height:30px !important; flex-basis:34px !important; padding:0 5px !important; }
+}
+@media (max-width: 560px) {
+  .navbar, nav.navbar, header { height:auto !important; min-height:56px !important; }
+  .navbar .ms-auto { flex-wrap:wrap !important; }
+  .mgmt-lang-btn { display:inline-flex !important; }
 }
 
 /* ── Settings → Brand Identity panel ──────────────────────────────── */
@@ -738,13 +753,33 @@ html[data-theme="light"] .mgmt-theme-btn:focus-visible { background:#ffffff !imp
 }
 .lp-brand-input::placeholder { color:var(--placeholder,#6d776f); }
 .lp-brand-input:focus { border-color:var(--focus-border,#2f6f5c); box-shadow:0 0 0 3px rgba(52,211,153,.16); }
-.lp-brand-file { width:100%; font-size:11.5px; color:var(--faint,#7c8681); }
-.lp-brand-file::file-selector-button {
-  margin-right:10px; padding:6px 11px; border-radius:6px; cursor:pointer;
-  font-family:var(--font-mono,"JetBrains Mono",monospace); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--fg,#f4f4ec); background:var(--chip,rgba(255,255,255,.05)); border:1px solid var(--border,#2b302e);
+.lp-brand-file-control {
+  position:relative; display:inline-flex; align-items:center; gap:10px; width:100%;
+  padding:6px 10px; border-radius:7px; border:1px solid var(--border,#2b302e);
+  background:var(--field,rgba(10,12,11,.62)); cursor:pointer;
 }
-.lp-brand-file::file-selector-button:hover { border-color:var(--accent,#34d399); color:var(--accent-strong,#6ee7b7); }
+.lp-brand-file-button {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:4px 10px; border-radius:6px; font-size:11px; font-weight:500;
+  border:1px solid var(--border,#2b302e); background:var(--surface,#141716);
+  color:var(--fg,#f4f4ec); flex-shrink:0; pointer-events:none;
+}
+.lp-brand-file-name {
+  font-size:11.5px; color:var(--faint,#7c8681); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto;
+}
+.lp-brand-file-name.has-file { color:var(--fg,#f4f4ec); }
+.lp-brand-file {
+  position:absolute; inset:0; opacity:0; width:100%; height:100%;
+  cursor:pointer; z-index:2;
+}
+.lp-brand-file-control:hover .lp-brand-file-button {
+  border-color:var(--accent,#34d399); color:var(--accent-strong,#6ee7b7);
+}
+html[data-theme="light"] .lp-brand-file-control { background:#ffffff; border-color:#c9d3cc; }
+html[data-theme="light"] .lp-brand-file-button { background:#eef2ee; border-color:#c9d3cc; color:#18231d; }
+html[data-theme="light"] .lp-brand-file-control:hover .lp-brand-file-button { border-color:#138a5c; color:#138a5c; }
+html[data-theme="light"] .lp-brand-file-name.has-file { color:#18231d; }
 .lp-brand-hint { font-size:10.5px; line-height:1.5; font-style:normal; color:var(--hint,#6d776f); }
 .lp-brand-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:13px; }
 .lp-brand-msg { flex:1 1 180px; min-width:0; font-size:11px; line-height:1.4; color:var(--faint,#7c8681); }
@@ -780,7 +815,6 @@ html[data-theme="light"] .lp-brand-preview { background:#ffffff; border-color:#c
 html[data-theme="light"] .lp-brand-preview-text strong { color:#18231d; }
 html[data-theme="light"] .lp-brand-msg[data-state="saved"] { color:#0f7550; }
 html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
-html[data-theme="light"] .lp-brand-file::file-selector-button { background:#ffffff; border-color:#c9d3cc; color:#18231d; }
 
 @media (max-width: 560px) {
   .lp-brand-panel { padding:12px; }

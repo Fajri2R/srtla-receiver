@@ -26,6 +26,386 @@
   var SRT_MONITOR_URL = isDomain
     ? location.protocol + '//monitor.' + rootDomain + '/'
     : location.protocol + '//' + location.hostname + ':9010/';
+
+  /* ── Language (shared across Ashveil web apps) ─────────────────────── */
+  var I18N = {
+    en: {
+      'nav.settings': 'Settings',
+      'nav.configureSettings': 'Configure Settings',
+      'nav.themeLight': 'Switch to light mode',
+      'nav.themeDark': 'Switch to dark mode',
+      'nav.themeTooltip': 'Toggle dark/light mode',
+      'nav.openHls': 'Open HLS Manager',
+      'nav.openSrt': 'Open SRT Monitor',
+      'nav.langId': 'Switch language to Indonesian',
+      'nav.langEn': 'Switch language to English',
+      'status.checking': 'Checking status…',
+      'status.active': 'Publishers: {count} active',
+      'status.none': 'No active stream',
+      'status.unavailable': 'Status unavailable',
+      'vendor.welcome': 'Welcome to SRT Live Server Management',
+      'vendor.setup': 'Please configure your API key to get started.',
+      'vendor.settings': 'Settings',
+      'vendor.serverUrl': 'Server URL',
+      'vendor.apiKey': 'API Key',
+      'vendor.enterApiKey': 'Enter your API key',
+      'vendor.advanced': 'Advanced Mode',
+      'vendor.advancedHelp': 'Enable manual editing of Publisher and Player IDs',
+      'vendor.manageIntro': 'Manage your SRT publishers and monitor their status',
+      'vendor.serverHelp': 'The server URL is configured at build time or via runtime configuration.',
+      'vendor.apiHelp': 'Your SRT Live Server API key for authentication',
+      'vendor.apiKeyHelp': 'To get your API key, check the server console when starting the SRT Live Server. The default admin API key will be displayed there.',
+      'vendor.advancedEnabled': 'Advanced Mode enabled:',
+      'vendor.loading': 'Loading...',
+      'vendor.noStats': 'No statistics available',
+      'vendor.noStreams': 'No streams configured',
+      'vendor.addFirst': 'Add your first stream to get started',
+      'vendor.playerIds': 'Player IDs:',
+      'vendor.tip': 'Tip:',
+      'vendor.copyTip': 'Click on any URL field to select all text for easy copying.',
+      'vendor.nextUpdate': 'Next update in {seconds} seconds',
+      'vendor.addPlayerTo': 'Add Player to {name}',
+      'vendor.generateNew': 'Generate new {name}',
+      'vendor.advancedGate': 'Enable Advanced Mode in settings to edit',
+      'vendor.cancel': 'Cancel',
+      'vendor.save': 'Save',
+      'vendor.saved': 'Settings saved successfully!',
+      'vendor.publisher': 'Publisher',
+      'vendor.publisherLabel': 'Publisher:',
+      'vendor.publishers': 'Publishers',
+      'vendor.player': 'Player',
+      'vendor.playerId': 'Player ID',
+      'vendor.streamUrls': 'Stream URLs',
+      'vendor.addPlayer': 'Add Player',
+      'vendor.delete': 'Delete',
+      'vendor.deletePlayer': 'Delete Player ID',
+      'vendor.close': 'Close',
+      'vendor.copy': 'Copy',
+      'vendor.copyClipboard': 'Copy to clipboard',
+      'vendor.bitrate': 'Bitrate',
+      'vendor.uptime': 'Uptime',
+      'vendor.srtPublisher': 'SRT Publisher',
+      'vendor.srtlaPublisher': 'SRTLA Publisher',
+      'preview.live': 'Live',
+      'preview.close': 'Close',
+      'preview.connecting': 'Connecting…',
+      'preview.escClose': 'ESC to close',
+      'preview.retrying': 'Stream preparing… retrying in {seconds}s',
+      'preview.unavailable': '⚠️ Stream unavailable — check the HLS transcoder.',
+      'preview.unsupported': 'HLS is not supported in this browser.',
+      'host.label': 'Host',
+      'host.note': 'The domain uses a DNS-only record directly to the VPS. Choose IP to bypass DNS.',
+      'brand.title': 'Brand Identity',
+      'brand.kicker': 'dashboard logo & label',
+      'brand.name': 'Brand Name',
+      'brand.subtitle': 'Subtitle',
+      'brand.logoUrl': 'Logo — URL / path',
+      'brand.logoPlaceholder': '/logo.png or https://…',
+      'brand.upload': 'Upload Logo',
+      'brand.chooseFile': 'Choose file',
+      'brand.noFile': 'No file chosen',
+      'brand.uploadHint': 'PNG/JPG/WebP/SVG, max 300 KB. Stored on the server, not in the repository.',
+      'brand.reset': 'Reset to Default',
+      'brand.save': 'Save Brand',
+      'brand.fileLarge': 'File is too large (max 300 KB).',
+      'brand.uploaded': 'Logo uploaded: {name} — click Save Brand.',
+      'brand.resetHint': 'Values reset to defaults — click Save Brand to apply.',
+      'brand.apiMissing': 'The SLS API key is not saved in this browser.',
+      'brand.saving': 'Saving…',
+      'brand.saved': 'Saved. The header and tab title were updated.',
+      'brand.saveFailed': 'Failed to save ({reason}).',
+      'brand.connectionFailed': 'Failed to save — check the connection.',
+      'toast.apiUpdated': 'API Key updated successfully',
+      'toast.apiSyncFailed': 'Failed to sync API Key with backend',
+      'toast.apiSyncError': 'Error syncing API Key: {reason}'
+    },
+    id: {
+      'nav.settings': 'Pengaturan',
+      'nav.configureSettings': 'Atur Pengaturan',
+      'nav.themeLight': 'Aktifkan mode terang',
+      'nav.themeDark': 'Aktifkan mode gelap',
+      'nav.themeTooltip': 'Ganti mode gelap/terang',
+      'nav.openHls': 'Buka HLS Manager',
+      'nav.openSrt': 'Buka SRT Monitor',
+      'nav.langId': 'Ganti bahasa ke Indonesia',
+      'nav.langEn': 'Ganti bahasa ke Inggris',
+      'status.checking': 'Memeriksa status…',
+      'status.active': 'Publisher: {count} aktif',
+      'status.none': 'Tidak ada stream aktif',
+      'status.unavailable': 'Status tidak tersedia',
+      'vendor.welcome': 'Selamat datang di Manajemen SRT Live Server',
+      'vendor.setup': 'Atur API key untuk memulai.',
+      'vendor.settings': 'Pengaturan',
+      'vendor.serverUrl': 'URL Server',
+      'vendor.apiKey': 'API Key',
+      'vendor.enterApiKey': 'Masukkan API key',
+      'vendor.advanced': 'Mode Lanjutan',
+      'vendor.advancedHelp': 'Izinkan pengeditan manual ID Publisher dan Player',
+      'vendor.manageIntro': 'Kelola publisher SRT dan pantau statusnya',
+      'vendor.serverHelp': 'URL server diatur saat build atau melalui konfigurasi runtime.',
+      'vendor.apiHelp': 'API key SRT Live Server Anda untuk autentikasi',
+      'vendor.apiKeyHelp': 'Untuk mendapatkan API key, periksa konsol server saat menjalankan SRT Live Server. API key admin default akan ditampilkan di sana.',
+      'vendor.advancedEnabled': 'Mode Lanjutan aktif:',
+      'vendor.loading': 'Memuat…',
+      'vendor.noStats': 'Statistik belum tersedia',
+      'vendor.noStreams': 'Belum ada stream terkonfigurasi',
+      'vendor.addFirst': 'Tambahkan stream pertama untuk memulai',
+      'vendor.playerIds': 'ID Player:',
+      'vendor.tip': 'Tip:',
+      'vendor.copyTip': 'Klik kolom URL mana pun untuk memilih seluruh teks agar mudah disalin.',
+      'vendor.nextUpdate': 'Pembaruan berikutnya dalam {seconds} detik',
+      'vendor.addPlayerTo': 'Tambah Player ke {name}',
+      'vendor.generateNew': 'Buat {name} baru',
+      'vendor.advancedGate': 'Aktifkan Mode Lanjutan di pengaturan untuk mengedit',
+      'vendor.cancel': 'Batal',
+      'vendor.save': 'Simpan',
+      'vendor.saved': 'Pengaturan berhasil disimpan!',
+      'vendor.publisher': 'Publisher',
+      'vendor.publisherLabel': 'Publisher:',
+      'vendor.publishers': 'Publisher',
+      'vendor.player': 'Player',
+      'vendor.playerId': 'ID Player',
+      'vendor.streamUrls': 'URL Stream',
+      'vendor.addPlayer': 'Tambah Player',
+      'vendor.delete': 'Hapus',
+      'vendor.deletePlayer': 'Hapus ID Player',
+      'vendor.close': 'Tutup',
+      'vendor.copy': 'Salin',
+      'vendor.copyClipboard': 'Salin ke papan klip',
+      'vendor.bitrate': 'Bitrate',
+      'vendor.uptime': 'Durasi Aktif',
+      'vendor.srtPublisher': 'Publisher SRT',
+      'vendor.srtlaPublisher': 'Publisher SRTLA',
+      'preview.live': 'Siaran Langsung',
+      'preview.close': 'Tutup',
+      'preview.connecting': 'Menghubungkan…',
+      'preview.escClose': 'ESC untuk menutup',
+      'preview.retrying': 'Menyiapkan stream… mencoba lagi dalam {seconds} dtk',
+      'preview.unavailable': '⚠️ Stream tidak tersedia — periksa transcoder HLS.',
+      'preview.unsupported': 'HLS tidak didukung oleh browser ini.',
+      'host.label': 'Host',
+      'host.note': 'Domain memakai record DNS-only langsung ke VPS. Pilih IP untuk melewati DNS.',
+      'brand.title': 'Identitas Brand',
+      'brand.kicker': 'logo & label dashboard',
+      'brand.name': 'Nama Brand',
+      'brand.subtitle': 'Subjudul',
+      'brand.logoUrl': 'Logo — URL / path',
+      'brand.logoPlaceholder': '/logo.png atau https://…',
+      'brand.upload': 'Unggah Logo',
+      'brand.chooseFile': 'Pilih file',
+      'brand.noFile': 'Belum ada file',
+      'brand.uploadHint': 'PNG/JPG/WebP/SVG, maks 300 KB. Tersimpan di server, tidak masuk repo.',
+      'brand.reset': 'Reset ke Default',
+      'brand.save': 'Simpan Brand',
+      'brand.fileLarge': 'File terlalu besar (maks 300 KB).',
+      'brand.uploaded': 'Logo terunggah: {name} — klik Simpan Brand.',
+      'brand.resetHint': 'Nilai direset ke default — klik Simpan Brand untuk menerapkan.',
+      'brand.apiMissing': 'API key SLS belum tersimpan di browser ini.',
+      'brand.saving': 'Menyimpan…',
+      'brand.saved': 'Tersimpan. Header dan judul tab diperbarui.',
+      'brand.saveFailed': 'Gagal menyimpan ({reason}).',
+      'brand.connectionFailed': 'Gagal menyimpan — cek koneksi.',
+      'toast.apiUpdated': 'API Key berhasil diperbarui',
+      'toast.apiSyncFailed': 'Gagal menyinkronkan API Key dengan backend',
+      'toast.apiSyncError': 'Kesalahan sinkronisasi API Key: {reason}'
+    }
+  };
+  var VENDOR_TEXT_KEYS = {
+    'Welcome to SRT Live Server Management': 'vendor.welcome',
+    'Please configure your API key to get started.': 'vendor.setup',
+    'Configure Settings': 'nav.configureSettings',
+    'Settings': 'vendor.settings',
+    'Server URL': 'vendor.serverUrl',
+    'API Key': 'vendor.apiKey',
+    'Enter your API key': 'vendor.enterApiKey',
+    'Advanced Mode': 'vendor.advanced',
+    'Enable manual editing of Publisher and Player IDs': 'vendor.advancedHelp',
+    'Manage your SRT publishers and monitor their status': 'vendor.manageIntro',
+    'The server URL is configured at build time or via runtime configuration.': 'vendor.serverHelp',
+    'Your SRT Live Server API key for authentication': 'vendor.apiHelp',
+    'To get your API key, check the server console when starting the SRT Live Server. The default admin API key will be displayed there.': 'vendor.apiKeyHelp',
+    'Advanced Mode enabled:': 'vendor.advancedEnabled',
+    'Loading...': 'vendor.loading',
+    'No statistics available': 'vendor.noStats',
+    'No streams configured': 'vendor.noStreams',
+    'Add your first stream to get started': 'vendor.addFirst',
+    'Player IDs:': 'vendor.playerIds',
+    'Tip:': 'vendor.tip',
+    'Click on any URL field to select all text for easy copying.': 'vendor.copyTip',
+    'Cancel': 'vendor.cancel',
+    'Save': 'vendor.save',
+    'Settings saved successfully!': 'vendor.saved',
+    'Publisher': 'vendor.publisher',
+    'Publisher:': 'vendor.publisherLabel',
+    'Publishers': 'vendor.publishers',
+    'Player': 'vendor.player',
+    'Player ID': 'vendor.playerId',
+    'Stream URLs': 'vendor.streamUrls',
+    'Add Player': 'vendor.addPlayer',
+    'Delete': 'vendor.delete',
+    'Delete Player ID': 'vendor.deletePlayer',
+    'Close': 'vendor.close',
+    'Copy': 'vendor.copy',
+    'Copy to clipboard': 'vendor.copyClipboard',
+    'Bitrate': 'vendor.bitrate',
+    'Uptime': 'vendor.uptime',
+    'SRT Publisher': 'vendor.srtPublisher',
+    'SRTLA Publisher': 'vendor.srtlaPublisher'
+  };
+  var VENDOR_PATTERNS = [
+    { re: /^Next update in (\d+) seconds?$/, key: 'vendor.nextUpdate' },
+    { re: /^Add Player to (.+)$/, key: 'vendor.addPlayerTo' },
+    { re: /^Generate new (.+)$/, key: 'vendor.generateNew' },
+    { re: /^Enable Advanced Mode in settings to edit$/, key: 'vendor.advancedGate' }
+  ];
+  var lang = (function () {
+    try {
+      var saved = localStorage.getItem('ashveil-lang');
+      if (saved === 'id' || saved === 'en') return saved;
+    } catch (_) {}
+    return ("" + (navigator.language || navigator.userLanguage || "")).toLowerCase().slice(0, 2) === "id" ? "id" : "en";
+  })();
+  var translatingUi = false;
+
+  function t(key, vars) {
+    var value = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+    Object.keys(vars || {}).forEach(function (name) {
+      value = value.replace(new RegExp('\\{' + name + '\\}', 'g'), String(vars[name]));
+    });
+    return value;
+  }
+
+  function applyTranslationHooks(root) {
+    var scope = root || document;
+    scope.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var value = t(el.getAttribute('data-i18n'));
+      if (el.textContent !== value) el.textContent = value;
+    });
+    [['data-i18n-placeholder', 'placeholder'], ['data-i18n-aria', 'aria-label'],
+     ['data-i18n-tooltip', 'data-tooltip'], ['data-i18n-title', 'title']].forEach(function (spec) {
+      scope.querySelectorAll('[' + spec[0] + ']').forEach(function (el) {
+        var value = t(el.getAttribute(spec[0]));
+        if (el.getAttribute(spec[1]) !== value) el.setAttribute(spec[1], value);
+      });
+    });
+  }
+
+  function vendorKeyFor(value) {
+    if (!value) return null;
+    var trimmed = String(value).trim();
+    if (VENDOR_TEXT_KEYS[trimmed]) return VENDOR_TEXT_KEYS[trimmed];
+    for (var i = 0; i < VENDOR_PATTERNS.length; i++) {
+      if (VENDOR_PATTERNS[i].re.test(trimmed)) return VENDOR_PATTERNS[i].key;
+    }
+    var found = null;
+    Object.keys(I18N.en).some(function (key) {
+      if (I18N.en[key] === trimmed || I18N.id[key] === trimmed) { found = key; return true; }
+      return false;
+    });
+    return found;
+  }
+
+  function renderPatternText(key, text) {
+    if (key === 'vendor.nextUpdate') {
+      var m = text.match(/(\d+)/);
+      return m ? t(key, { seconds: m[1] }) : text;
+    }
+    if (key === 'vendor.addPlayerTo') {
+      var m2 = text.match(/Add Player to (.+)/i) || text.match(/Tambah Player ke (.+)/i);
+      return m2 ? t(key, { name: m2[1] }) : text;
+    }
+    if (key === 'vendor.generateNew') {
+      var m3 = text.match(/Generate new (.+)/i) || text.match(/Buat (.+) baru/i);
+      return m3 ? t(key, { name: m3[1] }) : text;
+    }
+    return t(key);
+  }
+
+  function isInjectedUi(el) {
+    return !!(el && el.closest && el.closest('.navbar, nav, header, #lp-ov, .mgmt-toast, [data-lp-brand-panel], .publisher-card-publisher-name, code, kbd, samp, .font-monospace'));
+  }
+
+  function translateVendorUi(root) {
+    var scope = root || document.body;
+    if (!scope) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    var nodes = [];
+    var node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function (textNode) {
+      var parent = textNode.parentElement;
+      if (!parent || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/i.test(parent.tagName) || parent.closest('[data-i18n]') || isInjectedUi(parent)) return;
+      var raw = textNode.nodeValue || '';
+      var trimmed = raw.trim();
+      if (!trimmed) return;
+      var key = textNode.__ashveilI18nKey || vendorKeyFor(trimmed);
+      if (!key) return;
+      textNode.__ashveilI18nKey = key;
+      parent.setAttribute('data-ashveil-i18n', key);
+      var value = renderPatternText(key, trimmed);
+      var next = raw.replace(trimmed, value);
+      if (raw !== next) textNode.nodeValue = next;
+    });
+    ['title', 'placeholder', 'aria-label'].forEach(function (attr) {
+      scope.querySelectorAll('[' + attr + ']').forEach(function (el) {
+        if (el.hasAttribute('data-i18n-' + (attr === 'aria-label' ? 'aria' : attr)) || isInjectedUi(el)) return;
+        var marker = 'data-ashveil-i18n-' + attr;
+        var key = el.getAttribute(marker) || vendorKeyFor(el.getAttribute(attr));
+        if (!key) return;
+        el.setAttribute(marker, key);
+        var value = renderPatternText(key, el.getAttribute(attr) || '');
+        if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
+      });
+    });
+  }
+
+  // Repaints the live-status chip from its last known state so a language
+  // switch never resets it to the "checking" placeholder. Fresh badges start
+  // in the uninitialized state below until the first health poll arrives.
+  function paintLiveStatusText() {
+    var badge = document.getElementById('mgmt-live-status');
+    if (!badge) return;
+    var span = badge.querySelector('span');
+    if (!span) return;
+    var state = lastLiveStatus || '';
+    var text;
+    if (state === 'error') text = t('status.unavailable');
+    else if (/^ok:(\d+)$/.test(state)) {
+      var count = parseInt(state.split(':')[1], 10) || 0;
+      text = t(count > 0 ? 'status.active' : 'status.none', { count: count });
+    } else {
+      text = t('status.checking');
+    }
+    if (span.textContent !== text) span.textContent = text;
+  }
+
+  function translateUi() {
+    if (translatingUi) return;
+    translatingUi = true;
+    document.documentElement.setAttribute('lang', lang);
+    document.documentElement.setAttribute('data-lang', lang);
+    applyTranslationHooks(document);
+    translateVendorUi(document.body);
+    paintLiveStatusText();
+    var languageBtn = document.getElementById('mgmt-lang-btn');
+    if (languageBtn) {
+      languageBtn.textContent = lang === 'id' ? 'ID' : 'EN';
+      languageBtn.setAttribute('aria-label', t(lang === 'id' ? 'nav.langEn' : 'nav.langId'));
+      languageBtn.setAttribute('data-tooltip', t(lang === 'id' ? 'nav.langEn' : 'nav.langId'));
+    }
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark', false);
+    translatingUi = false;
+  }
+
+  function setLanguage(next, save) {
+    lang = next === 'id' ? 'id' : 'en';
+    if (save) {
+      try { localStorage.setItem('ashveil-lang', lang); } catch (_) {}
+    }
+    translateUi();
+    try { document.dispatchEvent(new CustomEvent('ashveil:langchange', { detail: { lang: lang } })); } catch (_) {}
+  }
+
   /* ── Brand identity (runtime-configurable) ───────────────────────────
      The repository is public, so nothing here is Ashveil-specific: a
      deployment overrides these from Settings → Brand Identity and the
@@ -136,20 +516,20 @@
   ov.id = 'lp-ov';
   ov.innerHTML = '<div id="lp-bx">'
     + '<div id="lp-hd">'
-      + '<div id="lp-badge"><span id="lp-badge-dot"></span><span id="lp-badge-txt">Live</span></div>'
+      + '<div id="lp-badge"><span id="lp-badge-dot"></span><span id="lp-badge-txt" data-i18n="preview.live">Live</span></div>'
       + '<div id="lp-nm">—</div>'
-      + '<button id="lp-xb" type="button">&#x2715; Close</button>'
+      + '<button id="lp-xb" type="button" data-i18n-aria="preview.close"><span aria-hidden="true">&#x2715;</span> <span data-i18n="preview.close">Close</span></button>'
     + '</div>'
     + '<div id="lp-vid-wrap">'
       + '<video id="lp-vid" controls muted playsinline></video>'
       + '<div id="lp-overlay-msg">'
         + '<div id="lp-spinner"></div>'
-        + '<span id="lp-msg-txt">Connecting&hellip;</span>'
+        + '<span id="lp-msg-txt" data-i18n="preview.connecting">Connecting&hellip;</span>'
       + '</div>'
     + '</div>'
     + '<div id="lp-ft">'
       + '<span id="lp-url"></span>'
-      + '<span id="lp-hint">ESC to close</span>'
+      + '<span id="lp-hint" data-i18n="preview.escClose">ESC to close</span>'
     + '</div>'
   + '</div>';
   document.body.appendChild(ov);
@@ -174,7 +554,7 @@
     var url = BASE + '/hls/' + safeId(pub) + '/stream.m3u8';
     document.getElementById('lp-nm').textContent  = pub;
     document.getElementById('lp-url').textContent = url;
-    setMsg('Connecting\u2026', true);
+    setMsg(t('preview.connecting'), true);
     ov.classList.add('on');
     document.body.style.overflow = 'hidden';
 
@@ -206,13 +586,13 @@
               var delay = 2000 + retryAttempt * 1000;
               hls.destroy();
               hls = null;
-              setMsg('Stream preparing\u2026 retrying in ' + (delay / 1000) + 's', true);
+              setMsg(t('preview.retrying', { seconds: delay / 1000 }), true);
               setTimeout(function () {
                 if (ov.classList.contains('on')) openPreview(pub, retryAttempt + 1);
               }, delay);
               return;
             }
-            setMsg('\u26a0\ufe0f Stream unavailable \u2014 check the HLS transcoder.', false);
+            setMsg(t('preview.unavailable'), false);
          }
        });
       } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -220,7 +600,7 @@
         v.play().catch(function () {});
         v.addEventListener('canplay', function () { setMsg(null, false); }, { once: true });
       } else {
-        setMsg('HLS not supported in this browser.', false);
+        setMsg(t('preview.unsupported'), false);
       }
     }
 
@@ -234,7 +614,7 @@
     var v = document.getElementById('lp-vid');
     v.pause(); v.src = '';
     if (hls) { hls.destroy(); hls = null; }
-    setMsg('Connecting\u2026', true); // reset for next open
+    setMsg(t('preview.connecting'), true); // reset for next open
   }
 
   document.getElementById('lp-xb').onclick = closePreview;
@@ -299,21 +679,26 @@
         }
         var statusKey = 'ok:' + activeCount;
         var textNode = badge.querySelector('span');
-        var newText = activeCount > 0 ? ('Publishers: ' + activeCount + ' active') : 'No active stream';
         // React occasionally replaces the injected navbar children while the
         // health request is in flight. Re-apply the visible state every poll,
         // not only when the count changes, so a fresh badge never remains on
         // its "Checking status…" placeholder.
         if (activeCount > 0) badge.classList.remove('error');
         else badge.classList.add('error');
-        if (textNode && textNode.textContent !== newText) textNode.textContent = newText;
+        if (textNode) {
+          var newText = activeCount > 0
+            ? t('status.active', { count: activeCount })
+            : t('status.none');
+          if (textNode.textContent !== newText) textNode.textContent = newText;
+        }
         lastLiveStatus = statusKey;
       })
       .catch(function() {
         if (lastLiveStatus !== 'error') {
           lastLiveStatus = 'error';
           badge.classList.add('error');
-          badge.querySelector('span').textContent = 'Status unavailable';
+          var errSpan = badge.querySelector('span');
+          if (errSpan) errSpan.textContent = t('status.unavailable');
         }
       });
   }
@@ -331,15 +716,18 @@
     paintBrand();
   }
 
-  function applyTheme(t, save) {
-    document.documentElement.setAttribute('data-theme', t);
+  function applyTheme(mode, save) {
+    document.documentElement.setAttribute('data-theme', mode);
     var theme = document.querySelector('meta[name="theme-color"]');
-    if (theme) theme.content = t === 'light' ? '#f4f6f1' : '#2b2d2c';
+    if (theme) theme.content = mode === 'light' ? '#f4f6f1' : '#2b2d2c';
     var svgIcon = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
-    if (svgIcon) svgIcon.href = '/favicon-' + t + '.svg?v=20261105c';
+    if (svgIcon) svgIcon.href = '/favicon-' + mode + '.svg?v=20261105c';
     var btn = document.getElementById('mgmt-theme-btn');
-    if (btn) btn.setAttribute('aria-label', t === 'light' ? 'Aktifkan mode gelap' : 'Aktifkan mode terang');
-    if (save) { try { localStorage.setItem('ashveil-theme', t); } catch (_) {} }
+    if (btn) {
+      var label = t(mode === 'light' ? 'nav.themeDark' : 'nav.themeLight');
+      if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
+    }
+    if (save) { try { localStorage.setItem('ashveil-theme', mode); } catch (_) {} }
   }
 
   function initTheme() {
@@ -380,16 +768,32 @@
     applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark', false);
   }
 
+  function buildLanguageButton() {
+    var langBtn = document.createElement('button');
+    langBtn.className = 'mgmt-nav-btn mgmt-lang-btn';
+    langBtn.id = 'mgmt-lang-btn';
+    langBtn.type = 'button';
+    langBtn.setAttribute('lang', lang);
+    langBtn.textContent = lang === 'id' ? 'ID' : 'EN';
+    langBtn.setAttribute('aria-label', t(lang === 'id' ? 'nav.langEn' : 'nav.langId'));
+    langBtn.setAttribute('data-tooltip', t(lang === 'id' ? 'nav.langEn' : 'nav.langId'));
+    langBtn.addEventListener('click', function () {
+      setLanguage(lang === 'id' ? 'en' : 'id', true);
+    });
+    return langBtn;
+  }
+
   function injectNavTools() {
     document.querySelectorAll('button[data-mgmt-settings], button[title="Settings"], button[title="Configure Settings"]').forEach(function (settingsBtn) {
       settingsBtn.dataset.mgmtSettings = '1';
-      settingsBtn.setAttribute('aria-label', 'Configure Settings');
-      settingsBtn.setAttribute('data-tooltip', 'Configure Settings');
+      settingsBtn.setAttribute('data-i18n-aria', 'nav.configureSettings');
+      settingsBtn.setAttribute('data-i18n-tooltip', 'nav.configureSettings');
       settingsBtn.removeAttribute('title');
-      if (!settingsBtn.querySelector('.mgmt-settings-label')) {
+      var existingLabel = settingsBtn.querySelector('.mgmt-settings-label');
+      if (!existingLabel) {
         var label = document.createElement('span');
         label.className = 'mgmt-settings-label';
-        label.textContent = 'Settings';
+        label.setAttribute('data-i18n', 'nav.settings');
         settingsBtn.appendChild(label);
       }
 
@@ -400,8 +804,8 @@
       themeBtn.className = 'mgmt-nav-btn mgmt-theme-btn';
       themeBtn.id = 'mgmt-theme-btn';
       themeBtn.type = 'button';
-      themeBtn.setAttribute('aria-label', 'Aktifkan mode terang');
-      themeBtn.setAttribute('data-tooltip', 'Ganti dark/light mode');
+      themeBtn.setAttribute('data-i18n-aria', 'nav.themeLight');
+      themeBtn.setAttribute('data-i18n-tooltip', 'nav.themeTooltip');
       themeBtn.innerHTML = '<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>'
         + '<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>';
       themeBtn.addEventListener('click', function () {
@@ -409,15 +813,18 @@
         applyTheme(next, true);
       });
 
+      // 2. Language toggle (ID / EN) — always visible, persisted in ashveil-lang
+      var langBtn = buildLanguageButton();
+
       // 2. SRT Monitor Button
       var srtBtn = document.createElement('a');
       srtBtn.className = 'mgmt-nav-btn';
       srtBtn.href = SRT_MONITOR_URL;
       srtBtn.target = '_blank';
       srtBtn.rel = 'noopener';
-      srtBtn.setAttribute('data-tooltip', 'Open SRT Monitor');
-      srtBtn.setAttribute('aria-label', 'Open SRT Monitor');
-      srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text">SRT Monitor</span>';
+      srtBtn.setAttribute('data-i18n-tooltip', 'nav.openSrt');
+      srtBtn.setAttribute('data-i18n-aria', 'nav.openSrt');
+      srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text" data-i18n="nav.openSrt">SRT Monitor</span>';
 
       // 2. HLS Manager Button
       var hlsBtn = document.createElement('a');
@@ -425,15 +832,17 @@
       hlsBtn.href = HLS_MANAGER_URL;
       hlsBtn.target = '_blank';
       hlsBtn.rel = 'noopener';
-      hlsBtn.setAttribute('data-tooltip', 'Open HLS Manager');
-      hlsBtn.setAttribute('aria-label', 'Open HLS Manager');
-      hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text">HLS Manager</span>';
+      hlsBtn.setAttribute('data-i18n-tooltip', 'nav.openHls');
+      hlsBtn.setAttribute('data-i18n-aria', 'nav.openHls');
+      hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text" data-i18n="nav.openHls">HLS Manager</span>';
 
       // 3. Live Status Badge
       var liveBadge = document.createElement('div');
       liveBadge.className = 'live-status';
       liveBadge.id = 'mgmt-live-status';
-      liveBadge.innerHTML = '<i class="dot"></i><span>Checking status…</span>';
+      liveBadge.innerHTML = '<i class="dot"></i><span></span>';
+      var initSpan = liveBadge.querySelector('span');
+      if (initSpan) initSpan.textContent = t('status.checking');
 
       // Order injected before the Settings button (left to right):
       // Wrap them in a single container to prevent React DOM tracking issues
@@ -441,6 +850,7 @@
       container.className = 'mgmt-nav-tools';
       container.style.display = 'contents';
       container.appendChild(themeBtn);
+      container.appendChild(langBtn);
       container.appendChild(hlsBtn);
       container.appendChild(srtBtn);
 
@@ -455,20 +865,21 @@
     _origSetItem.apply(this, arguments);
     if (/api.?key/i.test(String(key))) {
       // Sync it to backend immediately without reloading the page
+      var apikey = arguments.length > 1 ? String(value) : '';
       fetch('/api/apikey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apikey: value })
+        body: JSON.stringify({ apikey: apikey })
       })
       .then(function(res) {
         if (res.ok) {
-          showToast('API Key updated successfully', false);
+          showToast(t('toast.apiUpdated'), false);
         } else {
-          showToast('Failed to sync API Key with backend', true);
+          showToast(t('toast.apiSyncFailed'), true);
         }
       })
       .catch(function(err) {
-        showToast('Error syncing API Key: ' + err.message, true);
+        showToast(t('toast.apiSyncError', { reason: err.message }), true);
       });
     }
   };
@@ -479,6 +890,7 @@
     enhanceNavbarBrand();
     injectNavTools();
     enhanceStreamUrlModal();
+    translateUi();
     // The navbar badge is created here, after the initial updateLiveStatus()
     // call at load time — prime it as soon as it exists.
     if (document.getElementById('mgmt-live-status')) updateLiveStatus();
@@ -638,10 +1050,10 @@
     var wrap = document.createElement('div');
     wrap.className = 'lp-host';
     wrap.innerHTML =
-      '<span class="lp-host-label">Host</span>' +
+      '<span class="lp-host-label" data-i18n="host.label">Host</span>' +
       '<button type="button" class="lp-host-btn" data-lp-host="domain">' + SRT_DOMAIN + '</button>' +
       '<button type="button" class="lp-host-btn" data-lp-host="ip">' + VPS_IP + '</button>' +
-      '<div class="lp-host-note">Domain memakai record DNS-only langsung ke VPS. Pilih IP bila ingin bypass DNS.</div>';
+      '<div class="lp-host-note" data-i18n="host.note">Domain memakai record DNS-only langsung ke VPS. Pilih IP bila ingin bypass DNS.</div>';
 
     [].forEach.call(wrap.querySelectorAll('.lp-host-btn'), function (btn) {
       btn.addEventListener('click', function () {
@@ -703,28 +1115,32 @@
     wrap.setAttribute('data-lp-brand-panel', '1');
     wrap.innerHTML =
       '<div class="lp-brand-head">'
-      + '<span class="lp-brand-title">Identitas Brand</span>'
-      + '<span class="lp-brand-kicker">logo &amp; label dashboard</span>'
+      + '<span class="lp-brand-title" data-i18n="brand.title">Identitas Brand</span>'
+      + '<span class="lp-brand-kicker" data-i18n="brand.kicker">logo &amp; label dashboard</span>'
       + '</div>'
       + '<div class="lp-brand-grid">'
-      +   '<label class="lp-brand-field"><span>Nama Brand</span>'
+      +   '<label class="lp-brand-field"><span data-i18n="brand.name">Nama Brand</span>'
       +     '<input class="lp-brand-input" data-brand-field="name" type="text" maxlength="28" autocomplete="off" spellcheck="false">'
       +   '</label>'
-      +   '<label class="lp-brand-field"><span>Subjudul</span>'
+      +   '<label class="lp-brand-field"><span data-i18n="brand.subtitle">Subjudul</span>'
       +     '<input class="lp-brand-input" data-brand-field="subtitle" type="text" maxlength="48" autocomplete="off" spellcheck="false">'
       +   '</label>'
-      +   '<label class="lp-brand-field"><span>Logo \u2014 URL / path</span>'
-      +     '<input class="lp-brand-input" data-brand-field="logo" type="text" autocomplete="off" spellcheck="false" placeholder="/logo.png atau https://\u2026">'
+      +   '<label class="lp-brand-field"><span data-i18n="brand.logoUrl">Logo \u2014 URL / path</span>'
+      +     '<input class="lp-brand-input" data-brand-field="logo" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="brand.logoPlaceholder" placeholder="/logo.png atau https://\u2026">'
       +   '</label>'
-      +   '<label class="lp-brand-field"><span>Unggah Logo</span>'
-      +     '<input class="lp-brand-file" data-brand-field="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">'
-      +     '<em class="lp-brand-hint">PNG/JPG/WebP/SVG, maks 300\u00a0KB. Tersimpan di server, tidak masuk repo.</em>'
+      +   '<label class="lp-brand-field"><span data-i18n="brand.upload">Unggah Logo</span>'
+      +     '<span class="lp-brand-file-control">'
+      +       '<span class="lp-brand-file-button" data-i18n="brand.chooseFile">Pilih file</span>'
+      +       '<span class="lp-brand-file-name" data-i18n="brand.noFile">Belum ada file</span>'
+      +       '<input class="lp-brand-file" data-brand-field="file" type="file" aria-hidden="true" tabindex="-1" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">'
+      +     '</span>'
+      +     '<em class="lp-brand-hint" data-i18n="brand.uploadHint">PNG/JPG/WebP/SVG, maks 300\u00a0KB. Tersimpan di server, tidak masuk repo.</em>'
       +   '</label>'
       + '</div>'
       + '<div class="lp-brand-actions">'
       +   '<span class="lp-brand-msg" data-state="idle"></span>'
-      +   '<button type="button" class="lp-brand-btn lp-brand-reset">Reset ke Default</button>'
-      +   '<button type="button" class="lp-brand-btn lp-brand-save">Simpan Brand</button>'
+      +   '<button type="button" class="lp-brand-btn lp-brand-reset" data-i18n="brand.reset">Reset ke Default</button>'
+      +   '<button type="button" class="lp-brand-btn lp-brand-save" data-i18n="brand.save">Simpan Brand</button>'
       + '</div>'
       + '<div class="lp-brand-preview">'
       +   '<span class="mgmt-brand-icon" aria-hidden="true"><img data-brand-preview alt=""></span>'
@@ -745,7 +1161,7 @@
       if (f.size > 300 * 1024) {
         file.value = '';
         brandUploadData = null;
-        brandSetMsg(wrap, 'error', 'File terlalu besar (maks 300 KB).');
+        brandSetMsg(wrap, 'error', t('brand.fileLarge'));
         return;
       }
       var reader = new FileReader();
@@ -754,7 +1170,13 @@
         wrap.dataset.brandDirty = '1';
         var logoInput = wrap.querySelector('[data-brand-field="logo"]');
         logoInput.value = '';
-        brandSetMsg(wrap, 'idle', 'Logo terunggah: ' + f.name + ' \u2014 klik Simpan Brand.');
+        var fileName = wrap.querySelector('.lp-brand-file-name');
+        if (fileName) {
+          fileName.textContent = f.name;
+          fileName.classList.add('has-file');
+          fileName.removeAttribute('data-i18n');
+        }
+        brandSetMsg(wrap, 'idle', t('brand.uploaded', { name: f.name }));
         syncBrandPreview(wrap);
       };
       reader.readAsDataURL(f);
@@ -768,7 +1190,13 @@
       wrap.querySelector('[data-brand-field="logo"]').value = BRAND_DEFAULTS.logo;
       var fileEl = wrap.querySelector('[data-brand-field="file"]');
       if (fileEl) fileEl.value = '';
-      brandSetMsg(wrap, 'idle', 'Nilai direset ke default \u2014 klik Simpan Brand untuk menerapkan.');
+      var fileName = wrap.querySelector('.lp-brand-file-name');
+      if (fileName) {
+        fileName.textContent = '';
+        fileName.classList.remove('has-file');
+        fileName.setAttribute('data-i18n', 'brand.noFile');
+      }
+      brandSetMsg(wrap, 'idle', t('brand.resetHint'));
       syncBrandPreview(wrap);
     });
 
@@ -780,10 +1208,10 @@
       };
       var key = getApiKey();
       if (!key) {
-        brandSetMsg(wrap, 'error', 'API key SLS belum tersimpan di browser ini.');
+        brandSetMsg(wrap, 'error', t('brand.apiMissing'));
         return;
       }
-      brandSetMsg(wrap, 'saving', 'Menyimpan\u2026');
+      brandSetMsg(wrap, 'saving', t('brand.saving'));
       fetch('/api/brand', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
@@ -791,17 +1219,17 @@
       }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
         .then(function (res) {
           if (!res.ok) {
-            brandSetMsg(wrap, 'error', 'Gagal menyimpan (' + ((res.d && res.d.error) || ('HTTP ' + res.status)) + ').');
+            brandSetMsg(wrap, 'error', t('brand.saveFailed', { reason: (res.d && res.d.error) || ('HTTP ' + res.status) }));
             return;
           }
           BRAND = sanitizeBrand(res.d);
           brandUploadData = null;
           cacheBrand();
           paintBrand();
-          brandSetMsg(wrap, 'saved', 'Tersimpan. Header dan judul tab diperbarui.');
+          brandSetMsg(wrap, 'saved', t('brand.saved'));
           fillBrandPanel(wrap);  // also clears the dirty flag
         })
-        .catch(function () { brandSetMsg(wrap, 'error', 'Gagal menyimpan \u2014 cek koneksi.'); });
+        .catch(function () { brandSetMsg(wrap, 'error', t('brand.connectionFailed')); });
     });
 
     // Live preview mirrors the fields as they are typed.
@@ -861,7 +1289,8 @@
     var modal = document.querySelector('.modal.show, .modal.in, .modal');
     if (!modal) return;
     var title = modal.querySelector('.modal-title');
-    if (!title || !/^\s*Settings\s*$/i.test(title.textContent || '')) return;
+    var titleKey = title && (title.getAttribute('data-ashveil-i18n') || VENDOR_TEXT_KEYS[(title.textContent || '').trim()] || vendorKeyFor((title.textContent || '').trim()));
+    if (!title || titleKey !== 'vendor.settings') return;
     var body = modal.querySelector('.modal-body');
     if (!body) return;
     var existing = body.querySelector('[data-lp-brand-panel]');
@@ -925,7 +1354,7 @@
   var injectTimeout = null;
   new MutationObserver(function() {
     if (injectTimeout) clearTimeout(injectTimeout);
-    injectTimeout = setTimeout(injectButtons, 200);
+    injectTimeout = setTimeout(function () { injectButtons(); translateUi(); }, 200);
   }).observe(document.body, {
     childList: true,
     subtree:   true,
