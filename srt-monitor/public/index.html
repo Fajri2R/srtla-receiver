@@ -1794,7 +1794,7 @@
           + '&format=csv';
         const th = q.thresholds || {};
         thresholdListEl.textContent = 'RTT warn ' + (th.rttWarnMs ?? '—') + ' ms / critical ' + (th.rttBadMs ?? '—') + ' ms'
-          + ' · drops warn ' + (th.dropsWarn ?? '—') + ' / critical ' + (th.dropsBad ?? '—') + ' per minute'
+          + ' · drops/s warn ' + (th.dropsWarn ?? '—') + ' / critical ' + (th.dropsBad ?? '—')
           + ' · receive buffer warn ' + (th.bufferWarn ?? '—') + ' / critical ' + (th.bufferBad ?? '—')
           + ' · bitrate collapse below ' + Math.round((th.bitrateCollapseRatio ?? 0.5) * 100) + '% of session baseline (critical ' + Math.round((th.bitrateCriticalRatio ?? 0.2) * 100) + '%)';
 

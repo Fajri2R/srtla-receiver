@@ -451,7 +451,7 @@ timestamp and measured value.
 | Signal | Warning | Critical |
 |--------|---------|----------|
 | RTT (p95 per minute) | ≥ 100 ms | ≥ 250 ms |
-| Packet drops (peak per minute) | ≥ 50 | ≥ 100 |
+| Packet drops per second (peak rate) | ≥ 0.2 / s | ≥ 5 / s |
 | Receive buffer (p95, backlog) | ≥ 800 | ≥ 1800 |
 | Receive bitrate vs session baseline | < 50 % | < 20 % |
 

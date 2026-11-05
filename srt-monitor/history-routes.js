@@ -118,7 +118,7 @@ export async function handleHistoryRoutes(req, res, { store, apiKey, now = Date.
       const from = num(q.get('from'), 0);
       const to = num(q.get('to'), now());
       const series = await store.readSeries(stream, from, to,
-        ['rtt', 'recvBitrate', 'droppedPackets', 'recvBuffer', 'transcoderFps']);
+        ['rtt', 'recvBitrate', 'droppedRate', 'droppedPackets', 'recvBuffer', 'transcoderFps']);
       const analysis = scoreFromBuckets(series);
       if (q.get('format') === 'csv') {
         const lines = [

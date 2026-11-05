@@ -8,8 +8,8 @@
 export const DEFAULT_THRESHOLDS = Object.freeze({
   rttWarnMs: 100,
   rttBadMs: 250,
-  dropsWarn: 50,
-  dropsBad: 100,
+  dropsWarn: 0.2,
+  dropsBad: 5,
   bufferWarn: 800,
   bufferBad: 1_800,
   bitrateCollapseRatio: 0.50,
@@ -89,13 +89,13 @@ export function scoreFromBuckets(input, overrides = {}) {
         `RTT p95 ${rtt} ms exceeded warning threshold ${thresholds.rttWarnMs} ms`));
     }
 
-    const drops = finite(row.m?.droppedPackets?.max ?? row.m?.droppedPackets?.p95 ?? row.m?.droppedPackets?.avg);
+    const drops = finite(row.m?.droppedRate?.max ?? row.m?.droppedRate?.p95 ?? row.m?.droppedRate?.avg);
     if (drops !== null && drops >= thresholds.dropsBad) {
-      add(row, incident(row.t, 'drops', 'critical', drops, thresholds.dropsBad, 'packets',
-        `Packet drops peaked at ${drops} in this minute`));
+      add(row, incident(row.t, 'drops', 'critical', drops, thresholds.dropsBad, 'packets/s',
+        `Packet drops reached ${drops}/s in this minute`));
     } else if (drops !== null && drops >= thresholds.dropsWarn) {
-      add(row, incident(row.t, 'drops', 'warning', drops, thresholds.dropsWarn, 'packets',
-        `Packet drops peaked at ${drops} in this minute`));
+      add(row, incident(row.t, 'drops', 'warning', drops, thresholds.dropsWarn, 'packets/s',
+        `Packet drops reached ${drops}/s in this minute`));
     }
 
     const buffer = finite(row.m?.recvBuffer?.p95 ?? row.m?.recvBuffer?.max ?? row.m?.recvBuffer?.avg);
