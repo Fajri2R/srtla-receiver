@@ -806,7 +806,34 @@
     .hist-thresholds summary { cursor: pointer; font: 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
     .hist-thresholds[open] { width: 100%; }
     @media (max-width: 480px) {
-      .hist-incident { grid-template-columns: 44px 56px minmax(0, 1fr); gap: 6px; }
+      .hist-incident {
+        grid-template-columns: auto 1fr;
+        grid-template-areas: "when type" "why why";
+        gap: 2px 8px;
+        padding: 6px 8px;
+      }
+      .hist-incident .when { grid-area: when; font-weight: 600; }
+      .hist-incident .type { grid-area: type; }
+      .hist-incident .why {
+        grid-area: why;
+        color: var(--text-primary);
+        line-height: 1.35;
+        padding-top: 2px;
+      }
+      .hist-field:first-of-type { flex: 2 1 150px; }
+      .hist-field:last-of-type { flex: 1 1 90px; }
+    }
+
+    @media (max-width: 650px) {
+      /* Narrow-width must imply the same touch minimums as coarse-pointer
+         devices, or buttons fall below 32px on desktop-width devtools emulation
+         and on phones that still report a fine pointer. */
+      .hist-actions .action, .hist-detail-actions .action {
+        min-height: 40px; padding: 0 13px;
+      }
+      .hist-key-row .action { min-height: 40px; padding: 0 13px; }
+      .hist-field select, .hist-field input, .hist-key input { min-height: 40px; }
+      .hist-key input { flex: 1 1 130px; }
     }
 
     @media (hover: none) and (pointer: coarse) {

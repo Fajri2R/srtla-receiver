@@ -1151,8 +1151,10 @@
         justify-content: center;
         padding: 0;
         gap: 0;
-        font-size: 0;
       }
+      /* Hide labels explicitly. font-size:0 on the parent loses to the more
+         specific .header .nav-action rule and lets translated text overflow. */
+      .btn-mgmt-text { display: none !important; }
       .btn-refresh svg, .btn-mgmt svg, #btn-srt-monitor svg { width: 15px !important; height: 15px !important; }
       .main { padding: 18px 14px 40px; }
       .stats-overview { grid-template-columns: repeat(2, 1fr); }
@@ -1166,7 +1168,9 @@
 
     @media (max-width: 480px) {
       .header { padding: 0 12px; }
-      .eyebrow { font-size: 9px; letter-spacing: .1em; white-space: nowrap; }
+      /* Long translated eyebrows ("preview langsung · output hls · receiver
+         srtla") overrun the padding at 320px, so let them wrap instead. */
+      .eyebrow { font-size: 9px; letter-spacing: .1em; white-space: normal; line-height: 1.5; }
       .header-inner { gap: 6px; }
       .logo { gap: 8px; }
       .logo-text { display: none; }
@@ -1208,7 +1212,7 @@
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
         </button>
-        <button class="btn-refresh nav-action" id="btn-refresh" data-tooltip="Refresh streams" data-i18n-tooltip="nav.refreshTip" onclick="refreshAll()">
+        <button class="btn-refresh nav-action" id="btn-refresh" aria-label="Refresh streams" data-tooltip="Refresh streams" data-i18n-tooltip="nav.refreshTip" data-i18n-title="nav.refreshTip" onclick="refreshAll()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -1216,7 +1220,7 @@
           <span class="btn-mgmt-text" data-i18n="nav.refresh">Refresh</span>
         </button>
 
-        <a class="btn-mgmt nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
+        <a class="btn-mgmt nav-action" id="btn-mgmt" href="#" target="_blank" aria-label="Open Management UI" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" data-i18n-title="nav.manageTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <line x1="9" y1="3" x2="9" y2="21"/>
@@ -1224,7 +1228,7 @@
           <span class="btn-mgmt-text" data-i18n="nav.management">Management UI</span>
         </a>
 
-        <a class="btn-mgmt nav-action" id="btn-srt-monitor" href="#" target="_blank" data-tooltip="Open SRT Monitor" data-i18n-tooltip="nav.srtMonitorTip" style="text-decoration:none;">
+        <a class="btn-mgmt nav-action" id="btn-srt-monitor" href="#" target="_blank" aria-label="Open SRT Monitor" data-tooltip="Open SRT Monitor" data-i18n-tooltip="nav.srtMonitorTip" data-i18n-title="nav.srtMonitorTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           <span class="btn-mgmt-text" data-i18n="nav.srtMonitor">SRT Monitor</span>
         </a>
@@ -1580,7 +1584,7 @@ function renderDashboard(data) {
   document.getElementById('stat-total').textContent    = publishers.length;
   // ✅ FIX #21: consistent Mbps in overview
   document.getElementById('stat-bitrate').textContent  = totalBps > 0 ? `${(totalBps/1000000).toFixed(2)}` : '0.00';
-  document.getElementById('stat-updated').textContent  = new Date().toLocaleTimeString();
+  document.getElementById('stat-updated').textContent  = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   document.getElementById('streams-count').textContent = publishers.length;
   // ✅ FIX #13: show current preview count
   document.getElementById('stat-previewing').textContent = playingStreams.size;

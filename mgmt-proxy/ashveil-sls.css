@@ -514,6 +514,15 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
 /* ── Modal viewport fit (short screens, landscape phones) ───────────── */
 .modal { overflow-y:auto !important; }
 .modal.show, .modal.in { display:flex !important; align-items:center; justify-content:center; overflow:hidden !important; }
+/* Bootstrap leaves the dialog at translateY(-50px) until the fade transition
+   finishes. In a hidden/background tab that transition never advances, which
+   pushes the header and close button off-screen. Pin the shown state. */
+.modal.show .modal-dialog, .modal.in .modal-dialog {
+  transform:none !important;
+  /* A paused/never-advancing fade transition keeps the computed transform at
+     its start value even when the cascade says none, so drop the transition. */
+  transition:none !important;
+}
 .modal-dialog {
   margin:auto !important;
   min-height:0 !important;

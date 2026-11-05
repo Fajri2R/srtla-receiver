@@ -130,7 +130,7 @@ test('nginx bootstrap restores the saved language before first paint', () => {
   const template = readFileSync(join(here, 'default.conf.template'), 'utf8');
   assert.match(template, /ashveil-lang/);
   assert.match(template, /setAttribute\("lang"/);
-  assert.match(template, /ashveil-sls\.css\?v=/);
+  assert.match(template, /ashveil-sls\.css\?v=[0-9a-z]+/);
 });
 
 test('static assets declare a single MIME type via default_type, never add_header', () => {
@@ -141,6 +141,15 @@ test('static assets declare a single MIME type via default_type, never add_heade
   assert.doesNotMatch(template, /add_header\s+Content-Type/i, 'add_header Content-Type duplicates the header');
   assert.match(template, /location = \/ashveil-sls\.css\s*\{[^}]*default_type\s+text\/css/i);
   assert.match(template, /location = \/lp-inject\.js\s*\{[^}]*default_type\s+application\/javascript/i);
+});
+
+test('shown modals cancel the Bootstrap entrance transform', () => {
+  // Headless/background tabs can remain visibilityState=hidden, which leaves
+  // Bootstrap's .modal.fade dialog stuck at translateY(-50px). The shown state
+  // must be independent of transition progress so the header stays reachable.
+  const rule = /\.modal\.show\s+\.modal-dialog[^{]*\{([^}]*)\}/is.exec(css)?.[1] ?? '';
+  assert.match(rule, /transform:\s*none\s*!important/i, 'shown dialog must pin transform:none');
+  assert.match(rule, /transition:\s*none\s*!important/i, 'a paused transition must not freeze the entrance offset');
 });
 
 test('responsive language control has compact mobile treatment and no forced header overflow', () => {
