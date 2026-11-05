@@ -23,6 +23,14 @@ server {
         add_header Content-Type  "application/javascript; charset=utf-8";
     }
 
+    # Ashveil design-system skin for the vendor SPA. Injected into <head> so it
+    # paints with the first frame instead of flashing the default theme.
+    location = /ashveil-sls.css {
+        alias /etc/nginx/ashveil-sls.css;
+        add_header Cache-Control "no-cache, must-revalidate";
+        add_header Content-Type  "text/css; charset=utf-8";
+    }
+
     # Brand assets for the Ashveil identity (served from the mounted
     # mgmt-proxy directory; no deployment hostnames involved).
     location = /ashveil-emblem.png {
@@ -140,6 +148,7 @@ server {
         # The JS file is served at /lp-inject.js by this same nginx.
         # sub_filter_types defaults to text/html, so it is not repeated here.
         sub_filter_once  on;
+        sub_filter '</head>' '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/ashveil-sls.css?v=20261105b"></head>';
         sub_filter '</body>' '<script src="/lp-inject.js"></script></body>';
     }
 }

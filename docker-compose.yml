@@ -34,6 +34,7 @@ services:
       - ./mgmt-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./mgmt-proxy/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
+      - ./mgmt-proxy/ashveil-sls.css:/etc/nginx/ashveil-sls.css:ro
       - ./mgmt-proxy/ashveil-emblem.png:/etc/nginx/ashveil-emblem.png:ro
       - ./mgmt-proxy/ashveil-favicon.png:/etc/nginx/ashveil-favicon.png:ro
       - ./mgmt-proxy/ashveil-favicon.ico:/etc/nginx/ashveil-favicon.ico:ro
