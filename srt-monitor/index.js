@@ -2,6 +2,8 @@ import { createServer } from "http";
 import { readFileSync, existsSync } from "fs";
 import { join, normalize } from "path";
 import { handleBrandProxy } from "./brand-proxy.js";
+import { HistoryStore } from "./history-store.js";
+import { handleHistoryRoutes } from "./history-routes.js";
 
 const PORT = Number(process.env.PORT || 9091);
 const SLS_BASE = (process.env.SLS_STATS_URL || "http://receiver:8080/stats").replace(/\/stats\/?$/, "");
@@ -18,6 +20,22 @@ const HISTORY_SIZE = Math.max(300, Number(process.env.HISTORY_SIZE || 600));
 const STREAM_IDS_REFRESH_MS = Math.max(POLL_MS, Number(process.env.STREAM_IDS_REFRESH_MS || 2500));
 const publicDir = join(process.cwd(), "public");
 const BRAND_URL = process.env.BRAND_URL || "http://hls-manager:9090";
+
+// ── Persistent telemetry history ─────────────────────────────────────────
+// Every poll tick is folded into one-minute buckets on disk (see
+// history-store.js). Retention defaults to 90 days and can be changed at
+// runtime via POST /api/history/config without editing the compose file.
+const HISTORY_DIR = process.env.HISTORY_DIR || "/data/history";
+const HISTORY_FLUSH_MS = Math.max(1000, Number(process.env.HISTORY_FLUSH_MS || 20000));
+const HISTORY_RETENTION_DAYS = Number(process.env.HISTORY_RETENTION_DAYS || 0);
+const historyStore = new HistoryStore({
+  dir: HISTORY_DIR,
+  offlineGapMs: Math.max(1000, GRACE_PERIOD),
+  flushIntervalMs: HISTORY_FLUSH_MS,
+  ...(HISTORY_RETENTION_DAYS > 0 ? { retentionDays: HISTORY_RETENTION_DAYS } : {}),
+});
+const HISTORY_PRUNE_MS = Math.max(60_000, Number(process.env.HISTORY_PRUNE_MS || 3600_000));
+setInterval(() => { historyStore.pruneNow().catch(() => {}); }, HISTORY_PRUNE_MS).unref?.();
 const streams = new Map();
 let lastPoll = null;
 let lastError = null;
@@ -30,7 +48,7 @@ const aliases = {
   packetLoss: ["packet_loss", "loss_pct", "loss_rate", "pkt_loss_rate"],
   retransmissions: ["retransmissions", "retransmitted_pkts", "retransmit_rate", "pkt_retrans"],
   jitter: ["jitter", "jitter_ms", "rtt_variance"],
-  recvBuffer: ["recv_buffer", "rcvbuf", "recv_buffer_level", "buffer_level"],
+  recvBuffer: ["recv_buffer", "rcvbuf", "recv_buffer_level", "buffer_level", "buffer"],
   sendBuffer: ["send_buffer", "sndbuf", "send_buffer_level"],
   linkCapacity: ["link_capacity", "estimated_bandwidth", "bandwidth", "mbps_bandwidth"],
   droppedPackets: ["dropped_pkts", "packet_drop", "dropped_packets", "pkt_drop"],
@@ -41,6 +59,8 @@ const aliases = {
   transcoderFrames: ["transcoder_frames"],
   transcoderDroppedFrames: ["transcoder_dropped_frames"],
   transcoderDuplicatedFrames: ["transcoder_duplicated_frames"],
+  throughput: ["throughput"],
+  latency: ["latency"],
 };
 
 function getValue(source, names) {
@@ -68,6 +88,7 @@ function snapshot(item) {
   if (metrics.recvBitrate !== null) metrics.recvBitrate *= 1000;
   if (metrics.sendBitrate !== null) metrics.sendBitrate *= 1000;
   if (metrics.linkCapacity !== null) metrics.linkCapacity *= 1000;
+  if (metrics.throughput !== null) metrics.throughput *= 1000;
   return { at: Date.now(), ...metrics, raw };
 }
 
@@ -148,6 +169,7 @@ async function poll() {
         entry.history.push(point);
         if (HISTORY_SIZE > 0 && entry.history.length > HISTORY_SIZE) entry.history.splice(0, entry.history.length - HISTORY_SIZE);
         streams.set(publisherId, entry);
+        historyStore.record(publisherId, point);
         present.add(publisherId);
       } catch {}
     }));
@@ -160,6 +182,7 @@ async function poll() {
           entry.offlineSince = Date.now();
         } else if (Date.now() - entry.offlineSince > GRACE_PERIOD) {
           streams.delete(id);
+          historyStore.markOffline(id).catch(() => {});
           console.log(`[srt-monitor] Stream ${id} offline grace period expired. Resetting graph history.`);
           continue;
         }
@@ -193,12 +216,16 @@ function serveFile(res, file, type) {
   res.end(readFileSync(path));
 }
 
-createServer((req, res) => {
+const server = createServer(async (req, res) => {
   // Brand identity mirrors the config from the HLS manager (see SLS Settings).
   if (handleBrandProxy(req, res, { baseUrl: BRAND_URL })) return;
 
+  // Persistent telemetry history (riwayat live). Reads are public; the write
+  // and delete routes re-check the Bearer key on every request.
+  if (await handleHistoryRoutes(req, res, { store: historyStore, apiKey: refreshApiKey })) return;
+
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (url.pathname === "/api/status") return json(res, 200, { lastPoll, lastError, source: SLS_STREAMS_URL, pollMs: POLL_MS, streams: streams.size });
+  if (url.pathname === "/api/status") return json(res, 200, { lastPoll, lastError, source: SLS_STREAMS_URL, pollMs: POLL_MS, streams: streams.size, historyActive: [...historyStore.active.keys()] });
   if (url.pathname === "/api/streams") return json(res, 200, { streams: [...streams.values()].map(({ id, latest }) => ({ id, latest })) });
   if (url.pathname.startsWith("/api/streams/")) {
     const id = decodeURIComponent(url.pathname.slice("/api/streams/".length));
@@ -231,5 +258,20 @@ createServer((req, res) => {
   if (hit) return serveFile(res, hit[0], hit[1]);
   return json(res, 404, { error: "Not found" });
 }).listen(PORT, "0.0.0.0", () => console.log(`SRT Monitoring listening on ${PORT}`));
+
+async function shutdown(signal) {
+  console.log(`[srt-monitor] ${signal} received; flushing history before exit...`);
+  try {
+    for (const id of [...historyStore.active.keys()]) await historyStore.markOffline(id);
+    await historyStore.flush();
+  } catch (error) {
+    console.error(`[srt-monitor] history flush failed: ${error.message}`);
+  }
+  historyStore.close();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));
 
 poll();

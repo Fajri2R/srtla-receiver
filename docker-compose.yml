@@ -151,8 +151,14 @@ services:
       SLS_API_KEY: "${SLS_API_KEY}"
       HLS_STATUS_URL: "http://hls-manager:9090/health"
       BRAND_URL: "http://hls-manager:9090"
+      # ── Telemetry history (riwayat live) ──────────────────────────────────
+      HISTORY_DIR: "/data"
+      # Default 90 hari bila config.json belum ada; bisa diubah runtime via
+      # POST /api/history/config tanpa restart container.
+      HISTORY_RETENTION_DAYS: "${HISTORY_RETENTION_DAYS:-90}"
     volumes:
       - ./.apikey:/apikey:ro
+      - srt-monitor-history:/data
     ports:
       - "${SRT_MONITOR_PORT:-9010}:9091"
     logging:
@@ -167,4 +173,7 @@ volumes:
   hls-data:
     driver: local
   sls-brand:
+    driver: local
+  # Riwayat telemetri srt-monitor (dipertahankan saat container di-recreate).
+  srt-monitor-history:
     driver: local
