@@ -31,28 +31,45 @@ server {
         add_header Content-Type  "text/css; charset=utf-8";
     }
 
-    # Brand assets for the Ashveil identity (served from the mounted
-    # mgmt-proxy directory; no deployment hostnames involved).
-    location = /ashveil-emblem.png {
-        alias /etc/nginx/ashveil-emblem.png;
+    # Canonical identity assets — byte-identical to the Control Hub set.
+    location = /ashveil-veil.png {
+        alias /etc/nginx/ashveil-veil.png;
         add_header Cache-Control "public, max-age=86400";
         add_header Content-Type  "image/png";
     }
 
-    location = /ashveil-favicon.png {
-        alias /etc/nginx/ashveil-favicon.png;
+    location = /favicon.svg {
+        alias /etc/nginx/favicon.svg;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/svg+xml";
+    }
+
+    location = /favicon-dark.svg {
+        alias /etc/nginx/favicon-dark.svg;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/svg+xml";
+    }
+
+    location = /favicon-light.svg {
+        alias /etc/nginx/favicon-light.svg;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Type  "image/svg+xml";
+    }
+
+    location = /favicon-32.png {
+        alias /etc/nginx/favicon-32.png;
         add_header Cache-Control "public, max-age=86400";
         add_header Content-Type  "image/png";
     }
 
     location = /favicon.ico {
-        alias /etc/nginx/ashveil-favicon.ico;
+        alias /etc/nginx/favicon.ico;
         add_header Cache-Control "public, max-age=86400";
         add_header Content-Type  "image/x-icon";
     }
 
     location = /apple-touch-icon.png {
-        alias /etc/nginx/ashveil-favicon.png;
+        alias /etc/nginx/apple-touch-icon.png;
         add_header Cache-Control "public, max-age=86400";
         add_header Content-Type  "image/png";
     }

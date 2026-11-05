@@ -35,9 +35,13 @@ services:
       - ./mgmt-proxy/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./mgmt-proxy/lp-inject.js:/etc/nginx/lp-inject.js:ro
       - ./mgmt-proxy/ashveil-sls.css:/etc/nginx/ashveil-sls.css:ro
-      - ./mgmt-proxy/ashveil-emblem.png:/etc/nginx/ashveil-emblem.png:ro
-      - ./mgmt-proxy/ashveil-favicon.png:/etc/nginx/ashveil-favicon.png:ro
-      - ./mgmt-proxy/ashveil-favicon.ico:/etc/nginx/ashveil-favicon.ico:ro
+      - ./mgmt-proxy/ashveil-veil.png:/etc/nginx/ashveil-veil.png:ro
+      - ./mgmt-proxy/favicon.svg:/etc/nginx/favicon.svg:ro
+      - ./mgmt-proxy/favicon-dark.svg:/etc/nginx/favicon-dark.svg:ro
+      - ./mgmt-proxy/favicon-light.svg:/etc/nginx/favicon-light.svg:ro
+      - ./mgmt-proxy/favicon-32.png:/etc/nginx/favicon-32.png:ro
+      - ./mgmt-proxy/favicon.ico:/etc/nginx/favicon.ico:ro
+      - ./mgmt-proxy/apple-touch-icon.png:/etc/nginx/apple-touch-icon.png:ro
     logging:
       driver: "json-file"
       options:

@@ -85,12 +85,12 @@ body::after {
   margin:0 !important; padding:0 !important; text-decoration:none !important; flex-shrink:0;
 }
 .mgmt-brand-icon {
-  width:42px !important; height:22px !important; flex:0 0 42px !important;
+  width:44px !important; height:20px !important; flex:0 0 44px !important;
   display:block !important; border:0 !important; background:none !important;
   box-shadow:none !important; border-radius:0 !important; overflow:visible !important;
 }
 .mgmt-brand-icon img {
-  width:42px !important; height:22px !important; margin:0 !important;
+  width:44px !important; height:15px !important; margin:0 !important;
   object-fit:contain !important; object-position:left center !important; display:block !important;
 }
 .mgmt-brand-text {

@@ -234,32 +234,41 @@
       brand.classList.add('mgmt-brand');
       brand.setAttribute('aria-label', 'ASHVEIL SRT Live Management');
       brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true">'
-        + '<img src="/ashveil-emblem.png?v=2" alt="" width="24" height="24" decoding="async">'
+        + '<img src="/ashveil-veil.png?v=20261105c" alt="" width="42" height="14" decoding="async">'
         + '</span>'
         + '<span class="mgmt-brand-text">ASHVEIL<em class="mgmt-brand-sub">SRT Live Management</em></span>';
     });
   }
 
   // Give the tab the Ashveil identity as well: the vendor bundle ships a
-  // generic/emoji title and no favicon.
+  // generic/emoji title and no favicon. Declares the same canonical set as
+  // the Control Hub (one SVG, one ICO, one 32px PNG, one touch icon),
+  // byte-identical artwork, cache-busted together.
   function applyBrandIdentity() {
     if (document.title !== BRAND_TITLE) document.title = BRAND_TITLE;
     if (!document.querySelector('link[data-ashveil-icon]')) {
-      [['icon', '/ashveil-favicon.png', 'image/png'],
-       ['apple-touch-icon', '/apple-touch-icon.png', 'image/png']].forEach(function (spec) {
+      [['icon', '/favicon.svg', 'image/svg+xml', null],
+       ['icon', '/favicon-32.png', 'image/png', '32x32'],
+       ['shortcut icon', '/favicon.ico', null, null],
+       ['apple-touch-icon', '/apple-touch-icon.png', 'image/png', '180x180']].forEach(function (spec) {
         var link = document.createElement('link');
         link.rel = spec[0];
-        link.href = spec[1];
+        link.href = spec[1] + '?v=20261105c';
         if (spec[2]) link.type = spec[2];
+        if (spec[3]) link.setAttribute('sizes', spec[3]);
         link.setAttribute('data-ashveil-icon', '1');
         document.head.appendChild(link);
       });
-      var theme = document.createElement('meta');
+    }
+    // The vendor bundle ships theme-color #0a0e27; patch that exact node
+    // instead of appending a second meta, otherwise the first one wins.
+    var theme = document.querySelector('meta[name="theme-color"]');
+    if (!theme) {
+      theme = document.createElement('meta');
       theme.name = 'theme-color';
-      theme.content = '#2c2e2d';
-      theme.setAttribute('data-ashveil-icon', '1');
       document.head.appendChild(theme);
     }
+    if (theme.content !== '#2b2d2c') theme.content = '#2b2d2c';
   }
 
   function injectNavTools() {

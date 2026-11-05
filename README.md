@@ -24,17 +24,28 @@ SRTla receiver with support for multiple streams, statistics integration, and **
 
 ### Brand assets
 
-Every dashboard ships its own copy so it renders without cross-service requests:
+Every dashboard ships its own **byte-identical** copy of the Control Hub set, so the favicon matches the portal exactly and renders without cross-service requests:
 
 | File | Purpose |
 |------|---------|
-| `ashveil-emblem.png` | Header mark (transparent cream emblem) |
-| `ashveil-logo.png` | Full lockup for docs, OG images, and external use |
-| `favicon.ico`, `favicon.png`, `favicon-32x32.png` | Browser tab icon |
-| `apple-touch-icon.png` | iOS home-screen icon |
+| `ashveil-veil.png` | Header mark (canonical cream monogram, 420×144) |
+| `favicon.svg` | Tab icon, adapts to the OS colour scheme (`#22262a` light / `#f2f2ea` dark) |
+| `favicon-32.png` | 32×32 PNG cut-out for browsers without SVG icon support |
+| `favicon.ico` | Multi-resolution ICO (16/24/32/48/64) for legacy and OS surfaces |
+| `apple-touch-icon.png` | 180×180 iOS home-screen icon |
 
-- HLS Manager serves them from `preview/`; SRT Monitor from `srt-monitor/public/`; the Management UI from `mgmt-proxy/`.
-- The Management UI is a third-party bundle, so `mgmt-proxy/lp-inject.js` applies the identity at runtime: it rewrites the navbar brand, sets the tab title, and injects the favicon links.
+Head declaration order is the same on every dashboard:
+
+```html
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=…">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=…">
+<link rel="shortcut icon" href="/favicon.ico?v=…">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=…">
+```
+
+- HLS Manager serves them from `preview/`; SRT Monitor from `srt-monitor/public/`; the Management UI from `mgmt-proxy/` (mounted read-only into nginx under `/etc/nginx/`).
+- Do not hand-draw a new mark per service: overwrite all copies from `ashveil-control-hub/public/` and bump the `?v=` token on all three so caches turn over together.
+- The Management UI is a third-party bundle, so `mgmt-proxy/lp-inject.js` applies the identity at runtime: it rewrites the navbar brand to `ashveil-veil.png`, sets the tab title, declares the four icon links, and patches the vendor `theme-color` meta to `#2b2d2c` in place (appending a second meta loses to the first).
 - `preview/nginx.conf` answers missing image requests with `404` instead of the SPA `index.html`. Without that rule a miss returns HTML that browsers reject as an image and CDNs cache under the image URL.
 
 > **SRT/SRTLA domain note:** SRT and SRTLA use UDP and cannot pass through a normal Cloudflare-proxied hostname. Create an explicit `A` record such as `srt.example.com` pointing to the VPS and set it to **DNS only** (grey cloud). The dashboard checks the hostname over DNS before offering it, so with no such record every URL falls back to the origin IP automatically.

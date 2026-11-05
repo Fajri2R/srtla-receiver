@@ -211,9 +211,14 @@ createServer((req, res) => {
     "/": ["index.html", "text/html; charset=utf-8"],
     "/index.html": ["index.html", "text/html; charset=utf-8"],
     "/favicon.ico": ["favicon.ico", "image/x-icon"],
+    "/favicon.svg": ["favicon.svg", "image/svg+xml"],
+    "/favicon-dark.svg": ["favicon-dark.svg", "image/svg+xml"],
+    "/favicon-light.svg": ["favicon-light.svg", "image/svg+xml"],
     "/favicon.png": ["favicon.png", "image/png"],
+    "/favicon-32.png": ["favicon-32.png", "image/png"],
     "/favicon-32x32.png": ["favicon-32x32.png", "image/png"],
     "/apple-touch-icon.png": ["apple-touch-icon.png", "image/png"],
+    "/ashveil-veil.png": ["ashveil-veil.png", "image/png"],
     "/ashveil-emblem.png": ["ashveil-emblem.png", "image/png"],
     "/ashveil-logo.png": ["ashveil-logo.png", "image/png"]
   };
