@@ -464,10 +464,9 @@ are returned by the API, which makes every verdict explainable after the fact.
 ## Language: English / Bahasa Indonesia
 
 The SLS Management UI, standalone HLS Manager, and SRT Monitor each provide an
-**EN / ID** control in the header. The selected language is shared between all
-three dashboards through the browser's `localStorage['ashveil-lang']`, so moving
-from one dashboard to another keeps the same language. On a first visit, the
-browser locale is used (`id-*` selects Bahasa Indonesia; all other locales use
+**EN / ID** control in the header. Each browser origin stores its own choice
+under the same `localStorage['ashveil-lang']` key, and a first visit follows
+the browser locale (`id-*` selects Bahasa Indonesia; all other locales use
 English). Switching languages repaints live statuses, generated stream cards,
 tooltips, history/quality labels, empty states, and error messages immediately
 without reloading the page.
