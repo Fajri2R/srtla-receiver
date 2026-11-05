@@ -32,7 +32,24 @@ test('history view replaces the live panels instead of stacking under them', () 
   assert.match(style, /body\.history-open \.history\s*\{[^}]*display:\s*block/);
 });
 
-test('history styles use Ashveil tokens, never literal colors', () => {
+test('quality score and incident timeline have stable DOM hooks', () => {
+  for (const id of ['hist-quality', 'hist-quality-score', 'hist-quality-grade',
+    'hist-quality-health', 'hist-incidents', 'hist-incidents-empty',
+    'hist-quality-export', 'hist-thresholds', 'hist-threshold-list']) {
+    assert.ok(html.includes(`id="${id}"`), `missing #${id}`);
+  }
+  assert.match(markup, /aria-live="polite"/, 'quality result should announce updates accessibly');
+});
+
+test('quality export links to the CSV analysis and thresholds are spelled out', () => {
+  assert.ok(script.includes("format=csv"), 'quality export must request format=csv');
+  assert.match(script, /qualityExportEl\.href/, 'export anchor href must be updated per session');
+  assert.match(script, /q\.thresholds/, 'thresholds from the API must render');
+  assert.match(script, /rttWarnMs/, 'threshold keys must be read, not hardcoded');
+  assert.match(script, /hist-threshold-list/, 'threshold output element must be wired');
+});
+
+test('history styles use Ashveil tokens, never literal colors' , () => {
   const block = style.slice(style.indexOf('LIVE HISTORY'));
   assert.ok(block.length > 200, 'history CSS block missing');
   assert.ok(!/#[0-9a-f]{3,8}\b/i.test(block.replace(/rgba\([^)]*\)/g, '')),
@@ -60,7 +77,16 @@ test('history UI talks to the documented endpoints and keeps the key local', () 
   assert.match(script, /confirm\(/, 'destructive actions must ask for confirmation');
 });
 
-test('deleting a session keeps the range editable and refreshes after success', () => {
+test('quality analysis is fetched for the exact selected session range', () => {
+  assert.ok(script.includes('/api/history/quality'), 'quality endpoint must be called');
+  assert.match(script, /async function loadQuality/);
+  assert.match(script, /encodeURIComponent\(current\.stream\)/);
+  assert.match(script, /q\.incidents/, 'the incidents array from the API must drive the timeline');
+  assert.match(script, /incident\.detail/, 'incident detail must be rendered');
+  assert.ok(!/innerHTML\s*=/.test(script), 'no innerHTML anywhere in the history script');
+});
+
+test('deleting a session keeps the range editable and refreshes after success' , () => {
   const fn = script.slice(script.indexOf('async function deleteRange'));
   assert.match(fn, /method: 'DELETE'/);
   assert.match(fn, /401|Unauthorized|API key/);

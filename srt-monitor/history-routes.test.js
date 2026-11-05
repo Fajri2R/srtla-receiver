@@ -155,6 +155,46 @@ test('accepts a getter for the API key (the deployment re-reads it from disk)', 
   }
 });
 
+test('GET /api/history/quality scores a range and lists incidents', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hist-srv-'));
+  const store = new HistoryStore({ dir });
+  const t = Date.UTC(2026, 10, 5, 9, 0, 0);
+  store.record('streamQ', { at: t, rtt: 3, recvBitrate: 2_000_000, droppedPackets: 0 });
+  store.record('streamQ', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120 });
+  await store.flush();
+
+  const srv = await setupServer(store);
+  try {
+    const res = await fetch(srv.url(`/api/history/quality?stream=streamQ&from=${t - 1}&to=${t + 120_000}`));
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(typeof body.score, 'number');
+    assert.equal(body.grade, 'bad');
+    assert.ok(body.incidents.length >= 2, `expected rtt + drops incidents, got ${JSON.stringify(body.incidents)}`);
+    assert.ok(body.incidents.some((i) => i.type === 'rtt' && i.severity === 'critical'));
+    assert.ok(body.incidents.some((i) => i.type === 'drops' && i.severity === 'critical'));
+    assert.ok(body.thresholds && body.thresholds.rttBadMs > 0, 'thresholds must be exposed for transparency');
+  } finally {
+    await srv.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/history/quality requires a stream parameter', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hist-srv-'));
+  const store = new HistoryStore({ dir });
+  const srv = await setupServer(store);
+  try {
+    const res = await fetch(srv.url('/api/history/quality'));
+    assert.equal(res.status, 400);
+  } finally {
+    await srv.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/history/export serves text/csv attachment', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'hist-srv-'));
   const store = new HistoryStore({ dir });
@@ -170,6 +210,34 @@ test('GET /api/history/export serves text/csv attachment', async () => {
     assert.match(res.headers.get('content-disposition'), /attachment; filename="stream4-history\.csv"/);
     const body = await res.text();
     assert.match(body, /^time,n,rtt_avg/);
+  } finally {
+    await srv.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/history/quality?format=csv exports the analysis as a table', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hist-srv-'));
+  const store = new HistoryStore({ dir });
+  const t = Date.UTC(2026, 10, 5, 10, 0, 0);
+  store.record('streamQC', { at: t, rtt: 3, recvBitrate: 2_000_000, droppedPackets: 0 });
+  store.record('streamQC', { at: t + 61_000, rtt: 320, recvBitrate: 2_000_000, droppedPackets: 120 });
+  await store.flush();
+
+  const srv = await setupServer(store);
+  try {
+    const res = await fetch(srv.url(`/api/history/quality?stream=streamQC&from=${t - 1}&to=${t + 120_000}&format=csv`));
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type'), /text\/csv/);
+    assert.match(res.headers.get('content-disposition'), /attachment; filename="streamQC-quality\.csv"/);
+    const body = await res.text();
+    assert.match(body, /^metric,value/);
+    assert.match(body, /^score,50$/m);
+    assert.match(body, /^grade,bad$/m);
+    assert.match(body, /^incident_time,type,severity,value,threshold,detail$/m);
+    assert.match(body, /rtt,critical/);
+    assert.match(body, /drops,critical/);
   } finally {
     await srv.close();
     store.close();

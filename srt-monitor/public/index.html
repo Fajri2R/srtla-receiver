@@ -751,6 +751,51 @@
     .hist-key input { flex: 1 1 210px; }
 
 
+    .hist-quality {
+      border: 1px solid var(--border-subtle); border-radius: 11px;
+      background: var(--bg-elevated); padding: 11px 12px; margin-bottom: 12px;
+    }
+    .hist-quality-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .hist-quality-score { font: 600 22px var(--mono); letter-spacing: .01em; color: var(--text-primary); }
+    .hist-quality-score small { font: 400 10px var(--mono); color: var(--faint); margin-left: 3px; }
+    .hist-quality-grade {
+      font: 9.5px var(--mono); letter-spacing: .14em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    .hist-quality-grade[data-grade="excellent"] { color: var(--accent); border-color: var(--accent); }
+    .hist-quality-grade[data-grade="good"] { color: var(--green); border-color: var(--border-default); }
+    .hist-quality-grade[data-grade="fair"] { color: var(--yellow); border-color: var(--border-default); }
+    .hist-quality-grade[data-grade="bad"] { color: var(--red); border-color: var(--border-default); }
+    .hist-quality-bar {
+      position: relative; height: 4px; border-radius: 2px; margin: 9px 0 8px;
+      background: var(--border-subtle); overflow: hidden;
+    }
+    .hist-quality-bar span {
+      position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 2px;
+      background: var(--accent); transition: width .2s ease, background .2s ease;
+    }
+    .hist-quality-health { font: 9.5px var(--mono); color: var(--faint); }
+    .hist-incidents { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; max-height: 168px; overflow-y: auto; }
+    .hist-incident {
+      display: grid; grid-template-columns: 52px 62px minmax(0, 1fr); gap: 8px;
+      align-items: baseline; font: 9.5px var(--mono); color: var(--text-secondary);
+      padding: 5px 7px; border-radius: 6px; background: var(--bg-surface);
+      border-left: 2px solid var(--border-default);
+    }
+    .hist-incident[data-severity="warning"] { border-left-color: var(--yellow); }
+    .hist-incident[data-severity="critical"] { border-left-color: var(--red); }
+    .hist-incident .when { color: var(--faint); }
+    .hist-incident .type { text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+    .hist-incident .why { color: var(--text-secondary); word-break: break-word; }
+    .hist-incidents-empty { font: 9.5px var(--mono); color: var(--faint); margin: 9px 0 0; }
+    .hist-quality-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .hist-thresholds summary { cursor: pointer; font: 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+    .hist-thresholds[open] { width: 100%; }
+    @media (max-width: 480px) {
+      .hist-incident { grid-template-columns: 44px 56px minmax(0, 1fr); gap: 6px; }
+    }
+
     @media (hover: none) and (pointer: coarse) {
       .hist-actions .action, .hist-detail-actions .action, .hist-key-row .action {
         min-height: 40px; padding: 0 13px;
@@ -880,6 +925,28 @@
             </div>
           </div>
           <div class="hist-kpis" id="hist-kpis"></div>
+
+          <section class="hist-quality" id="hist-quality" aria-live="polite">
+            <div class="hist-quality-top">
+              <div>
+                <span class="hist-eyebrow">network quality</span>
+                <span class="hist-quality-score" id="hist-quality-score">&mdash;<small>/100</small></span>
+              </div>
+              <span class="hist-quality-grade" id="hist-quality-grade">&mdash;</span>
+            </div>
+            <div class="hist-quality-bar"><span id="hist-quality-fill"></span></div>
+            <p class="hist-quality-health" id="hist-quality-health">Analysing recorded minutes…</p>
+            <div class="hist-incidents" id="hist-incidents"></div>
+            <p class="hist-incidents-empty" id="hist-incidents-empty" hidden>No incidents detected in this session.</p>
+            <div class="hist-quality-foot">
+              <a class="action nav-action" id="hist-quality-export" href="#" download>Quality CSV</a>
+              <details class="hist-thresholds" id="hist-thresholds">
+                <summary>Thresholds</summary>
+                <p class="hist-note" id="hist-threshold-list"></p>
+              </details>
+            </div>
+          </section>
+
           <div class="hist-canvas-wrap"><canvas id="hist-canvas"></canvas></div>
           <p class="hist-note" id="hist-note"></p>
         </div>
@@ -1365,6 +1432,11 @@
       const listEl = $('hist-list'), emptyEl = $('hist-empty'), errEl = $('hist-error');
       const detailEl = $('hist-detail'), titleEl = $('hist-detail-title'), kpiEl = $('hist-kpis');
       const canvasEl = $('hist-canvas'), noteEl = $('hist-note');
+      const qualityEl = $('hist-quality'), qualityScoreEl = $('hist-quality-score');
+      const qualityGradeEl = $('hist-quality-grade'), qualityHealthEl = $('hist-quality-health');
+      const qualityFillEl = $('hist-quality-fill');
+      const qualityExportEl = $('hist-quality-export'), thresholdListEl = $('hist-threshold-list');
+      const incidentsEl = $('hist-incidents'), incidentsEmptyEl = $('hist-incidents-empty');
       const streamSel = $('hist-stream'), retentionIn = $('hist-retention');
       const metricSel = $('hist-metric'), exportEl = $('hist-export');
       const histBtn = $('btn-history');
@@ -1540,6 +1612,7 @@
         }
         renderSessionList();
         loadSeries();
+        loadQuality();
       }
 
       /* ── series & chart ─────────────────────────────────────────────────── */
@@ -1670,6 +1743,90 @@
         }
       }
 
+
+      /* ── network quality ───────────────────────────────────────────────── */
+
+      const GRADE_COLOR = {
+        excellent: ['var(--accent)', 'var(--accent)'],
+        good: ['var(--green)', 'var(--green)'],
+        fair: ['var(--yellow)', 'var(--yellow)'],
+        bad: ['var(--red)', 'var(--red)']
+      };
+
+      function resetQuality(text) {
+        qualityScoreEl.textContent = '';
+        qualityScoreEl.append(document.createTextNode('\u2014'), Object.assign(document.createElement('small'), { textContent: '/100' }));
+        qualityGradeEl.textContent = '\u2014';
+        qualityGradeEl.removeAttribute('data-grade');
+        qualityFillEl.style.width = '0%';
+        incidentsEl.textContent = '';
+        incidentsEmptyEl.hidden = true;
+        qualityHealthEl.textContent = text;
+      }
+
+      function renderQuality(q) {
+        if (!q || q.score == null) {
+          resetQuality('This session has no recorded minutes to analyse yet.');
+          return;
+        }
+        qualityScoreEl.textContent = '';
+        qualityScoreEl.append(
+          document.createTextNode(String(q.score)),
+          Object.assign(document.createElement('small'), { textContent: '/100' })
+        );
+        qualityGradeEl.textContent = q.grade || '\u2014';
+        if (q.grade) qualityGradeEl.setAttribute('data-grade', q.grade);
+        qualityFillEl.style.width = Math.max(0, Math.min(100, q.score)) + '%';
+        qualityFillEl.style.background = (GRADE_COLOR[q.grade] || GRADE_COLOR.good)[0];
+        qualityHealthEl.textContent = q.healthyMinutes + '/' + q.minutes + ' minutes healthy · '
+          + (q.incidents ? q.incidents.length : 0) + ' incident' + ((q.incidents && q.incidents.length === 1) ? '' : 's');
+
+        incidentsEl.textContent = '';
+        qualityExportEl.href = '/api/history/quality?stream=' + encodeURIComponent(current.stream)
+          + '&from=' + Math.floor(current.start / 60000) * 60000
+          + '&to=' + (Math.floor((current.end || Date.now()) / 60000) * 60000 + 59999)
+          + '&format=csv';
+        const th = q.thresholds || {};
+        thresholdListEl.textContent = 'RTT warn ' + (th.rttWarnMs ?? '—') + ' ms / critical ' + (th.rttBadMs ?? '—') + ' ms'
+          + ' · drops warn ' + (th.dropsWarn ?? '—') + ' / critical ' + (th.dropsBad ?? '—') + ' per minute'
+          + ' · receive buffer warn ' + (th.bufferWarn ?? '—') + ' / critical ' + (th.bufferBad ?? '—')
+          + ' · bitrate collapse below ' + Math.round((th.bitrateCollapseRatio ?? 0.5) * 100) + '% of session baseline (critical ' + Math.round((th.bitrateCriticalRatio ?? 0.2) * 100) + '%)';
+
+        const list = q.incidents || [];
+        incidentsEmptyEl.hidden = list.length > 0;
+        for (const incident of list) {
+          const row = document.createElement('div');
+          row.className = 'hist-incident';
+          row.setAttribute('data-severity', incident.severity || 'warning');
+          for (const [cls, text] of [
+            ['when', hm(incident.t)],
+            ['type', incident.type],
+            ['why', incident.detail]
+          ]) {
+            const cell = document.createElement('span');
+            cell.className = cls;
+            cell.textContent = text;
+            row.appendChild(cell);
+          }
+          incidentsEl.appendChild(row);
+        }
+      }
+
+      async function loadQuality() {
+        if (!current) return;
+        resetQuality('Analysing recorded minutes…');
+        const MINUTE = 60000;
+        const from = Math.floor(current.start / MINUTE) * MINUTE;
+        const to = Math.floor((current.end || Date.now()) / MINUTE) * MINUTE + MINUTE - 1;
+        try {
+          const q = await fetchJson('/api/history/quality?stream=' + encodeURIComponent(current.stream)
+            + '&from=' + from + '&to=' + to);
+          renderQuality(q);
+        } catch (e) {
+          resetQuality(e.message || 'Quality analysis unavailable.');
+        }
+      }
+
       /* ── deletion ───────────────────────────────────────────────────────── */
 
       async function deleteRange(stream, from, to, what) {
@@ -1687,6 +1844,7 @@
           current = null;
           detailEl.hidden = true;
           series = [];
+          resetQuality('Select a session to analyse.');
           showError('');
           await loadStreams();
           await loadSessions();

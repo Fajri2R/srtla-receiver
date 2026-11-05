@@ -5,6 +5,7 @@
  * deployment's SLS API key, the same secret already mounted at /apikey.
  */
 import { timingSafeEqual } from 'node:crypto';
+import { scoreFromBuckets } from './quality.js';
 
 const PREFIX = '/api/history';
 
@@ -30,6 +31,17 @@ function authorized(req, apiKey) {
 function num(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function roundCsv(v) {
+  return Number.isFinite(v) ? (Number.isInteger(v) ? v : Number(v.toPrecision(6))) : '';
+}
+
+function csvQuote(s) {
+  const text = String(s ?? '');
+  return text.includes(',') || text.includes('"') || text.includes('\n')
+    ? `"${text.replace(/"/g, '""')}"`
+    : text;
 }
 
 async function readBody(req) {
@@ -97,6 +109,53 @@ export async function handleHistoryRoutes(req, res, { store, apiKey, now = Date.
         to,
         points: series.length,
         series,
+      }), true;
+    }
+
+    if (route === '/quality' && req.method === 'GET') {
+      const stream = q.get('stream');
+      if (!stream) return json(res, 400, { error: 'stream is required' }), true;
+      const from = num(q.get('from'), 0);
+      const to = num(q.get('to'), now());
+      const series = await store.readSeries(stream, from, to,
+        ['rtt', 'recvBitrate', 'droppedPackets', 'recvBuffer', 'transcoderFps']);
+      const analysis = scoreFromBuckets(series);
+      if (q.get('format') === 'csv') {
+        const lines = [
+          'metric,value',
+          `stream,${stream}`,
+          `from,${from}`,
+          `to,${to}`,
+          `score,${analysis.score ?? ''}`,
+          `grade,${analysis.grade ?? ''}`,
+          `minutes,${analysis.minutes}`,
+          `healthy_minutes,${analysis.healthyMinutes}`,
+          `bitrate_baseline_bps,${analysis.baseline.recvBitrate ?? ''}`,
+          '',
+          'incident_time,type,severity,value,threshold,detail',
+          ...analysis.incidents.map((i) => [
+            new Date(i.t).toISOString(),
+            i.type,
+            i.severity,
+            roundCsv(i.value),
+            roundCsv(i.threshold),
+            csvQuote(i.detail),
+          ].join(',')),
+        ];
+        const safe = String(stream).replace(/[^A-Za-z0-9._-]/g, '_');
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${safe}-quality.csv"`,
+          'Cache-Control': 'no-store',
+        });
+        res.end(`${lines.join('\n')}\n`);
+        return true;
+      }
+      return json(res, 200, {
+        stream,
+        from,
+        to,
+        ...analysis,
       }), true;
     }
 

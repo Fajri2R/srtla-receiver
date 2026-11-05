@@ -40,3 +40,13 @@ test('server shutdown flushes buckets and closes active sessions', () => {
   assert.match(source, /historyStore\.markOffline/);
   assert.match(source, /SIGTERM/);
 });
+
+test('the container image copies every module the server imports', () => {
+  const dockerfile = readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8');
+  const index = readFileSync(new URL('./index.js', import.meta.url), 'utf8');
+  const imports = [...index.matchAll(/from\s+["']\.\/([\w.-]+\.js)["']/g)].map((m) => m[1]);
+  assert.ok(imports.length >= 3, 'expected local module imports in index.js');
+  for (const file of imports) {
+    assert.ok(dockerfile.includes(file), `Dockerfile must COPY ${file}`);
+  }
+});
