@@ -361,14 +361,14 @@ test('publisher row stacks on phones', () => {
     'identity and controls must stack on a phone');
 });
 
-test('desktop shell widens: no 370px dead margins around a 1180px column', () => {
-  // At 1920px the vendor .container/.container-fluid cap at 1180px and center,
-  // leaving ~370px empty on each side while the navbar spans the full width.
+test('desktop shell matches the 1320px column used by HLS and SRT', () => {
+  // The sibling dashboards cap main content at 1320px and centre it. A
+  // full-bleed SLS made the three apps read as different products.
   const wide = /@media \(min-width:\s*1280px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
   assert.ok(wide.length > 0, 'expected a >=1280px shell rule');
-  assert.match(wide, /#root > \.container\.py-4[\s\S]{0,220}max-width:\s*none/);
-  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,220}max-width:\s*none/, 'the brand must sit on the same edge as the content');
-  assert.match(wide, /clamp\(/, 'gutters should scale with the viewport');
+  assert.match(wide, /#root > \.container\.py-4[\s\S]{0,300}max-width:\s*1320px/, 'share the sibling 1320px measure');
+  assert.match(wide, /#root > \.container\.py-4[\s\S]{0,300}margin-left:\s*auto/, 'content stays centred like the siblings');
+  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,300}max-width:\s*none/, 'navbar row spans the viewport');
   assert.match(wide, /\.navbar, nav\.navbar, header \{\s*padding-left:0 !important/, '3-part selector needed to beat line 96');
 });
 
