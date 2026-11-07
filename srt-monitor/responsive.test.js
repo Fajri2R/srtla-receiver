@@ -150,3 +150,32 @@ test('severity filter chips meet a 44px touch target on phones', () => {
   assert.match(html, /@media \(pointer: coarse\), \(max-width: 650px\)\s*\{\s*\.hist-filter-btn\s*\{[^}]*min-height:\s*44px/,
     'phone/coarse layouts must expand chips to 44px');
 });
+
+test('status indicator updates data-i18n key dynamically so language switch never reverts to disconnected', () => {
+  // A static data-i18n="status.disconnected" caused every language switch to
+  // announce a disconnected state even when the stream was Warning or Live.
+  assert.match(html, /function setStatus/, 'setStatus exists');
+  assert.match(html, /span\.dataset\.i18nKey|span\.setAttribute\('data-i18n'|span\.removeAttribute\('data-i18n'\)/,
+    'setStatus must clear or update data-i18n attribute');
+  assert.match(html, /ashveil:langchange/, 'monitor must re-render or re-translate status on language change');
+});
+
+test('inputs carry programmatic accessible names via aria-label or associated label', () => {
+  assert.match(html, /id="stream"[^>]*aria-label=/, 'stream selector must have an aria-label');
+  assert.match(html, /id="hist-key"[^>]*aria-label=/, 'API key input must have an aria-label');
+});
+
+test('mobile brand mark keeps a 44px hit row', () => {
+  assert.match(html, /\.brand\s*\{[^}]*min-height:\s*44px|\.brand::after/,
+    'brand anchor must keep a 44px touch row');
+});
+
+test('every setStatus call site carries its i18n key', () => {
+  const calls = [...html.matchAll(/setStatus\(([^;]*?)\);/gs)].map(m => m[1]);
+  const live = calls.filter(args => !args.startsWith('text') && !args.includes("theme = 'normal'"));
+  assert.ok(live.length >= 5, 'expected all five status call sites, found ' + live.length);
+  for (const args of live) {
+    assert.match(args, /('status\.[A-Za-z]+'|statusKey)\s*$/m,
+      'setStatus call without a status key will revert to the markup default on language switch: ' + args.slice(0, 90));
+  }
+});

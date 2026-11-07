@@ -153,3 +153,8 @@ test('the first successful render clears skeleton placeholders', () => {
   assert.match(html, /querySelectorAll\('\.skeleton-card'\)\.forEach/,
     'renderDashboard must remove skeleton cards when real data arrives');
 });
+
+test('page has a single h1 inside main for screen-reader navigation', () => {
+  assert.match(html, /<main[^>]*>[\s\S]{0,300}<h1[^>]*class="sr-only"[^>]*data-i18n="page.title"/,
+    'main needs one translated screen-reader-only h1');
+});

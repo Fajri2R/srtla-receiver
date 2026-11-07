@@ -179,6 +179,14 @@
       display: flex; align-items: center; gap: 6px;
     }
 
+    /* A 32x16px brand anchor is below the 24px WCAG floor and far below the
+       44px touch row the rest of the header keeps. */
+    @media (max-width: 650px) {
+      .brand { position: relative; min-height: 44px; display: inline-flex; align-items: center; }
+      .brand::after { content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        width: max(100%, 44px); height: 44px; }
+    }
+
     .brand {
       display: inline-flex;
       align-items: center;
@@ -958,7 +966,7 @@
       <div class="header-controls">
         <div class="selector">
           <label>Stream</label>
-          <select id="stream"></select>
+          <select id="stream" aria-label="Stream" data-i18n-aria="nav.stream"></select>
         </div>
         <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" aria-label="Open Management UI" data-i18n-title="nav.manageTip" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true">
@@ -1088,7 +1096,7 @@
       <details class="hist-key">
         <summary data-i18n="key.title">API key</summary>
         <div class="hist-key-row">
-          <input id="hist-key" type="password" placeholder="SLS API key (needed to delete history or change retention)" autocomplete="off" data-i18n-ph="key.placeholder">
+          <input id="hist-key" type="password" placeholder="SLS API key (needed to delete history or change retention)" autocomplete="off" data-i18n-ph="key.placeholder" aria-label="SLS API key" data-i18n-aria="key.label">
           <button class="action nav-action" id="hist-key-save" type="button" data-i18n="key.remember">Remember</button>
         </div>
         <p class="hist-note" data-i18n="key.note">Stored in this browser only (localStorage) and sent solely to this dashboard's API.</p>
@@ -1170,14 +1178,34 @@
       return Math.round(v).toLocaleString();
     }
 
-    function setStatus(text, theme = 'normal', tooltip = '') {
+    let lastStatus = { key: 'status.disconnected', text: 'Disconnected', theme: 'error', tooltip: '' };
+
+    function setStatus(text, theme = 'normal', tooltip = '', key = null) {
+      if (key) lastStatus = { key, text, theme, tooltip };
+      else lastStatus = { key: lastStatus.key, text, theme, tooltip };
       statusEls.forEach(el => {
         el.className = 'live status-indicator' + (theme === 'error' ? ' error' : theme === 'warning' ? ' warning' : '') + (el.classList.contains('fs-only-status') ? ' fs-only-status' : '');
         const span = el.querySelector('span');
-        if (span) span.textContent = text;
+        if (span) {
+          span.textContent = text;
+          // The markup ships data-i18n="status.disconnected" as a default; if it
+          // stays put, i18n.apply() rewrites the live label back to Disconnected
+          // on every language switch. Drop the static hook and own the text.
+          span.removeAttribute('data-i18n');
+        }
         el.title = tooltip;
       });
     }
+
+    function repaintStatus() {
+      if (!lastStatus.key) return;
+      statusEls.forEach(el => {
+        const span = el.querySelector('span');
+        if (span) span.textContent = AshveilI18n.t(lastStatus.key, lastStatus.text);
+      });
+    }
+
+    document.addEventListener('ashveil:langchange', repaintStatus);
 
     function metrics() {
       let m = defs.filter(d => history.some(p => num(p[d.key]) !== null) || num(latest[d.key]) !== null);
@@ -1470,7 +1498,7 @@
           selected = '';
           history = [];
           latest = {};
-          setStatus(st.lastError ? 'API: ' + st.lastError : t('status.disconnected', 'Disconnected'), 'error', st.lastError || 'No active SRT publisher');
+          setStatus(st.lastError ? 'API: ' + st.lastError : t('status.disconnected', 'Disconnected'), 'error', st.lastError || 'No active SRT publisher', 'status.disconnected');
           renderUI();
           return;
         }
@@ -1497,19 +1525,20 @@
         }
         latest = d.latest || {};
         if (d.offlineSince) {
-          setStatus(t('status.disconnecting', 'Disconnecting…'), "warning", t('status.graceTooltip', 'Offline grace period active') + " (" + Math.round((Date.now() - d.offlineSince)/1000) + "s)");
+          setStatus(t('status.disconnecting', 'Disconnecting…'), "warning", t('status.graceTooltip', 'Offline grace period active') + " (" + Math.round((Date.now() - d.offlineSince)/1000) + "s)", 'status.disconnecting');
         } else if (st.lastError) {
-          setStatus(t('status.apiError', 'API Error'), "error", st.lastError);
+          setStatus(t('status.apiError', 'API Error'), "error", st.lastError, 'status.apiError');
         } else {
           const rtt = num(latest.rtt) || 0;
           const drops = num(latest.droppedRate) || 0;
           const theme = (rtt > 250 || drops > 5) ? "error" : (rtt > 100 || drops > 0.2) ? "warning" : "normal";
-          const label = theme === "error" ? t('status.critical', 'Critical') : theme === "warning" ? t('status.warning', 'Warning') : t('status.live', 'Live');
-          setStatus(label, theme, t('status.tipRtt', 'RTT') + " " + rtt.toFixed(1) + "ms, " + t('status.tipDrops', 'drops/s') + " " + drops.toFixed(2));
+          const statusKey = theme === "error" ? 'status.critical' : theme === "warning" ? 'status.warning' : 'status.live';
+          const label = t(statusKey, theme === "error" ? 'Critical' : theme === "warning" ? 'Warning' : 'Live');
+          setStatus(label, theme, t('status.tipRtt', 'RTT') + " " + rtt.toFixed(1) + "ms, " + t('status.tipDrops', 'drops/s') + " " + drops.toFixed(2), statusKey);
         }
         renderUI();
       } catch (e) {
-        setStatus(t('status.unavailable', 'Monitor unavailable'), 'error', e && e.message ? e.message : 'API unreachable');
+        setStatus(t('status.unavailable', 'Monitor unavailable'), 'error', e && e.message ? e.message : 'API unreachable', 'status.unavailable');
       }
     }
 

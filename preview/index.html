@@ -431,6 +431,12 @@
       padding: 24px 20px 56px;
     }
 
+    .sr-only {
+      position: absolute !important; width: 1px !important; height: 1px !important;
+      padding: 0 !important; margin: -1px !important; overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
+    }
+
     .eyebrow {
       display: flex;
       align-items: center;
@@ -1324,6 +1330,10 @@
 
   <!-- MAIN -->
   <main class="main">
+
+    <!-- The page had no heading at all: screen readers navigating by heading
+         found an empty outline. This one is visual-noise-free. -->
+    <h1 class="sr-only" data-i18n="page.title">HLS preview</h1>
 
     <div class="eyebrow" data-i18n="eyebrow.live">live preview &middot; hls output &middot; srtla receiver</div>
 

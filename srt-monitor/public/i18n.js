@@ -45,6 +45,10 @@
       var key = el.getAttribute('data-i18n-ph');
       if (table[key] != null) el.setAttribute('placeholder', table[key]);
     });
+    scope.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-aria');
+      if (table[key] != null) el.setAttribute('aria-label', table[key]);
+    });
     scope.querySelectorAll('[data-i18n-title]').forEach(function (el) {
       var key = el.getAttribute('data-i18n-title');
       if (table[key] != null) {
