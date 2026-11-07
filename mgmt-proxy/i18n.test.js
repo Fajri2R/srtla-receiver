@@ -337,3 +337,24 @@ test('light language toggle uses AA accent text rather than the 4.19:1 base acce
   assert.match(rule, /color:\s*var\(--accent-soft\)/,
     'light EN/ID label must use the darker --accent-soft token');
 });
+
+test('publisher card row becomes a two-track grid instead of space-between', () => {
+  // The vendor row is "identity" + "badges" with nothing between them, so on a
+  // wide card the two islands sit ~700px apart and the middle reads as a hole.
+  const row = /\.card > \.card-body > \.d-flex\.justify-content-between\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? '';
+  assert.match(row, /display:\s*grid/, 'publisher header row must be laid out as a grid');
+  assert.match(row, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/, 'identity takes the free track, controls stay sized');
+});
+
+test('identity line is name, player-count chip, then a leader rule', () => {
+  const block = /\/\* publisher identity line[\s\S]*?\n\}/.exec(css)?.[0] ?? '';
+  assert.ok(block.length > 0, 'expected a documented identity-line block');
+  assert.match(block, /grid-template-columns:\s*minmax\(0,\s*auto\)\s+auto\s+minmax\(/);
+  assert.match(css, /::after[\s\S]{0,200}grid-column:\s*3/, 'the leader rule needs its own track');
+});
+
+test('publisher row stacks on phones', () => {
+  const phone = /@media \(max-width:\s*560px\)[\s\S]{0,3000}/.exec(css)?.[0] ?? '';
+  assert.match(phone, /\.card > \.card-body > \.d-flex\.justify-content-between\s*\{\s*grid-template-columns:\s*1fr/,
+    'identity and controls must stack on a phone');
+});

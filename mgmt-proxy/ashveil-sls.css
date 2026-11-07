@@ -265,6 +265,65 @@ a:hover { color:#c6dced; }
 .card:hover { border-color:#33414f !important; }
 .card-body { padding:16px 17px !important; }
 
+/* publisher row -----------------------------------------------------------
+   The vendor puts identity and controls at opposite ends of a wide flex row.
+   Turn that collapsed state into one continuous reading line:
+   name -> player count -> hairline leader -> state / refresh / expand. */
+.card > .card-body > .d-flex.justify-content-between {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center !important;
+  column-gap:14px !important;
+}
+
+/* publisher identity line */
+.card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column {
+  display:grid !important;
+  grid-template-columns:minmax(0,auto) auto minmax(24px,1fr);
+  align-items:center !important;
+  column-gap:12px !important;
+  min-width:0;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column::after {
+  content:"";
+  grid-column:3;
+  width:100%;
+  height:1px;
+  background:linear-gradient(90deg,var(--border),transparent);
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column > h5 {
+  grid-column:1;
+  min-width:0;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column > p {
+  grid-column:2;
+  margin:0 !important;
+  padding:4px 8px !important;
+  border:1px solid var(--border-soft);
+  border-radius:5px;
+  background:var(--surface-2);
+  white-space:nowrap;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.align-items-center:last-child {
+  min-width:max-content;
+  gap:7px !important;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.align-items-center:last-child > .rounded-pill {
+  order:1;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.align-items-center:last-child > .px-2.py-1.rounded {
+  order:2;
+}
+.card > .card-body > .d-flex.justify-content-between > .d-flex.align-items-center:last-child > .btn-link {
+  order:3;
+  width:32px;
+  height:32px;
+  display:inline-grid !important;
+  place-items:center;
+  border:1px solid var(--border-soft) !important;
+  border-radius:7px !important;
+}
+
 .card h5, .card h5.mb-1 {
   font-size:14.5px !important; font-weight:600 !important; letter-spacing:0 !important;
   color:var(--text) !important; margin:0 !important; gap:0 !important;
@@ -797,6 +856,24 @@ html[data-theme="light"] .mgmt-lang-btn { color:var(--accent-soft) !important; }
   .navbar, nav.navbar, header { height:auto !important; min-height:56px !important; }
   .navbar .ms-auto { flex-wrap:wrap !important; }
   .mgmt-lang-btn { display:inline-flex !important; }
+
+  /* On a phone the leader rule has no room to read as a leader, so the card
+     becomes two clean rows: identity, then state + controls. */
+  .card > .card-body > .d-flex.justify-content-between {
+    grid-template-columns:1fr;
+    row-gap:10px !important;
+  }
+  .card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column {
+    grid-template-columns:minmax(0,1fr) auto;
+    column-gap:8px !important;
+  }
+  .card > .card-body > .d-flex.justify-content-between > .d-flex.flex-column::after {
+    display:none;
+  }
+  .card > .card-body > .d-flex.justify-content-between > .d-flex.align-items-center:last-child {
+    justify-content:space-between !important;
+    width:100%;
+  }
 }
 
 /* ── Settings → Brand Identity panel ──────────────────────────────── */
