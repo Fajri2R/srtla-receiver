@@ -33,6 +33,16 @@ test('phone header matches the SLS pattern: one row plus a status dot', () => {
     'the badge text must stay in the accessibility tree, only visually hidden');
 });
 
+test('language then theme are the two rightmost navbar controls', () => {
+  const actions = /<div class="header-actions">([\s\S]*?)<\/div>\s*<div class="header-badge"/.exec(html)?.[1] ?? '';
+  const ids = [...actions.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
+  assert.deepEqual(ids, ['btn-refresh', 'btn-mgmt', 'btn-srt-monitor', 'lang-toggle', 'btn-theme'],
+    'HLS order must mirror SRT: shortcuts first, then language, then theme');
+  const block = mediaBlock(560);
+  assert.match(block, /grid-template-areas:\s*"logo actions badge"/,
+    'the reordered actions stay in the single phone row');
+});
+
 test('every icon-only header control keeps an accessible name', () => {
   for (const id of ['btn-refresh', 'btn-mgmt', 'btn-srt-monitor', 'btn-theme', 'lang-toggle']) {
     const tag = new RegExp(`<(?:button|a)[^>]*id="${id}"[^>]*>`).exec(html)?.[0] ?? '';

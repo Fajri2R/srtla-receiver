@@ -628,6 +628,13 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
   /* 30px here made the HLS/SRT links look shrunken next to the 36px theme and
      language buttons; one 36px rhythm across the whole cluster. */
   .mgmt-nav-btn, button[data-mgmt-settings] { height:36px !important; min-width:36px !important; padding:0 9px !important; }
+  /* Same left-to-right contract as desktop and phones: shortcuts, Settings,
+     language, theme, then the status chip. */
+  .navbar .ms-auto > .mgmt-nav-tools { order:2 !important; margin-left:auto !important; }
+  .navbar .ms-auto > .nav-link.btn-link { order:3 !important; }
+  .navbar .ms-auto > .mgmt-lang-btn { order:4 !important; }
+  .navbar .ms-auto > .mgmt-theme-btn { order:5 !important; }
+  .navbar .ms-auto > .live-status { order:6 !important; }
   .mgmt-nav-btn .btn-text, .mgmt-settings-label { display:none !important; }
   .live-status { height:28px !important; padding:0 8px !important; font-size:10.5px !important; }
 }
@@ -667,16 +674,23 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
     gap:6px !important;
     margin-left:auto !important;
   }
+  /* The injected nodes now sit in final DOM order (shortcuts, Settings,
+     language, theme, status). Order values follow that sequence instead of
+     fighting it, otherwise Settings and the status chip jump ahead. */
   .mgmt-nav-btn, button[data-mgmt-settings], .mgmt-theme-btn, .mgmt-lang-btn {
     width:36px !important; min-width:36px !important; height:36px !important;
-    flex:0 0 36px !important; padding:0 !important; order:3 !important;
+    flex:0 0 36px !important; padding:0 !important;
     display:inline-flex !important; align-items:center !important; justify-content:center !important;
   }
-  .mgmt-nav-tools > .mgmt-nav-btn { order:0 !important; }
+  .mgmt-nav-tools > .mgmt-nav-btn { order:2 !important; }
+  .navbar .ms-auto > .nav-link.btn-link { order:3 !important; }
+  .navbar .ms-auto > .mgmt-lang-btn { order:4 !important; }
+  .navbar .ms-auto > .mgmt-theme-btn { order:5 !important; }
+  .navbar .ms-auto > .live-status { order:6 !important; }
   .mgmt-nav-btn .btn-text, .mgmt-settings-label { display:none !important; }
   .mgmt-lang-btn { justify-content:center !important; text-align:center !important; font-size:10px !important; }
   .mgmt-nav-btn svg, .mgmt-theme-btn svg, button[data-mgmt-settings] svg { width:15px !important; height:15px !important; }
-  .live-status { order:4 !important; height:26px !important; padding:0 9px !important; font-size:10.5px !important; gap:5px !important; flex:0 0 auto !important; margin-left:0 !important; }
+  .live-status { order:6 !important; height:26px !important; padding:0 9px !important; font-size:10.5px !important; gap:5px !important; flex:0 0 auto !important; margin-left:0 !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation:none !important; transition:none !important; }
@@ -1026,14 +1040,16 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
   .navbar, nav.navbar, header { min-height:56px !important; height:56px !important; }
   .navbar > .container-fluid {
     display:grid !important;
-    grid-template-areas:"brand tools settings status";
-    grid-template-columns:32px minmax(0, 1fr) 36px 26px;
+    grid-template-areas:"brand tools settings lang theme status";
+    grid-template-columns:32px minmax(0, 1fr) 36px 40px 36px 26px;
     column-gap:6px !important; row-gap:0 !important;
     align-items:center !important; flex-wrap:nowrap !important;
   }
   .mgmt-brand { grid-area:brand; width:32px !important; min-width:32px !important; height:44px !important; }
   .mgmt-nav-tools { grid-area:tools; width:max-content; margin-left:auto !important; }
   button[data-mgmt-settings] { grid-area:settings; order:0 !important; }
+  .navbar .ms-auto > .mgmt-lang-btn { grid-area:lang; order:0 !important; }
+  .navbar .ms-auto > .mgmt-theme-btn { grid-area:theme; order:0 !important; }
   .live-status {
     grid-area:status; order:0 !important; width:26px !important; min-width:26px !important;
     height:26px !important; padding:0 !important; justify-content:center !important;

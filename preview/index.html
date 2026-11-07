@@ -1312,11 +1312,6 @@
       <div class="header-spacer"></div>
 
       <div class="header-actions">
-        <button class="btn-lang nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang">EN</button>
-        <button class="btn-theme nav-action" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
-          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
-          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
-        </button>
         <button class="btn-refresh nav-action" id="btn-refresh" aria-label="Refresh streams" data-tooltip="Refresh streams" data-i18n-tooltip="nav.refreshTip" data-i18n-title="nav.refreshTip" onclick="refreshAll()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -1337,6 +1332,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           <span class="btn-mgmt-text" data-i18n="nav.srtMonitor">SRT Monitor</span>
         </a>
+        <button class="btn-lang nav-action" id="lang-toggle" type="button" aria-label="Switch language to Indonesian" title="Ganti bahasa (ID/EN)" data-i18n-title="nav.lang">EN</button>
+        <button class="btn-theme nav-action" id="btn-theme" type="button" aria-label="Aktifkan mode terang" title="Ganti dark/light mode" data-i18n-title="nav.themeTip">
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+        </button>
       </div>
 
       <div class="header-badge" id="hls-status" role="status" aria-live="polite"

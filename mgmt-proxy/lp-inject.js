@@ -937,18 +937,18 @@
       var initSpan = liveBadge.querySelector('span');
       if (initSpan) initSpan.textContent = t('status.checking');
 
-      // Order injected before the Settings button (left to right):
-      // Wrap them in a single container to prevent React DOM tracking issues
+      // Shortcuts sit before Settings; language then theme follow it, so the
+      // pair is rightmost exactly as it is on SRT. Vendor nodes stay where
+      // React owns them — only our own elements are appended.
       var container = document.createElement('div');
       container.className = 'mgmt-nav-tools';
-      container.style.display = 'contents';
-      container.appendChild(themeBtn);
-      container.appendChild(langBtn);
       container.appendChild(hlsBtn);
       container.appendChild(srtBtn);
-
       settingsBtn.insertAdjacentElement('beforebegin', container);
-      settingsBtn.insertAdjacentElement('afterend', liveBadge);
+
+      settingsBtn.insertAdjacentElement('afterend', themeBtn);
+      themeBtn.insertAdjacentElement('beforebegin', langBtn);
+      themeBtn.insertAdjacentElement('afterend', liveBadge);
 
     });
   }

@@ -74,6 +74,20 @@ test('navbar shortcut buttons show product names, not "Open <product>"', () => {
     'accessible name keeps the explicit Open/Buka verb');
 });
 
+test('language and theme controls sit rightmost, after the shortcut buttons', () => {
+  // SRT puts language then theme at the far right; SLS must match that order.
+  assert.match(src, /container\.appendChild\(hlsBtn\);\s*\n\s*container\.appendChild\(srtBtn\);/,
+    'the tool group holds only the HLS and SRT shortcuts');
+  assert.doesNotMatch(src, /container\.appendChild\(themeBtn\)|container\.appendChild\(langBtn\)/,
+    'theme and language must not sit inside the shortcut group');
+  assert.match(src, /settingsBtn\.insertAdjacentElement\('afterend',\s*themeBtn\);\s*\n\s*themeBtn\.insertAdjacentElement\('beforebegin',\s*langBtn\);/,
+    'language then theme are inserted directly after Settings, in that order');
+  assert.match(src, /themeBtn\.insertAdjacentElement\('afterend',\s*liveBadge\)/,
+    'the live badge stays rightmost as a status, not a control');
+  assert.match(css, /grid-template-areas:\s*"brand tools settings lang theme status"/,
+    'phone grid preserves the same explicit order');
+});
+
 test('vendor copy translation is exact, idempotent, and re-render safe', () => {
   assert.match(src, /var VENDOR_TEXT_KEYS\s*=\s*\{/);
   assert.match(src, /function translateVendorUi\(/);
