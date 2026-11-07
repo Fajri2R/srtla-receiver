@@ -211,3 +211,21 @@ test('settings modal controls reach a 44px touch target', () => {
   assert.match(coarse, /\.form-check-input[^{]*\{[^}]*width:\s*20px/,
     'the brand-image checkbox measured 14px');
 });
+
+test('settings modal fields inherit an accessible name from their label', () => {
+  // The vendor renders "Server URL" / "API Key" as free-floating labels with no
+  // for/id pair, so screen readers announce the inputs as unnamed.
+  assert.match(src, /function labelSettingsFields/, 'expected a field-labelling step');
+  assert.match(src, /aria-label/, 'fields must receive aria-label when no label is associated');
+  assert.match(src, /data-i18n-aria/, 'the accessible name must follow the language toggle');
+  assert.match(src, /labelSettingsFields\(\)/, 'the labelling step must be wired into the modal enhancer');
+});
+
+test('settings modal traps focus, labels itself, and restores focus on close', () => {
+  assert.match(src, /aria-modal/, 'the dialog must declare aria-modal');
+  assert.match(src, /aria-labelledby/, 'the dialog needs an accessible name from its title');
+  assert.match(src, /function trapModalFocus/, 'expected a focus trap');
+  assert.match(src, /'Tab'/, 'Tab must be intercepted to cycle inside the dialog');
+  assert.match(src, /keyCode\s*[!=]==\s*9/, 'legacy keyCode path should also be handled');
+  assert.match(src, /lastFocused|previousFocus|returnFocus/, 'focus must return to the trigger on close');
+});

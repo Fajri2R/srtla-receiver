@@ -789,6 +789,18 @@
       settingsBtn.setAttribute('data-i18n-aria', 'nav.configureSettings');
       settingsBtn.setAttribute('data-i18n-tooltip', 'nav.configureSettings');
       settingsBtn.removeAttribute('title');
+      if (!settingsBtn.dataset.lpA11yHook) {
+        settingsBtn.dataset.lpA11yHook = '1';
+        settingsBtn.addEventListener('click', function () {
+          // React mounts the modal after the click handler returns; run the
+          // enhancer on the next frames so accessible names and initial focus
+          // are present from the moment the dialog becomes usable.
+          lastFocused = settingsBtn;
+          [0, 80, 220].forEach(function (delay) {
+            setTimeout(enhanceSettingsModal, delay);
+          });
+        });
+      }
       var existingLabel = settingsBtn.querySelector('.mgmt-settings-label');
       if (!existingLabel) {
         var label = document.createElement('span');
@@ -1285,6 +1297,115 @@
   }
 
   // Injected into the vendor Settings modal whenever React re-renders it.
+  // Give the vendor settings fields an accessible name: their labels float free
+  // with no for/id pair, so screen readers announce "edit text, blank". The
+  // aria label is registered as a translation hook so it follows EN/ID.
+  function labelSettingsFields() {
+    var modal = document.querySelector('.modal.show, .modal.in, .modal');
+    if (!modal) return;
+    var title = modal.querySelector('.modal-title');
+    if (!title) return;
+    if (!title.id) title.id = 'lp-modal-title';
+    if (!modal.getAttribute('aria-labelledby')) {
+      modal.setAttribute('aria-labelledby', title.id);
+    }
+    if (!modal.getAttribute('aria-modal') && (modal.classList.contains('show') || modal.classList.contains('in'))) {
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('role', 'dialog');
+    }
+    var inputs = modal.querySelectorAll(['input[type="text"]', 'input[type="password"]',
+      'input[type="url"]', 'select'].join(','));
+    [].forEach.call(inputs, function (inp) {
+      if (inp.closest('[data-lp-brand-panel]')) return;
+      var wrap = inp.closest('.mb-3, .form-group, .settings-field, .input-group');
+      var label = wrap ? wrap.querySelector('label, .form-label') : null;
+      var text = (label ? label.textContent : (inp.getAttribute('placeholder') || inp.name || '')).trim();
+      if (!text) return;
+      var key = VENDOR_TEXT_KEYS[text];
+      if (label && !label.htmlFor) {
+        if (!inp.id) inp.id = 'lp-field-' + text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        label.htmlFor = inp.id;
+      } else if (!label && !inp.id) {
+        // Placeholder-only fields still need a stable id so the label text can
+        // be referenced and tested; aria-label alone leaves no DOM association.
+        inp.id = 'lp-field-' + text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      }
+      if (!inp.getAttribute('aria-label')) {
+        inp.setAttribute('aria-label', text);
+        if (key) inp.setAttribute('data-i18n-aria', key);
+      }
+    });
+  }
+
+  // Keep keyboard focus inside the open dialog and hand it back to the trigger
+  // on close, so a Bootstrap modal actually behaves modal for keyboard users.
+  var trappedModal = null;
+  var lastFocused = null;
+  function trapModalFocus(modal) {
+    if (trappedModal === modal) return;
+    if (trappedModal) untrapModalFocus();
+    trappedModal = modal;
+    // Keep the element that opened the modal; React often moves focus into the
+    // dialog before this runs, which would restore focus to the dialog itself.
+    if (!document.body.contains(lastFocused) || modal.contains(lastFocused)) {
+      lastFocused = document.activeElement;
+    }
+    var focusables = function () {
+      return [].filter.call(modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ), function (el) { return !el.disabled && el.offsetParent !== null; });
+    };
+    var onKeydown = function (e) {
+      if (e.key !== 'Tab' && e.keyCode !== 9) return;
+      var list = focusables();
+      if (!list.length) return;
+      var first = list[0], last = list[list.length - 1];
+      var active = document.activeElement;
+      if (e.shiftKey && (active === first || !modal.contains(active))) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && (active === last || !modal.contains(active))) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    var returnFocus = lastFocused;
+    var restored = false;
+    var onHide = function () {
+      if (restored) return;
+      restored = true;
+      untrapModalFocus();
+      // React/Bootstrap may move focus while unmounting; restore on the next task.
+      setTimeout(function () {
+        if (returnFocus && document.body.contains(returnFocus)) {
+          try { returnFocus.focus(); } catch (err) {}
+        }
+      }, 0);
+    };
+    modal.addEventListener('keydown', onKeydown);
+    modal.addEventListener('hidden.bs.modal', onHide);
+    // Some vendor builds remove the modal without dispatching hidden.bs.modal.
+    // Observe class/unmount changes so focus never remains in a detached dialog.
+    var lifecycleObserver = new MutationObserver(function () {
+      if (!document.body.contains(modal) || (!modal.classList.contains('show') && !modal.classList.contains('in'))) {
+        onHide();
+      }
+    });
+    lifecycleObserver.observe(modal.parentNode || document.body, { childList: true });
+    modal._lpUntrap = function () {
+      lifecycleObserver.disconnect();
+      modal.removeEventListener('keydown', onKeydown);
+      modal.removeEventListener('hidden.bs.modal', onHide);
+    };
+    var initial = modal.querySelector('.btn-close, button.close') || focusables()[0];
+    if (initial) {
+      try { initial.focus(); } catch (err) {}
+    }
+  }
+
+  function untrapModalFocus() {
+    if (trappedModal && trappedModal._lpUntrap) trappedModal._lpUntrap();
+    trappedModal = null;
+  }
+
   function enhanceSettingsModal() {
     var modal = document.querySelector('.modal.show, .modal.in, .modal');
     if (!modal) return;
@@ -1293,6 +1414,10 @@
     if (!title || titleKey !== 'vendor.settings') return;
     var body = modal.querySelector('.modal-body');
     if (!body) return;
+    labelSettingsFields();
+    if (modal.classList.contains('show') || modal.classList.contains('in')) {
+      trapModalFocus(modal);
+    }
     var existing = body.querySelector('[data-lp-brand-panel]');
     if (existing) { syncBrandPanel(existing); return; }
     var wrap = buildBrandPanel(body);
