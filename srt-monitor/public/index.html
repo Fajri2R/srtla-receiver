@@ -1027,7 +1027,7 @@
 
       <div class="hist-layout">
         <div>
-          <div class="hist-list" id="hist-list" role="listbox" aria-label="Recorded sessions" data-i18n-title="history.list"></div>
+          <div class="hist-list" id="hist-list" role="listbox" aria-label="Recorded sessions" data-i18n-aria="history.list" data-i18n-title="history.list"></div>
           <p class="hist-empty" id="hist-empty" data-i18n="history.empty">No sessions recorded yet. History is written while a publisher is live.</p>
         </div>
 
@@ -1705,7 +1705,12 @@
           row.type = 'button';
           row.className = 'hist-row';
           row.setAttribute('role', 'option');
-          row.setAttribute('aria-selected', current && current.sid === s.sid ? 'true' : 'false');
+          const isSelected = !!(current && current.sid === s.sid);
+          row.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          // Roving tabindex: the listbox is one Tab stop. When there is no
+          // active session yet, the first option becomes the entry point.
+          row.tabIndex = isSelected || (!current && listEl.children.length === 0) ? 0 : -1;
+          row.dataset.sid = s.sid;
           const top = document.createElement('div');
           top.className = 'hist-row-top';
           const nm = document.createElement('span');
@@ -1737,6 +1742,45 @@
           listEl.appendChild(row);
         }
       }
+
+      // A role="listbox" that only responds to Tab/click contradicts what it
+      // announces, so arrow keys, Home/End and type-ahead navigation are wired
+      // here with a single roving tab stop.
+      function wireListboxKeys() {
+        listEl.addEventListener('keydown', (event) => {
+          const options = [...listEl.querySelectorAll('[role="option"]')];
+          if (!options.length) return;
+          const index = options.indexOf(document.activeElement);
+          let next = -1;
+          switch (event.key) {
+            case 'ArrowDown': next = Math.min(options.length - 1, index + 1); break;
+            case 'ArrowUp':   next = Math.max(0, index - 1); break;
+            case 'Home':      next = 0; break;
+            case 'End':       next = options.length - 1; break;
+            default: return;
+          }
+          event.preventDefault();
+          if (next < 0) return;
+          if (next === index) {
+            // At an end of the list: keep the keystroke from scrolling the page.
+            options.forEach((option, i) => { option.tabIndex = i === next ? 0 : -1; });
+            options[next].focus();
+          }
+          const sid = options[next].dataset.sid || '';
+          const target = sessions.find((s) => s.sid === sid);
+          if (target) selectSession(target);
+          // selectSession repaints synchronously, detaching the focused node.
+          // Re-focus synchronously too: requestAnimationFrame never fires in a
+          // hidden/background browser tab, which stranded focus on <body>.
+          const fresh = listEl.querySelector(`[role="option"][data-sid="${CSS.escape(sid)}"]`);
+          if (!fresh) return;
+          [...listEl.querySelectorAll('[role="option"]')].forEach((option) => {
+            option.tabIndex = option === fresh ? 0 : -1;
+          });
+          fresh.focus();
+        });
+      }
+      wireListboxKeys();
 
       function selectSession(s) {
         current = s;

@@ -118,3 +118,26 @@ test('series fetches are aligned to whole minutes for stable buckets', () => {
   assert.match(script, /60000/, 'history chart should reason in minute buckets');
   assert.match(script, /min|max/, 'history chart must show spread, not only averages');
 });
+
+test('session listbox follows the keyboard listbox pattern', () => {
+  // role="listbox" promises Arrow Up/Down navigation and a single tab stop,
+  // but every option was its own <button> tab stop with no arrow handling.
+  assert.match(script, /function wireListboxKeys|key === 'ArrowDown'|e\.key === 'ArrowDown'/,
+    'ArrowDown must move focus between saved sessions');
+  assert.match(script, /ArrowUp/, 'ArrowUp must move focus between saved sessions');
+  assert.match(script, /roving|tabIndex\s*=\s*-1|setAttribute\('tabindex'/,
+    'options must use roving tabindex so the list is one tab stop');
+  // the listbox label must be translated, not just the title attribute
+  assert.match(html, /id="hist-list"[^>]*data-i18n-aria=/,
+    'aria-label must follow the language toggle');
+});
+
+test('arrow navigation survives the session-list repaint', () => {
+  // selectSession repaints the list, detaching the focused node; without a
+  // re-focus the second ArrowDown does nothing because activeElement is gone.
+  assert.match(script, /const fresh = listEl\.querySelector[\s\S]{0,300}fresh\.focus\(\)/,
+    'focus must be restored synchronously on the repainted option');
+  assert.doesNotMatch(script, /requestAnimationFrame\(\(\)\s*=>\s*\{[\s\S]{0,300}fresh\.focus/,
+    'rAF never fires in a hidden tab, stranding focus on body');
+  assert.match(script, /data-sid/, 'options must carry a stable id to re-find after repaint');
+});
