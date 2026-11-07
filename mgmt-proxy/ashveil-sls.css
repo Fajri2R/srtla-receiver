@@ -1008,10 +1008,12 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
 }
 
 /* AUD-13: The vendor welcome card sat in the top 30% leaving 70% dead space.
-   Center it vertically in the viewport so the first-paint CTA has weight. */
+   The shell only provides a minimum height; the welcome card centres itself
+   through auto margins. justify-content:center here pushed a one-card
+   publishers list ~266px below the navbar. */
 #root .container.py-4 {
   min-height:calc(100vh - 120px);
-  display:flex; flex-direction:column; justify-content:center;
+  display:flex; flex-direction:column;
 }
 #root .container.py-4 > .card.text-center {
   margin-top:auto; margin-bottom:auto;

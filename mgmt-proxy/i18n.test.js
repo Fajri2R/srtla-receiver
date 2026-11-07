@@ -328,8 +328,10 @@ test('secondary labels stay legible at >=10.5px', () => {
 test('empty state is vertically centred instead of hanging at the top', () => {
   assert.match(css, /#root \.container\.py-4\s*\{[^}]*min-height:\s*(calc\([^)]*vh|100vh)/,
     'the main region needs a centring min-height');
-  assert.match(css, /#root \.container\.py-4\s*\{[^}]*justify-content:\s*center|#root \.container\.py-4\s*\{[^}]*align-items:\s*center/,
-    'content must be centred, not top-aligned');
+  // Centring comes from the welcome card's own auto margins so the publishers
+  // list is not pushed down with it.
+  assert.match(css, /#root \.container\.py-4 > \.card\.text-center\s*\{[^}]*margin-top:\s*auto/,
+    'the welcome card must centre itself, not the whole shell');
 });
 
 test('light language toggle uses AA accent text rather than the 4.19:1 base accent', () => {
@@ -368,4 +370,14 @@ test('desktop shell widens: no 370px dead margins around a 1180px column', () =>
   assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,220}max-width:\s*none/, 'the brand must sit on the same edge as the content');
   assert.match(wide, /clamp\(/, 'gutters should scale with the viewport');
   assert.match(wide, /\.navbar, nav\.navbar, header \{\s*padding-left:0 !important/, '3-part selector needed to beat line 96');
+});
+
+test('vertical centring is scoped to the empty state, not the publishers list', () => {
+  // justify-content:center on the whole container pushed a one-card list ~266px
+  // below the navbar. Centring must come from the welcome card's auto margins.
+  const shell = /#root \.container\.py-4\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  assert.ok(shell, 'shell rule must exist');
+  assert.doesNotMatch(shell, /justify-content:\s*center/, 'the list must start at the top gutter');
+  const empty = /#root \.container\.py-4 > \.card\.text-center\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  assert.match(empty, /margin-top:\s*auto/, 'welcome card still centres through auto margins');
 });
