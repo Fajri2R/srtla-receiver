@@ -105,8 +105,8 @@
 
       --text-primary:   #18231d;
       --text-secondary: #506057;
-      --text-muted:     #708078;
-      --faint:          #708078;
+      --text-muted:     #596960;
+      --faint:          #596960;
       --brand-ivory:    #18231d;
 
       --pat-line:       rgba(24,35,29,.22);
@@ -404,8 +404,9 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      height: 30px;
-      padding: 0 10px;
+      min-height: 44px;
+      height: auto;
+      padding: 0 12px;
       border: 1px solid var(--border-default);
       border-radius: var(--radius-sm);
       background: var(--bg-elevated);
@@ -718,7 +719,7 @@
       .panel-head { flex-wrap: wrap; gap: 7px; }
       .current { font-size: 10px; }
       .actions { order: 3; width: 100%; margin-left: 0; margin-top: 6px; flex-wrap: wrap; }
-      .action { height: 28px; padding: 0 9px; font-size: 9px; }
+      .action { min-height: 44px; height: auto; padding: 0 11px; font-size: 9px; }
       canvas { height: 200px; }
 
       main:fullscreen { padding: 8px !important; }
@@ -896,10 +897,22 @@
 
     @media (hover: none) and (pointer: coarse) {
       .hist-actions .action, .hist-detail-actions .action, .hist-key-row .action {
-        min-height: 40px; padding: 0 13px;
+        min-height: 44px; padding: 0 13px;
       }
-      .hist-field select, .hist-field input, .hist-key input { min-height: 40px; }
+      .hist-field select, .hist-field input, .hist-key input { min-height: 44px; }
       .hist-row { padding: 12px 12px; }
+    }
+
+    /* Ashveil touch targets: the 36px visual rhythm stays, but each icon grows a
+       transparent 44x44 ::after so a thumb cannot miss between them. */
+    @media (max-width: 650px), (pointer: coarse) {
+      #btn-mgmt, #btn-hls, #btn-history, #lang-toggle, #theme-btn { position: relative; }
+      #btn-mgmt::after, #btn-hls::after, #btn-history::after,
+      #lang-toggle::after, #theme-btn::after {
+        content: ""; position: absolute; top: 50%; left: 50%;
+        width: 44px; height: 44px; transform: translate(-50%, -50%);
+      }
+      #stream { min-height: 44px; height: 44px; }
     }
 
     @media (max-width: 900px) {
@@ -937,19 +950,19 @@
           <label>Stream</label>
           <select id="stream"></select>
         </div>
-        <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
+        <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" aria-label="Open Management UI" data-i18n-title="nav.manageTip" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <line x1="9" y1="3" x2="9" y2="21"/>
           </svg>
           <span class="btn-text" data-i18n="nav.management">Management UI</span>
         </a>
-        <a class="action nav-action" id="btn-hls" href="#" target="_blank" data-tooltip="Open HLS Manager" data-i18n-tooltip="nav.hlsTip" style="text-decoration:none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <a class="action nav-action" id="btn-hls" href="#" target="_blank" aria-label="Open HLS Manager" data-i18n-title="nav.hlsTip" data-tooltip="Open HLS Manager" data-i18n-tooltip="nav.hlsTip" style="text-decoration:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="btn-text" data-i18n="nav.hls">HLS Manager</span>
         </a>
-        <button class="action nav-action" id="btn-history" type="button" aria-pressed="false" data-tooltip="Live History &amp; Network Quality" data-i18n-tooltip="nav.historyTip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+        <button class="action nav-action" id="btn-history" type="button" aria-pressed="false" aria-label="Live History &amp; Network Quality" data-i18n-title="nav.historyTip" data-tooltip="Live History &amp; Network Quality" data-i18n-tooltip="nav.historyTip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
           <span class="btn-text" data-i18n="nav.history">History</span>
         </button>
         <button class="action action-fs-main nav-action" onclick="toggleMainFullscreen()" data-tooltip="Fullscreen Entire Dashboard" aria-label="Fullscreen entire dashboard" data-i18n-title="nav.fullscreen" style="padding: 0 10px;">
@@ -965,7 +978,7 @@
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20.4 15.4A8.5 8.5 0 0 1 8.6 3.6 8.5 8.5 0 1 0 20.4 15.4Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
         </button>
-        <div class="live status-indicator error"><i class="dot"></i><span data-i18n="status.disconnected">Disconnected</span></div>
+        <div class="live status-indicator error" role="status" aria-live="polite" aria-atomic="true"><i class="dot" aria-hidden="true"></i><span data-i18n="status.disconnected">Disconnected</span></div>
       </div>
     </div>
   </header>

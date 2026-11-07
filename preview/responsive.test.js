@@ -64,8 +64,63 @@ test('the HLS status pill stays compact instead of stretching to the row width',
     'flex:1 1 100% is what inflates the pill to a full-width bar');
 });
 
+test('light mode faint token meets WCAG AA 4.5:1 on light backgrounds', () => {
+  const light = /\[data-theme="light"\]\s*\{([^}]*)\}/s.exec(style)?.[1] ?? '';
+  assert.ok(light, 'expected a [data-theme="light"] token block');
+  // #708078 is 3.65:1 on #eef1ed (fails AA). Ashveil canonical is #596960 (>=4.8:1).
+  const m = /--faint:\s*(#[0-9a-fA-F]{6})/.exec(light);
+  assert.ok(m, 'expected --faint definition in light theme');
+  assert.notEqual(m[1].toLowerCase(), '#708078',
+    '#708078 fails WCAG AA on light backgrounds; use #596960 or darker');
+});
+
+test('empty state card uses theme surface instead of hardcoded dark background', () => {
+  // Hard-coded rgba(23,25,24,.5) leaves a black box in light theme with 1.1:1 text.
+  const emptyBlock = /\.empty-state\s*\{([^}]*)\}/s.exec(style)?.[1] ?? '';
+  assert.ok(emptyBlock, 'expected an .empty-state rule');
+  assert.doesNotMatch(emptyBlock, /rgba\(23,\s*25,\s*24/,
+    'empty state must use theme variables so light theme does not render dark-on-dark');
+  assert.match(emptyBlock, /background:\s*var\(--surface/,
+    'empty state should inherit the themed surface token');
+});
+
 test('the last-updated stamp uses a 24-hour clock in both languages', () => {
   const m = /getElementById\('stat-updated'\)\.textContent\s*=\s*([^;]+);/.exec(html);
   assert.ok(m, 'stat-updated assignment must exist');
   assert.ok(/hour12:\s*false/.test(m[1]), `the stamp must not render an AM/PM suffix: ${m[1]}`);
+});
+
+test('compact header icons expose a 44px hit area on touch layouts', () => {
+  // Visual rhythm stays 38px, but thumbs need 44px. A transparent ::after grows
+  // the target without pushing the row wider.
+  const touch = /@media\s*\(max-width:\s*768px\),\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n    \}/.exec(style)?.[1] ?? '';
+  assert.ok(touch, 'expected a touch-target media block');
+  assert.match(touch, /width:\s*44px;\s*height:\s*44px/,
+    'the hit area must be 44x44');
+  for (const sel of ['#lang-toggle', '#btn-theme', '#btn-refresh', '#btn-mgmt', '#btn-srt-monitor']) {
+    assert.ok(touch.includes(sel), `${sel} must get the 44px hit area`);
+  }
+});
+
+test('primary interactive surfaces meet a 44px touch height', () => {
+  assert.match(style, /\.logo\s*\{[^}]*min-height:\s*44px/, 'the brand link is a tap target');
+  assert.match(style, /\.btn-action\s*\{[^}]*min-height:\s*44px/, 'stream card actions are tap targets');
+});
+
+test('text over the black media surface never follows the page theme', () => {
+  // The video overlay and its badges sit on a permanently dark canvas, so theme
+  // tokens like --faint/--muted turn dark-on-dark in light mode.
+  for (const sel of ['.overlay-text', '.badge-live', '.badge-bitrate']) {
+    const blocks = [...style.matchAll(new RegExp(`\\n\\s*${sel.replace('.','\\.')}\\s*\\{([^}]*)\\}`, 'g'))]
+      .map(m => m[1]);
+    assert.ok(blocks.length, `${sel} rule must exist`);
+    const themed = blocks.find(b => /color\s*:/.test(b)) ?? blocks[0];
+    assert.doesNotMatch(themed, /var\(--(faint|muted|text)\b/,
+      `${sel} sits on black media; light-theme tokens vanish there`);
+    assert.match(themed, /var\(--on-media-[a-z0-9-]+\)/,
+      `${sel} must use fixed on-media tokens`);
+  }
+  const overlay = /\.video-overlay\s*\{([^}]*)\}/s.exec(style)?.[1] ?? '';
+  assert.doesNotMatch(overlay, /var\(--(surface|border)\b/,
+    '.video-overlay keeps a fixed dark canvas so its content stays readable');
 });

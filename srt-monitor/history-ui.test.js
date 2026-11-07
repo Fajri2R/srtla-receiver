@@ -109,9 +109,9 @@ test('KPI tiles collapse to two columns on small screens', () => {
   assert.match(style, /@media \(max-width: 480px\)[\s\S]*?\.hist-kpis\s*\{[^}]*grid-template-columns:\s*repeat\(2/);
 });
 
-test('coarse-pointer history controls expose at least 40px touch targets', () => {
-  assert.match(style, /@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.hist-actions \.action[\s\S]*?min-height:\s*40px/);
-  assert.match(style, /@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.hist-field select[\s\S]*?min-height:\s*40px/);
+test('coarse-pointer history controls expose at least 44px touch targets', () => {
+  assert.match(style, /@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.hist-actions \.action[\s\S]*?min-height:\s*44px/);
+  assert.match(style, /@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.hist-field select[\s\S]*?min-height:\s*44px/);
 });
 
 test('series fetches are aligned to whole minutes for stable buckets', () => {

@@ -58,6 +58,30 @@ test('the history stream filter keeps readable width instead of halving evenly',
     'the stream filter must claim a larger share on very narrow screens');
 });
 
+test('light mode faint token meets WCAG AA 4.5:1 on light surfaces', () => {
+  const light = /\[data-theme="light"\]\s*\{([^}]*)\}/s.exec(html)?.[1] ?? '';
+  assert.ok(light, 'expected a light theme token block');
+  const m = /--faint:\s*(#[0-9a-fA-F]{6})/.exec(light);
+  assert.ok(m, 'expected --faint definition in light theme');
+  assert.notEqual(m[1].toLowerCase(), '#708078',
+    '#708078 is only 3.65:1 on #eef1ed; use canonical #596960 or darker');
+});
+
+test('icon-only header navigation keeps accessible names on compact layouts', () => {
+  for (const id of ['btn-mgmt', 'btn-hls', 'btn-history']) {
+    const tag = new RegExp(`<(?:button|a)[^>]*id="${id}"[^>]*>`).exec(html)?.[0] ?? '';
+    assert.ok(tag, `${id} must exist`);
+    assert.match(tag, /aria-label="[^"]+"/, `${id} needs aria-label when .btn-text is hidden`);
+  }
+});
+
+test('connection status announces polling updates to assistive technology', () => {
+  const tag = /<div[^>]*class="live status-indicator[^>]*>/.exec(html)?.[0] ?? '';
+  assert.ok(tag, 'connection status node must exist');
+  assert.match(tag, /role="status"/);
+  assert.match(tag, /aria-live="polite"/);
+});
+
 test('phone header controls keep a uniform 36-38px touch target and centered label', () => {
   const block = phoneRules();
   assert.match(block, /#lang-toggle\s*\{[^}]*justify-content:\s*center/,
@@ -74,3 +98,19 @@ test('SRT status badge on narrow screens does not blow out the header into 4 row
     'live status pill on phones must stay compact');
 });
 
+
+test('mobile icon controls expose a 44px touch hit area', () => {
+  const touch = /@media\s*\(max-width:\s*650px\),\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\s*\}/.exec(html)?.[1] ?? '';
+  assert.ok(touch, 'expected a mobile/coarse-pointer touch block');
+  assert.match(touch, /width:\s*44px;\s*height:\s*44px/, 'touch hit area must be 44x44');
+  for (const sel of ['#btn-mgmt', '#btn-hls', '#btn-history', '#lang-toggle', '#theme-btn']) {
+    assert.ok(touch.includes(sel), `${sel} must get the touch hit area`);
+  }
+});
+
+test('monitor card actions and selectors meet a 44px touch height', () => {
+  assert.match(html, /\.action\s*\{[^}]*min-height:\s*44px/s,
+    'Hide/Fullscreen/Ext Window controls must be at least 44px tall');
+  assert.match(html, /#stream\s*\{[^}]*min-height:\s*44px;\s*height:\s*44px/,
+    'stream selector needs 44px on touch, where it is the primary control');
+});

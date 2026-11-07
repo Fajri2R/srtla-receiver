@@ -152,6 +152,27 @@ test('shown modals cancel the Bootstrap entrance transform', () => {
   assert.match(rule, /transition:\s*none\s*!important/i, 'a paused transition must not freeze the entrance offset');
 });
 
+test('every CSS custom property used by the skin is actually defined', () => {
+  // var(--fg, #f4f4ec) was used for 6 brand-panel texts, but --fg was never
+  // declared: the fallback ivory rendered at 1.02:1 on the light panel.
+  const used = new Set([...css.matchAll(/var\(\s*--([a-z0-9-]+)/gi)].map(m => m[1].toLowerCase()));
+  const defined = new Set([...css.matchAll(/--([a-z0-9-]+)\s*:/gi)].map(m => m[1].toLowerCase()));
+  const undefinedTokens = [...used].filter(t => !defined.has(t) && !t.startsWith('bs-'));
+  assert.deepEqual(undefinedTokens, [],
+    `these tokens are referenced but never defined: ${undefinedTokens.join(', ')}`);
+});
+
+test('nav controls keep a visible keyboard focus ring', () => {
+  // outline:none with only a border-colour swap fails WCAG 2.4.7.
+  const blocks = [...css.matchAll(/\.mgmt-nav-btn:focus-visible[^{]*\{([^}]*)\}/g)].map(m => m[1]);
+  assert.ok(blocks.length, 'expected a focus-visible rule for the injected nav buttons');
+  const drawsRing = blocks.some(b =>
+    /outline\s*:\s*(?!none)/.test(b) || /box-shadow\s*:\s*0\s+0\s+0/.test(b));
+  assert.ok(drawsRing, 'focus must draw a ring, not just recolour the border');
+  assert.doesNotMatch(blocks.join('\n'), /outline\s*:\s*none/,
+    'no later focus rule may suppress the visible ring');
+});
+
 test('phone header groups all action controls in one row and sizes them uniformly', () => {
   const blocks = [];
   const re = /@media\s*\(max-width:\s*600px\)\s*\{([\s\S]*?)\n\}/g;
@@ -167,3 +188,26 @@ test('phone header groups all action controls in one row and sizes them uniforml
     'live status pill must stay compact');
 });
 
+
+test('touch layouts expose 44px hit areas on injected controls', () => {
+  const coarse = /@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  assert.ok(coarse, 'expected a coarse-pointer block');
+  assert.match(coarse, /width:\s*44px;\s*height:\s*44px/,
+    'injected icon controls need a 44x44 transparent hit area');
+  for (const sel of ['.mgmt-nav-btn', '.mgmt-theme-btn', '.mgmt-lang-btn', 'button[data-mgmt-settings]']) {
+    assert.ok(coarse.includes(sel), `${sel} must grow a touch hit area`);
+  }
+  assert.match(coarse, /min-height:\s*44px/,
+    'primary buttons and nav links must reach 44px on touch');
+});
+
+test('settings modal controls reach a 44px touch target', () => {
+  const coarse = /@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  assert.ok(coarse, 'expected a coarse-pointer block');
+  assert.match(coarse, /\.modal \.btn-close[^{]*\{[^}]*min-width:\s*44px/,
+    'the modal close button measured 28x28');
+  assert.match(coarse, /\.modal \.form-control[^{]*\{[^}]*min-height:\s*44px/,
+    'settings inputs measured 37px tall');
+  assert.match(coarse, /\.form-check-input[^{]*\{[^}]*width:\s*20px/,
+    'the brand-image checkbox measured 14px');
+});

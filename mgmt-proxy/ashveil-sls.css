@@ -7,12 +7,15 @@
 
 :root {
   --bg:#101211; --surface:#171918; --surface-2:#1d201f; --surface-3:#121514;
-  --border:#2b302e; --border-soft:#222624;
-  --text:#f4f4ec; --muted:#c4c8c4; --faint:#9fa5a0;
-  --accent:#34d399; --accent-soft:#6ee7b7; --accent-dim:#12392f;
+  --border:#2b302e; --border-soft:#222624; --border-strong:#3b443f;
+  --text:#f4f4ec; --fg:#f4f4ec; --muted:#c4c8c4; --faint:#9fa5a0;
+  --accent:#34d399; --accent-soft:#6ee7b7; --accent-strong:#6ee7b7; --accent-dim:#12392f;
   --brand-ivory:#f0f0e8; --brand-silver:#c0c0b8;
   --blue:#82b6e8; --amber:#e5bd62; --violet:#b4a4e6; --pink:#e29abd;
-  --red:#e0565b;
+  --red:#e0565b; --danger:#e88b8b;
+  --field:rgba(10,12,11,.62); --placeholder:#6d776f; --focus-border:#2f6f5c;
+  --hint:#6d776f; --chip:rgba(255,255,255,.05); --chip-2:rgba(255,255,255,.08);
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
   --term-bg:#121514; --term-fg:#d6dad5;
   --radius:14px;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -37,8 +40,11 @@
 html[data-theme="light"] {
   --bg:#eef1ed; --surface:#fbfcfa; --surface-2:#e5ebe6; --surface-3:#ffffff;
   --border:#b8c5bc; --border-soft:#cad3cc;
-  --text:#18231d; --muted:#36463e; --faint:#55655c;
-  --accent:#138a5c; --accent-soft:#0b6b47; --accent-dim:#d8efe4;
+  --text:#18231d; --fg:#18231d; --muted:#36463e; --faint:#55655c;
+  --accent:#138a5c; --accent-soft:#0b6b47; --accent-strong:#0b6b47; --accent-dim:#d8efe4;
+  --field:#ffffff; --placeholder:#6b7a72; --focus-border:#138a5c;
+  --hint:#55655c; --chip:#eef2ef; --chip-2:#e5ebe6; --border-strong:#9aa8a0;
+  --danger:#b3453f;
   --brand-ivory:#18231d; --brand-silver:#485850;
   --blue:#1d6f9e; --amber:#8a6410; --violet:#5b48a0; --pink:#9a4770;
   --red:#b3453f;
@@ -144,7 +150,14 @@ body::after {
 .mgmt-nav-btn:hover, button[data-mgmt-settings]:hover,
 .mgmt-nav-btn:focus-visible, button[data-mgmt-settings]:focus-visible {
   background:var(--surface-2) !important; color:var(--text) !important;
-  border-color:#3b443f !important; outline:none !important;
+  border-color:#3b443f !important;
+}
+/* Recolour alone is too subtle to track a cursor with, so focus draws a ring. */
+.mgmt-nav-btn:focus-visible, button[data-mgmt-settings]:focus-visible,
+.mgmt-theme-btn:focus-visible, .mgmt-lang-btn:focus-visible {
+  outline:2px solid var(--accent) !important;
+  outline-offset:2px !important;
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent) !important;
 }
 .mgmt-nav-btn svg { width:14px !important; height:14px !important; opacity:.85; }
 .mgmt-nav-btn[data-tooltip], button[data-mgmt-settings] { position:relative; }
@@ -747,7 +760,7 @@ html[data-theme="light"] .lp-host-btn.on { background:rgba(19,138,92,.12) !impor
   transition:background .16s, color .16s, border-color .16s !important;
 }
 .mgmt-theme-btn:hover, .mgmt-theme-btn:focus-visible {
-  background:var(--surface-2) !important; border-color:#3b443f !important; color:var(--text) !important; outline:none !important;
+  background:var(--surface-2) !important; border-color:#3b443f !important; color:var(--text) !important;
 }
 .mgmt-theme-btn svg { width:15px !important; height:15px !important; }
 .mgmt-theme-btn .sun { display:none; }
@@ -865,4 +878,31 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
   .lp-brand-actions { gap:7px; }
   .lp-brand-msg { flex:1 1 100%; }
   .lp-brand-btn { flex:1 1 auto; text-align:center; }
+}
+
+/* Preserve the dense desktop toolbar while providing Ashveil's 44px minimum
+   hit area whenever the browser reports a coarse (touch) pointer. */
+@media (pointer: coarse) {
+  .mgmt-nav-btn, button[data-mgmt-settings], .mgmt-theme-btn, .mgmt-lang-btn {
+    position:relative !important;
+  }
+  .mgmt-nav-btn::after, button[data-mgmt-settings]::after,
+  .mgmt-theme-btn::after, .mgmt-lang-btn::after {
+    content:""; position:absolute; top:50%; left:50%;
+    width:44px; height:44px; transform:translate(-50%,-50%);
+  }
+  .navbar-brand, .nav-link, .btn, .lp-brand-btn,
+  .lp-brand-input, .lp-brand-file-control { min-height:44px !important; }
+  .navbar-brand { min-width:44px; }
+  .modal .btn-close { min-width:44px !important; min-height:44px !important;
+    background-size:14px 14px !important; }
+  .modal .form-control, .modal .form-select,
+  .modal input[type="text"], .modal input[type="password"],
+  .modal input[type="url"] { min-height:44px !important; }
+  .modal .form-check { display:flex !important; align-items:center !important;
+    min-height:44px !important; }
+  .modal .form-check-input { width:20px !important; height:20px !important;
+    margin-top:0 !important; flex:0 0 20px !important; }
+  .modal .form-check-label { padding-left:10px !important; }
+  button[data-lp-visibility] { min-width:44px !important; }
 }
