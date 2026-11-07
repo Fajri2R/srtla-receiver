@@ -116,8 +116,11 @@ test('interpolation replaces every placeholder and leaves no braces behind', () 
 test('custom file upload control never relies on browser-locale native labels', () => {
   assert.match(src, /data-i18n="brand\.chooseFile"/);
   assert.match(src, /data-i18n="brand\.noFile"/);
-  assert.match(src, /class="lp-brand-file"[^>]*aria-hidden="true"/);
+  // The input stays invisible but focusable: aria-hidden/tabindex=-1 made the
+  // upload impossible with a keyboard, so only the visual hiding is required.
   assert.match(css, /\.lp-brand-file\s*\{[^}]*opacity\s*:\s*0/is);
+  assert.doesNotMatch(src, /class="lp-brand-file"[^>]*aria-hidden="true"/,
+    'an aria-hidden file input cannot be focused or announced');
 });
 
 test('language repaint preserves the last live-status state instead of resetting to checking', () => {
@@ -228,4 +231,33 @@ test('settings modal traps focus, labels itself, and restores focus on close', (
   assert.match(src, /'Tab'/, 'Tab must be intercepted to cycle inside the dialog');
   assert.match(src, /keyCode\s*[!=]==\s*9/, 'legacy keyCode path should also be handled');
   assert.match(src, /lastFocused|previousFocus|returnFocus/, 'focus must return to the trigger on close');
+});
+
+test('nav buttons in the 601-991px tablet band are sized consistently at 36px', () => {
+  // At @800px HLS/SRT buttons measured 34x30px while Theme/Lang were 36x36px.
+  // The tablet rule must not shrink the injected nav links below 36px.
+  const tablet = /@media\s*\(max-width:\s*991\.98px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  assert.ok(tablet, 'expected a max-width:991.98px media query');
+  assert.match(tablet, /\.mgmt-nav-btn[^{]*\{[^}]*height:\s*36px/,
+    'all nav buttons must stay 36px tall on tablet');
+});
+
+test('logo upload file control remains accessible to keyboard and screen readers', () => {
+  // lp-inject previously set aria-hidden=true and tabindex=-1 on the input,
+  // making it impossible to upload a logo with a keyboard.
+  assert.doesNotMatch(src, /setAttribute\(['"]aria-hidden['"],\s*['"]true['"]\)/,
+    'file input must not be marked aria-hidden');
+  assert.doesNotMatch(src, /setAttribute\(['"]tabindex['"],\s*['"]-1['"]\)/,
+    'file input must remain in the tab order');
+  assert.match(css, /\.lp-brand-file-control:focus-within/,
+    'focus on the file input must draw a visible indicator on the wrapper');
+});
+
+test('hint text meets WCAG AA 4.5:1 across both themes', () => {
+  const darkHint = /:root\s*\{[^}]*--hint:\s*(#[0-9a-fA-F]{6})/.exec(css)?.[1] ?? '';
+  assert.ok(darkHint, 'expected a --hint token in :root');
+  assert.notEqual(darkHint.toLowerCase(), '#6d776f',
+    '#6d776f is only 3.53:1 on dark surfaces; use #9fa5a0 or lighter');
+  const lightHint = /html\[data-theme="light"\]\s*\{[^}]*--hint:\s*(#[0-9a-fA-F]{6})/.exec(css)?.[1] ?? '';
+  assert.ok(lightHint, 'expected a --hint token in light theme');
 });

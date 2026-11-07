@@ -14,7 +14,7 @@
   --blue:#82b6e8; --amber:#e5bd62; --violet:#b4a4e6; --pink:#e29abd;
   --red:#e0565b; --danger:#e88b8b;
   --field:rgba(10,12,11,.62); --placeholder:#6d776f; --focus-border:#2f6f5c;
-  --hint:#6d776f; --chip:rgba(255,255,255,.05); --chip-2:rgba(255,255,255,.08);
+  --hint:#9fa5a0; --chip:rgba(255,255,255,.05); --chip-2:rgba(255,255,255,.08);
   --font-mono:'JetBrains Mono',ui-monospace,monospace;
   --term-bg:#121514; --term-fg:#d6dad5;
   --radius:14px;
@@ -565,7 +565,9 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
   .mgmt-brand-sub { font-size:8px !important; letter-spacing:.2em !important; }
   .mgmt-brand-icon, .mgmt-brand-icon img { width:34px !important; height:18px !important; flex-basis:34px !important; }
   .navbar .ms-auto { order:3; width:100% !important; display:contents !important; }
-  .mgmt-nav-btn, button[data-mgmt-settings] { height:30px !important; padding:0 9px !important; }
+  /* 30px here made the HLS/SRT links look shrunken next to the 36px theme and
+     language buttons; one 36px rhythm across the whole cluster. */
+  .mgmt-nav-btn, button[data-mgmt-settings] { height:36px !important; min-width:36px !important; padding:0 9px !important; }
   .mgmt-nav-btn .btn-text, .mgmt-settings-label { display:none !important; }
   .live-status { height:28px !important; padding:0 8px !important; font-size:9px !important; }
 }
@@ -831,6 +833,13 @@ html[data-theme="light"] .mgmt-lang-btn { color:var(--accent) !important; }
   cursor:pointer; z-index:2;
 }
 .lp-brand-file-control:hover .lp-brand-file-button {
+  border-color:var(--accent,#34d399); color:var(--accent-strong,#6ee7b7);
+}
+.lp-brand-file-control:focus-within {
+  border-color:var(--focus-border,#2f6f5c);
+  box-shadow:0 0 0 3px rgba(52,211,153,.18);
+}
+.lp-brand-file-control:focus-within .lp-brand-file-button {
   border-color:var(--accent,#34d399); color:var(--accent-strong,#6ee7b7);
 }
 html[data-theme="light"] .lp-brand-file-control { background:#ffffff; border-color:#c9d3cc; }

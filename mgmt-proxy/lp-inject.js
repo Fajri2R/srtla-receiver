@@ -1144,7 +1144,7 @@
       +     '<span class="lp-brand-file-control">'
       +       '<span class="lp-brand-file-button" data-i18n="brand.chooseFile">Pilih file</span>'
       +       '<span class="lp-brand-file-name" data-i18n="brand.noFile">Belum ada file</span>'
-      +       '<input class="lp-brand-file" data-brand-field="file" type="file" aria-hidden="true" tabindex="-1" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">'
+      +       '<input class="lp-brand-file" data-brand-field="file" type="file" data-i18n-aria="brand.chooseFile" aria-label="Choose file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">'
       +     '</span>'
       +     '<em class="lp-brand-hint" data-i18n="brand.uploadHint">PNG/JPG/WebP/SVG, maks 300\u00a0KB. Tersimpan di server, tidak masuk repo.</em>'
       +   '</label>'
