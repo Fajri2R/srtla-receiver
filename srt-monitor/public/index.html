@@ -847,6 +847,16 @@
     }
     .hist-quality-health { font: 9.5px var(--mono); color: var(--faint); }
     .hist-incidents { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; max-height: 168px; overflow-y: auto; }
+    .hist-filter { display: flex; gap: 6px; margin-top: 10px; }
+    .hist-filter-btn {
+      border: 1px solid var(--border-default); background: var(--bg-elevated); color: var(--text-muted);
+      font: 9px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px;
+      border-radius: var(--radius-sm); cursor: pointer; min-height: 28px; transition: var(--transition);
+    }
+    .hist-filter-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft-dim, rgba(52,211,153,.12)); }
+    .hist-filter-btn[data-filter="warning"][aria-pressed="true"] { color: var(--yellow); border-color: var(--yellow); background: rgba(229,189,98,.14); }
+    .hist-filter-btn[data-filter="critical"][aria-pressed="true"] { color: var(--red); border-color: var(--red); background: rgba(232,139,139,.14); }
+    @media (pointer: coarse), (max-width: 650px) { .hist-filter-btn { min-height: 44px; padding: 4px 16px; } }
     .hist-incident {
       display: grid; grid-template-columns: 52px 62px minmax(0, 1fr); gap: 8px;
       align-items: baseline; font: 9.5px var(--mono); color: var(--text-secondary);
@@ -1052,6 +1062,11 @@
             </div>
             <div class="hist-quality-bar"><span id="hist-quality-fill"></span></div>
             <p class="hist-quality-health" id="hist-quality-health" data-i18n="quality.analysing">Analysing recorded minutes…</p>
+            <div class="hist-filter" id="hist-incident-filter" role="group" data-i18n-aria="quality.filterLabel" aria-label="Filter incidents by severity">
+              <button type="button" class="hist-filter-btn" data-filter="all" aria-pressed="true" data-i18n="quality.filterAll">All</button>
+              <button type="button" class="hist-filter-btn" data-filter="warning" aria-pressed="false" data-i18n="quality.filterWarning">Warning</button>
+              <button type="button" class="hist-filter-btn" data-filter="critical" aria-pressed="false" data-i18n="quality.filterCritical">Critical</button>
+            </div>
             <div class="hist-incidents" id="hist-incidents"></div>
             <p class="hist-incidents-empty" id="hist-incidents-empty" hidden data-i18n="quality.empty">No incidents detected in this session.</p>
             <div class="hist-quality-foot">
@@ -1591,6 +1606,8 @@
       let sessions = [];
       let current = null;
       let series = [];
+      let currentQuality = null;
+      let incidentFilter = 'all';
       let hoverX = null;
 
       const apiKey = () => { try { return (localStorage.getItem(KEY_STORE) || '').trim(); } catch (_) { return ''; } };
@@ -1775,6 +1792,99 @@
         drawHist();
       }
 
+      // Warnings and critical bands come from the API thresholds, not hard-coded
+      // numbers, so the guide can never drift from the score's own definition.
+      function thresholdGuides(metric) {
+        const th = (currentQuality && currentQuality.thresholds) || {};
+        const guides = [];
+        if (metric === 'rtt' || metric === 'latency') {
+          if (th.rttWarnMs != null) guides.push({ v: th.rttWarnMs, severity: 'warning' });
+          if (th.rttBadMs != null) guides.push({ v: th.rttBadMs, severity: 'critical' });
+        } else if (metric === 'droppedPackets') {
+          if (th.dropsWarn != null) guides.push({ v: th.dropsWarn, severity: 'warning' });
+          if (th.dropsBad != null) guides.push({ v: th.dropsBad, severity: 'critical' });
+        } else if (metric === 'recvBuffer') {
+          if (th.bufferWarn != null) guides.push({ v: th.bufferWarn, severity: 'warning' });
+          if (th.bufferBad != null) guides.push({ v: th.bufferBad, severity: 'critical' });
+        } else if (metric === 'recvBitrate' || metric === 'throughput') {
+          const base = th.bitrateBaseline || th.bitrateBaselineBps;
+          if (base) {
+            if (th.bitrateCollapseRatio) guides.push({ v: base * th.bitrateCollapseRatio, severity: 'warning' });
+            if (th.bitrateCriticalRatio) guides.push({ v: base * th.bitrateCriticalRatio, severity: 'critical' });
+          }
+        }
+        return guides;
+      }
+
+      // Dashed guides must not look like data, and they must fade out rather
+      // than vanish when the axis does not include the band.
+      function drawThresholdGuides(c, guides, Y, L, PW, T, PH, lo, hi) {
+        const colors = { warning: cssVar('--yellow'), critical: cssVar('--red') };
+        c.save();
+        c.setLineDash([5, 4]);
+        c.lineWidth = 1;
+        c.font = "9px 'JetBrains Mono', monospace";
+        c.textAlign = 'left';
+        for (const g of guides) {
+          if (!(g.v >= lo && g.v <= hi)) continue;   // out of the visible band
+          const yy = Y(g.v);
+          c.strokeStyle = colors[g.severity] || cssVar('--faint');
+          c.globalAlpha = 0.75;
+          c.beginPath(); c.moveTo(L, yy); c.lineTo(L + PW, yy); c.stroke();
+          c.globalAlpha = 0.95;
+          const label = (g.severity === 'critical' ? 'CRIT ' : 'WARN ') + fmt(g.v, 'count');
+          // Right-aligned with a plate so a guide sitting close to another one
+          // never paints its text across the neighbouring line.
+          c.textAlign = 'right';
+          const tw = c.measureText(label).width;
+          const lx = L + PW - 4, ly = yy - 3;
+          c.globalAlpha = 0.75;
+          c.fillStyle = cssVar('--chart-tip-bg');
+          c.beginPath(); c.roundRect(lx - tw - 4, ly - 9, tw + 8, 12, 3); c.fill();
+          c.globalAlpha = 0.95;
+          c.fillStyle = colors[g.severity] || cssVar('--faint');
+          c.fillText(label, lx, ly);
+        }
+        c.restore();
+      }
+
+      // A flat incident list says nothing about *when* quality fell; drawing the
+      // same events on the timeline ties the drop to the minute it happened.
+      function drawIncidentMarkers(c, L, PW, T, PH, pts) {
+        const list = (currentQuality && currentQuality.incidents) || [];
+        if (!list.length || !pts.length) return 0;
+        const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+        if (!(t1 > t0)) return 0;
+        const colors = { warning: cssVar('--yellow'), critical: cssVar('--red') };
+        // Quality can report several incident types for the same minute. One
+        // marker per minute is enough; critical wins over warning. Full-height
+        // lines made a 132-incident session unreadable, so use baseline ticks.
+        const byMinute = new Map();
+        for (const incident of list) {
+          if (incident.t < t0 || incident.t > t1) continue;
+          const minute = Math.floor(incident.t / 60000) * 60000;
+          const prev = byMinute.get(minute);
+          if (!prev || incident.severity === 'critical') byMinute.set(minute, incident);
+        }
+        let drawn = 0;
+        for (const [minute, incident] of byMinute) {
+          const x = L + (minute - t0) / (t1 - t0) * PW;
+          const color = colors[incident.severity] || colors.warning;
+          c.save();
+          c.globalAlpha = 1;
+          c.fillStyle = color;
+          c.beginPath();
+          c.moveTo(x, T + PH - 7);
+          c.lineTo(x - 3.5, T + PH - 1);
+          c.lineTo(x + 3.5, T + PH - 1);
+          c.closePath();
+          c.fill();
+          c.restore();
+          drawn++;
+        }
+        return drawn;
+      }
+
       function drawHist() {
         const metricSelValue = metricSel.value;
         const rows = series.filter((b) => b && b.m && b.m[metricSelValue]);
@@ -1811,7 +1921,7 @@
         c.font = "10px 'JetBrains Mono', monospace";
         let tickWidth = 0;
         for (let i = 0; i <= 4; i++) tickWidth = Math.max(tickWidth, c.measureText(fmt(lo + (hi - lo) * i / 4, type)).width);
-        const L = Math.max(64, Math.ceil(tickWidth + 14)), R2 = 18, T = 12, B = 24;
+        const L = Math.max(64, Math.ceil(tickWidth + 14)), R2 = 18, T = 20, B = 30;
         const PW = w - L - R2, PH = h - T - B;
         if (PW <= 0 || PH <= 0) return;
         const X = (i) => L + (pts.length === 1 ? PW / 2 : i / (pts.length - 1) * PW);
@@ -1839,6 +1949,9 @@
           prevLabel = label;
         }
 
+        // incident markers sit behind the data so they never hide a real dip
+        drawIncidentMarkers(c, L, PW, T, PH, pts);
+
         // min/max band
         c.globalAlpha = 0.18;
         c.fillStyle = color;
@@ -1855,6 +1968,9 @@
         c.strokeStyle = color;
         c.lineWidth = 2;
         c.stroke();
+
+        // Threshold guides last, so they read as a reference layer above the data.
+        drawThresholdGuides(c, thresholdGuides(metricSelValue), Y, L, PW, T, PH, lo, hi);
 
         // hover crosshair + tooltip
         if (hoverX !== null && hoverX >= L && hoverX <= L + PW) {
@@ -1892,6 +2008,7 @@
       };
 
       function resetQuality(text) {
+        currentQuality = null;
         qualityScoreEl.textContent = '';
         qualityScoreEl.append(document.createTextNode('\u2014'), Object.assign(document.createElement('small'), { textContent: '/100' }));
         qualityGradeEl.textContent = '\u2014';
@@ -1901,6 +2018,40 @@
         incidentsEmptyEl.hidden = true;
         qualityHealthEl.textContent = text;
       }
+
+      function renderIncidents(list) {
+        incidentsEl.textContent = '';
+        const visible = (list || []).filter((incident) =>
+          incidentFilter === 'all' || (incident.severity || 'warning') === incidentFilter
+        );
+        incidentsEmptyEl.hidden = visible.length > 0;
+        for (const incident of visible) {
+          const row = document.createElement('div');
+          row.className = 'hist-incident';
+          row.setAttribute('data-severity', incident.severity || 'warning');
+          for (const [cls, text] of [
+            ['when', hm(incident.t)],
+            ['type', incident.type],
+            ['why', incident.detail]
+          ]) {
+            const cell = document.createElement('span');
+            cell.className = cls;
+            cell.textContent = text;
+            row.appendChild(cell);
+          }
+          incidentsEl.appendChild(row);
+        }
+      }
+
+      document.getElementById('hist-incident-filter').addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-filter]');
+        if (!btn) return;
+        incidentFilter = btn.dataset.filter || 'all';
+        document.querySelectorAll('#hist-incident-filter [data-filter]').forEach((el) =>
+          el.setAttribute('aria-pressed', String(el === btn))
+        );
+        renderIncidents((currentQuality && currentQuality.incidents) || []);
+      });
 
       function renderQuality(q) {
         if (!q || q.score == null) {
@@ -1935,23 +2086,11 @@
           });
 
         const list = q.incidents || [];
-        incidentsEmptyEl.hidden = list.length > 0;
-        for (const incident of list) {
-          const row = document.createElement('div');
-          row.className = 'hist-incident';
-          row.setAttribute('data-severity', incident.severity || 'warning');
-          for (const [cls, text] of [
-            ['when', hm(incident.t)],
-            ['type', incident.type],
-            ['why', incident.detail]
-          ]) {
-            const cell = document.createElement('span');
-            cell.className = cls;
-            cell.textContent = text;
-            row.appendChild(cell);
-          }
-          incidentsEl.appendChild(row);
-        }
+        currentQuality = q;
+        renderIncidents(list);
+        // Guides and markers depend on the thresholds and incident times, so the
+        // chart must repaint once quality data arrives.
+        drawHist();
       }
 
       async function loadQuality() {

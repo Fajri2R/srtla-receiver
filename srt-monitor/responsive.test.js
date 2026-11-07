@@ -114,3 +114,39 @@ test('monitor card actions and selectors meet a 44px touch height', () => {
   assert.match(html, /#stream\s*\{[^}]*min-height:\s*44px;\s*height:\s*44px/,
     'stream selector needs 44px on touch, where it is the primary control');
 });
+
+test('chart draws threshold guides for the selected metric instead of only listing them in details', () => {
+  // A bare 0-100 axis tells the operator nothing: 120ms RTT reads as "fine"
+  // unless the warn/critical bands are visible on the canvas itself.
+  assert.match(html, /function drawThresholdGuides/, 'expected threshold guide rendering');
+  assert.match(html, /setLineDash/, 'guides must be dashed so they cannot be mistaken for data');
+  assert.match(html, /rttWarn|dropsWarn|bufferWarn/, 'guides must come from the API thresholds');
+});
+
+test('incidents are marked on the chart timeline', () => {
+  assert.match(html, /function drawIncidentMarkers/, 'expected incident markers on the timeline');
+  assert.match(html, /data-severity/, 'markers must distinguish warning from critical');
+});
+
+test('the incident list can be filtered by severity', () => {
+  assert.match(html, /id="hist-incident-filter"/, 'a severity filter chip row is required');
+  assert.match(html, /data-filter="critical"/, 'critical filtering must be available');
+  assert.match(html, /data-filter="warning"/, 'warning filtering must be available');
+});
+
+test('incident markers are deduped per minute and never outshine the data', () => {
+  // A session can report several incident types for one minute; one full-height
+  // line per event turned a 132-incident chart into noise.
+  assert.match(html, /Math\.floor\(incident\.t \/ 60000\) \* 60000/,
+    'incidents must be bucketed to whole minutes before drawing');
+  assert.match(html, /const byMinute = new Map\(\)/, 'duplicate minutes must collapse into one marker');
+  assert.doesNotMatch(html, /c\.moveTo\(x, T\); c\.lineTo\(x, T \+ PH\)/,
+    'markers must not draw full-height vertical lines across the data');
+});
+
+test('severity filter chips meet a 44px touch target on phones', () => {
+  assert.match(html, /\.hist-filter-btn\s*\{[^}]*min-height:\s*28px/,
+    'desktop keeps the compact chip height');
+  assert.match(html, /@media \(pointer: coarse\), \(max-width: 650px\)\s*\{\s*\.hist-filter-btn\s*\{[^}]*min-height:\s*44px/,
+    'phone/coarse layouts must expand chips to 44px');
+});

@@ -105,7 +105,11 @@
     "nav.hlsTip": "Open the HLS manager",
     "nav.backTip": "Back to the live dashboard",
     "history.list": "Recorded sessions",
-    "history.title": "Live History"
+    "history.title": "Live History",
+    "quality.filterLabel": "Filter incidents by severity",
+    "quality.filterAll": "All",
+    "quality.filterWarning": "Warning",
+    "quality.filterCritical": "Critical"
   },
   "id": {
     "brand.sub": "SRT MONITOR",
@@ -213,6 +217,10 @@
     "nav.hlsTip": "Buka pengelola HLS",
     "nav.backTip": "Kembali ke dasbor live",
     "history.list": "Sesi terekam",
-    "history.title": "Riwayat Live"
+    "history.title": "Riwayat Live",
+    "quality.filterLabel": "Saring insiden berdasarkan tingkat",
+    "quality.filterAll": "Semua",
+    "quality.filterWarning": "Peringatan",
+    "quality.filterCritical": "Kritis"
   }
 }
