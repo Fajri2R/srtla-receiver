@@ -279,7 +279,7 @@ test('brand mark is a real link, not a dead href="#"', () => {
 });
 
 test('phone header keeps brand, controls and status on one row', () => {
-  const phone = /@media\s*\(max-width:\s*414px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  const phone = /@media\s*\(max-width:\s*(414|479)px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[2] ?? '';
   assert.ok(phone, 'expected a <=414px header rule');
   assert.match(phone, /grid-template-areas/, 'the header must place items by area, not wrap');
   assert.match(phone, /\.live-status[^{]*\{[^}]*(width:\s*2[0-9]px|min-width:\s*2[0-9]px)/,
@@ -296,4 +296,38 @@ test('compact phone status keeps its full translated accessible name', () => {
 test('brand mark keeps a 44px hit area at every width', () => {
   const base = /\.navbar-brand\.mgmt-brand\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
   assert.match(base, /min-height:\s*44px/, 'brand base rule needs a 44px touch row');
+});
+
+test('live preview overlay is a real dialog with trapped, restorable focus', () => {
+  assert.match(src, /ov\.setAttribute\('role',\s*'dialog'\)/);
+  assert.match(src, /ov\.setAttribute\('aria-modal',\s*'true'\)/);
+  assert.match(src, /ov\.setAttribute\('aria-labelledby',\s*'lp-nm'\)/);
+  assert.match(src, /ov\.setAttribute\('aria-describedby',\s*'lp-hint'\)/,
+    'the ESC hint must be referenced, not only painted');
+  assert.match(src, /function trapPreviewFocus/);
+  assert.match(src, /previewReturnFocus/, 'focus must return to the opener on close');
+  const open = src.slice(src.indexOf('function openPreview'), src.indexOf('function closePreview'));
+  assert.match(open, /getElementById\('lp-xb'\)[\s\S]{0,200}\.focus\(\)/,
+    'openPreview must move focus into the dialog');
+});
+
+test('secondary labels stay legible at >=10.5px', () => {
+  const pick = (sel) => new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([\\s\\S]*?)\\n\\}').exec(css)?.[1] ?? '';
+  for (const sel of ['.mgmt-brand-sub', '.live-status', '.stat-label']) {
+    const block = pick(sel);
+    assert.ok(block, 'expected a rule for ' + sel);
+    const size = parseFloat(
+      /font-size:\s*([\d.]+)px/.exec(block)?.[1]
+      ?? /font:\s*(?:[\w]+\s+)*([\d.]+)px/.exec(block)?.[1]
+      ?? '0'
+    );
+    assert.ok(size >= 10.5, sel + ' renders ' + size + 'px, below the 10.5px floor');
+  }
+});
+
+test('empty state is vertically centred instead of hanging at the top', () => {
+  assert.match(css, /#root \.container\.py-4\s*\{[^}]*min-height:\s*(calc\([^)]*vh|100vh)/,
+    'the main region needs a centring min-height');
+  assert.match(css, /#root \.container\.py-4\s*\{[^}]*justify-content:\s*center|#root \.container\.py-4\s*\{[^}]*align-items:\s*center/,
+    'content must be centred, not top-aligned');
 });

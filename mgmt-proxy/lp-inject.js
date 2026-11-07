@@ -523,6 +523,12 @@
   /* ── Modal HTML ──────────────────────────────────────────────────── */
   var ov = document.createElement('div');
   ov.id = 'lp-ov';
+  // A bare <div> gave screen readers no dialog context at all: no name, no
+  // modality, and the ESC affordance was visual-only.
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-labelledby', 'lp-nm');
+  ov.setAttribute('aria-describedby', 'lp-hint');
   ov.innerHTML = '<div id="lp-bx">'
     + '<div id="lp-hd">'
       + '<div id="lp-badge"><span id="lp-badge-dot"></span><span id="lp-badge-txt" data-i18n="preview.live">Live</span></div>'
@@ -558,6 +564,21 @@
     mt.textContent = txt;
   }
 
+  var previewReturnFocus = null;
+
+  function trapPreviewFocus(e) {
+    if (!ov.classList.contains('on')) return;
+    var nodes = ov.querySelectorAll('button, [href], input, select, textarea, video[controls], [tabindex]:not([tabindex="-1"])');
+    var list = [].filter.call(nodes, function (n) { return n.offsetParent !== null || n === document.activeElement; });
+    if (!list.length) return;
+    var first = list[0], last = list[list.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !ov.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !ov.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
+  }
+
   function openPreview(pub, retryAttempt) {
     retryAttempt = retryAttempt || 0;
     var url = BASE + '/hls/' + safeId(pub) + '/stream.m3u8';
@@ -566,6 +587,8 @@
     setMsg(t('preview.connecting'), true);
     ov.classList.add('on');
     document.body.style.overflow = 'hidden';
+    previewReturnFocus = document.activeElement;
+    document.getElementById('lp-xb').focus();
 
     var v = document.getElementById('lp-vid');
     if (hls) { hls.destroy(); hls = null; }
@@ -618,18 +641,29 @@
   }
 
   function closePreview() {
+    var wasOpen = ov.classList.contains('on');
     ov.classList.remove('on');
     document.body.style.overflow = '';
+    if (wasOpen && previewReturnFocus && document.contains(previewReturnFocus)) {
+      previewReturnFocus.focus();
+    }
+    previewReturnFocus = null;
     var v = document.getElementById('lp-vid');
     v.pause(); v.src = '';
     if (hls) { hls.destroy(); hls = null; }
     setMsg(t('preview.connecting'), true); // reset for next open
   }
 
+  // Small public hook used by the publisher-card enhancer and by accessibility
+  // smoke tests; the implementation itself stays scoped to this injector.
+  window.__lpOpenPreview = openPreview;
+  window.__lpClosePreview = closePreview;
+
   document.getElementById('lp-xb').onclick = closePreview;
   ov.onclick = function (e) { if (e.target === ov) closePreview(); };
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closePreview();
+    else if (e.key === 'Tab') trapPreviewFocus(e);
   });
 
   /* ── Button injection ────────────────────────────────────────────── */
