@@ -124,3 +124,32 @@ test('text over the black media surface never follows the page theme', () => {
   assert.doesNotMatch(overlay, /var\(--(surface|border)\b/,
     '.video-overlay keeps a fixed dark canvas so its content stays readable');
 });
+
+test('network health changes the visible status label, not just its colour', () => {
+  // A red/yellow chip that still reads "Live" is invisible to colour-blind users
+  // and to anyone on a touch device who cannot hover the tooltip.
+  const critical = /statusTheme\s*=\s*'error'[\s\S]{0,240}?statusText\s*=/.test(html);
+  const degraded = /statusTheme\s*=\s*'warning'[\s\S]{0,240}?statusText\s*=/.test(html);
+  assert.ok(critical, 'critical health must relabel the chip, not only recolour it');
+  assert.ok(degraded, 'degraded health must relabel the chip, not only recolour it');
+});
+
+test('the stream area shows a persistent error state with a retry action', () => {
+  // A 3.5s toast leaves an empty grid with no explanation and no way back.
+  assert.match(html, /id="btn-retry"/, 'the error state needs a retry button');
+  assert.match(html, /aria-busy/, 'the grid must expose its loading state');
+  assert.match(html, /function renderLoadError|function renderStreamError/,
+    'fetch failures need their own persistent render path');
+});
+
+test('a first load renders a skeleton instead of an unexplained empty grid', () => {
+  assert.match(html, /skeleton/, 'a first paint needs skeleton placeholders');
+  assert.match(html, /hasLoadedOnce|firstLoad/, 'loading state must be tracked separately from empty');
+});
+
+test('the first successful render clears skeleton placeholders', () => {
+  // Placeholders carry .skeleton-card, not .stream-card, so the stale-card sweep
+  // would leave them stacked above real data forever.
+  assert.match(html, /querySelectorAll\('\.skeleton-card'\)\.forEach/,
+    'renderDashboard must remove skeleton cards when real data arrives');
+});

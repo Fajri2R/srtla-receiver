@@ -85,7 +85,12 @@
     "status.active": "HLS: {count} active",
     "status.apiUnreachable": "HLS Manager API is unreachable",
     "status.activeDesc": "HLS service online — {count} stream(s) transcoding",
-    "status.readyDesc": "HLS service online — waiting for a live stream"
+    "status.readyDesc": "HLS service online — waiting for a live stream",
+    "status.degraded": "Degraded",
+    "status.critical": "Critical",
+    "status.loadFailedTitle": "Couldn't reach the HLS Manager",
+    "status.loadFailedSub": "Stream data failed to load. The API may be restarting or unreachable.",
+    "status.retry": "Retry"
   },
   "id": {
     "brand.sub": "HLS MANAGER",
@@ -173,6 +178,11 @@
     "status.active": "HLS: {count} aktif",
     "status.apiUnreachable": "API HLS Manager tidak dapat dijangkau",
     "status.activeDesc": "Layanan HLS online — {count} stream sedang ditranscode",
-    "status.readyDesc": "Layanan HLS online — menunggu stream live"
+    "status.readyDesc": "Layanan HLS online — menunggu stream live",
+    "status.degraded": "Terganggu",
+    "status.critical": "Kritis",
+    "status.loadFailedTitle": "Tidak dapat menghubungi HLS Manager",
+    "status.loadFailedSub": "Data stream gagal dimuat. API mungkin sedang restart atau tidak terjangkau.",
+    "status.retry": "Coba lagi"
   }
 }
