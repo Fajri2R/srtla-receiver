@@ -1039,3 +1039,23 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
   }
   .live-status span { display:none !important; }
 }
+
+/* Wide desktop shell ------------------------------------------------------
+   Bootstrap caps both the navbar inner row and main content at 1180px. On a
+   1920px control-room monitor that leaves 370px of dead margin on each side.
+   Let operational space use the display while keeping a calm responsive
+   gutter, and keep the navbar brand aligned to the publisher section. */
+@media (min-width: 1280px) {
+  /* Line 96 sets ".navbar, nav.navbar, header { padding:0 20px !important }".
+     Match that 3-part selector so the 0 override actually wins in specificity. */
+  .navbar, nav.navbar, header { padding-left:0 !important; padding-right:0 !important; }
+  .navbar > .container-fluid,
+  #root > .container.py-4 {
+    width:100% !important;
+    max-width:none !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    padding-left:clamp(28px, 3vw, 58px) !important;
+    padding-right:clamp(28px, 3vw, 58px) !important;
+  }
+}
