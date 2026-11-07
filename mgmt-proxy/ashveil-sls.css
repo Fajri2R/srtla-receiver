@@ -113,6 +113,7 @@ body::after {
 .navbar-brand.mgmt-brand {
   display:inline-flex !important; align-items:center !important; gap:10px !important;
   margin:0 !important; padding:0 !important; text-decoration:none !important; flex-shrink:0;
+  min-height:44px !important;
 }
 .mgmt-brand-icon {
   width:44px !important; height:20px !important; flex:0 0 44px !important;
@@ -914,4 +915,35 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
     margin-top:0 !important; flex:0 0 20px !important; }
   .modal .form-check-label { padding-left:10px !important; }
   button[data-lp-visibility] { min-width:44px !important; }
+}
+
+/* Screen-reader-only page title: keeps one h1 in the accessibility tree without
+   adding another visible title above the vendor dashboard. */
+.lp-sr-only {
+  position:absolute !important; width:1px !important; height:1px !important;
+  padding:0 !important; margin:-1px !important; overflow:hidden !important;
+  clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important;
+}
+
+/* At 320-414px a 152px status sentence forced an 87px two-row header. Keep all
+   controls on one grid row and collapse the status to its live dot; the full
+   translated state remains in role=status / aria-label. */
+@media (max-width: 414px) {
+  .navbar, nav.navbar, header { min-height:56px !important; height:56px !important; }
+  .navbar > .container-fluid {
+    display:grid !important;
+    grid-template-areas:"brand tools settings status";
+    grid-template-columns:32px minmax(0, 1fr) 36px 26px;
+    column-gap:6px !important; row-gap:0 !important;
+    align-items:center !important; flex-wrap:nowrap !important;
+  }
+  .mgmt-brand { grid-area:brand; width:32px !important; min-width:32px !important; height:44px !important; }
+  .mgmt-nav-tools { grid-area:tools; width:max-content; margin-left:auto !important; }
+  button[data-mgmt-settings] { grid-area:settings; order:0 !important; }
+  .live-status {
+    grid-area:status; order:0 !important; width:26px !important; min-width:26px !important;
+    height:26px !important; padding:0 !important; justify-content:center !important;
+    margin:0 !important; overflow:visible !important;
+  }
+  .live-status span { display:none !important; }
 }

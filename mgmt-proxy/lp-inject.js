@@ -39,6 +39,9 @@
       'nav.openSrt': 'Open SRT Monitor',
       'nav.langId': 'Switch language to Indonesian',
       'nav.langEn': 'Switch language to English',
+      'nav.primary': 'Primary',
+      'nav.brandHome': 'SRT Live Server dashboard',
+      'page.title': 'SRT Live Server management',
       'status.checking': 'Checking status…',
       'status.active': 'Publishers: {count} active',
       'status.none': 'No active stream',
@@ -129,6 +132,9 @@
       'nav.openSrt': 'Buka SRT Monitor',
       'nav.langId': 'Ganti bahasa ke Indonesia',
       'nav.langEn': 'Ganti bahasa ke Inggris',
+      'nav.primary': 'Utama',
+      'nav.brandHome': 'Dasbor SRT Live Server',
+      'page.title': 'Manajemen SRT Live Server',
       'status.checking': 'Memeriksa status…',
       'status.active': 'Publisher: {count} aktif',
       'status.none': 'Tidak ada stream aktif',
@@ -377,6 +383,9 @@
       text = t('status.checking');
     }
     if (span.textContent !== text) span.textContent = text;
+    // <=414px hides the sentence and shows only the dot, so the full state has
+    // to live in the accessible name or the chip becomes a decorative dot.
+    if (badge.getAttribute('aria-label') !== text) badge.setAttribute('aria-label', text);
   }
 
   function translateUi() {
@@ -703,11 +712,42 @@
       });
   }
 
+  // The vendor shell ships a bare <nav>, no <main>, no <h1>, and starts its
+  // outline at <h3>. Add the landmarks assistive tech expects without touching
+  // the React-owned nodes structurally (aria-level keeps the DOM intact).
+  function ensureLandmarks() {
+    var main = document.querySelector('#root > .container.py-4') || document.querySelector('#root > .container');
+    if (main && main.getAttribute('role') !== 'main') main.setAttribute('role', 'main');
+    var nav = document.querySelector('nav.navbar, .navbar');
+    if (nav && !nav.getAttribute('aria-label')) {
+      nav.setAttribute('aria-label', t('nav.primary', 'Primary'));
+      nav.setAttribute('data-i18n-aria', 'nav.primary');
+    }
+    if (main && !document.getElementById('mgmt-page-title')) {
+      var h1 = document.createElement('h1');
+      h1.id = 'mgmt-page-title';
+      h1.className = 'lp-sr-only';
+      h1.setAttribute('data-i18n', 'page.title');
+      h1.textContent = t('page.title', 'SRT Live Server management');
+      main.insertBefore(h1, main.firstElementChild);
+    }
+    // h1 -> h3 skips a level; announce the vendor heading as level 2.
+    [].forEach.call(document.querySelectorAll('h3:not([data-lp-level])'), function (h) {
+      h.setAttribute('role', 'heading');
+      h.setAttribute('aria-level', '2');
+      h.setAttribute('data-lp-level', '1');
+    });
+  }
+
   function enhanceNavbarBrand() {
     document.querySelectorAll('.navbar-brand:not([data-mgmt-brand])').forEach(function (brand) {
       brand.dataset.mgmtBrand = '1';
       brand.classList.add('mgmt-brand');
-      brand.setAttribute('aria-label', BRAND.name + ' ' + BRAND.subtitle);
+      // href="#" scrolled to top and stranded screen readers; the brand is a
+      // real link to the dashboard itself with a short translated name.
+      brand.setAttribute('href', '/');
+      brand.setAttribute('aria-label', t('nav.brandHome', 'SRT Live Server dashboard'));
+      brand.setAttribute('data-i18n-aria', 'nav.brandHome');
       brand.innerHTML = '<span class="mgmt-brand-icon" aria-hidden="true">'
         + '<img src="" alt="" width="44" height="20" decoding="async">'
         + '</span>'
@@ -852,6 +892,9 @@
       var liveBadge = document.createElement('div');
       liveBadge.className = 'live-status';
       liveBadge.id = 'mgmt-live-status';
+      liveBadge.setAttribute('role', 'status');
+      liveBadge.setAttribute('aria-live', 'polite');
+      liveBadge.setAttribute('aria-atomic', 'true');
       liveBadge.innerHTML = '<i class="dot"></i><span></span>';
       var initSpan = liveBadge.querySelector('span');
       if (initSpan) initSpan.textContent = t('status.checking');
@@ -901,6 +944,7 @@
     applyBrandIdentity();
     enhanceNavbarBrand();
     injectNavTools();
+    ensureLandmarks();
     enhanceStreamUrlModal();
     translateUi();
     // The navbar badge is created here, after the initial updateLiveStatus()

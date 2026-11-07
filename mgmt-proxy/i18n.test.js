@@ -261,3 +261,39 @@ test('hint text meets WCAG AA 4.5:1 across both themes', () => {
   const lightHint = /html\[data-theme="light"\]\s*\{[^}]*--hint:\s*(#[0-9a-fA-F]{6})/.exec(css)?.[1] ?? '';
   assert.ok(lightHint, 'expected a --hint token in light theme');
 });
+
+test('page exposes main landmark and a single h1 for assistive tech', () => {
+  // The vendor shell ships <nav> plus an <h3> and no landmark/heading root, so
+  // screen-reader users cannot jump to content and the outline starts at h3.
+  assert.match(src, /function ensureLandmarks/, 'expected a landmark pass');
+  assert.match(src, /setAttribute\('role',\s*'main'\)/, 'content region needs role=main');
+  assert.match(src, /createElement\('h1'\)/, 'a visually hidden h1 must exist');
+  assert.match(src, /visually-hidden|sr-only|lp-sr-only/, 'the h1 must be screen-reader only');
+});
+
+test('brand mark is a real link, not a dead href="#"', () => {
+  assert.match(src, /brand\.setAttribute\('href',\s*'\/'\)|brand\.href\s*=\s*'\/'/,
+    'the brand anchor must navigate somewhere meaningful');
+  assert.doesNotMatch(src, /aria-label', BRAND\.name \+ ' ' \+ BRAND\.subtitle\)/,
+    'the brand accessible name must not leak the internal subtitle string');
+});
+
+test('phone header keeps brand, controls and status on one row', () => {
+  const phone = /@media\s*\(max-width:\s*414px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  assert.ok(phone, 'expected a <=414px header rule');
+  assert.match(phone, /grid-template-areas/, 'the header must place items by area, not wrap');
+  assert.match(phone, /\.live-status[^{]*\{[^}]*(width:\s*2[0-9]px|min-width:\s*2[0-9]px)/,
+    'the status chip must compact to a dot so it fits the first row');
+});
+
+test('compact phone status keeps its full translated accessible name', () => {
+  assert.match(src, /badge\.setAttribute\('aria-label',\s*text\)/,
+    'hidden status text must be mirrored to aria-label');
+  assert.match(src, /liveBadge\.setAttribute\('role',\s*'status'\)/);
+  assert.match(src, /liveBadge\.setAttribute\('aria-live',\s*'polite'\)/);
+});
+
+test('brand mark keeps a 44px hit area at every width', () => {
+  const base = /\.navbar-brand\.mgmt-brand\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+  assert.match(base, /min-height:\s*44px/, 'brand base rule needs a 44px touch row');
+});
