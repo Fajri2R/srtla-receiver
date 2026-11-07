@@ -1054,13 +1054,19 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
      Line 96 sets ".navbar, nav.navbar, header { padding:0 20px !important }";
      matching that 3-part selector lets the container be the only inset. */
   .navbar, nav.navbar, header { padding-left:0 !important; padding-right:0 !important; }
-  .navbar > .container-fluid {
-    width:100% !important;
-    max-width:none !important;
-    margin-left:0 !important;
-    margin-right:0 !important;
+  /* Mirror HLS/SRT: the bar keeps a 20px viewport gutter and the inner row
+     takes the 1320px measure, so the brand lands on the same x as main. */
+  .navbar {
     padding-left:20px !important;
     padding-right:20px !important;
+  }
+  .navbar > .container-fluid {
+    width:100% !important;
+    max-width:1320px !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    padding-left:0 !important;
+    padding-right:0 !important;
   }
   #root > .container.py-4 {
     width:100% !important;

@@ -368,7 +368,9 @@ test('desktop shell matches the 1320px column used by HLS and SRT', () => {
   assert.ok(wide.length > 0, 'expected a >=1280px shell rule');
   assert.match(wide, /#root > \.container\.py-4[\s\S]{0,300}max-width:\s*1320px/, 'share the sibling 1320px measure');
   assert.match(wide, /#root > \.container\.py-4[\s\S]{0,300}margin-left:\s*auto/, 'content stays centred like the siblings');
-  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,300}max-width:\s*none/, 'navbar row spans the viewport');
+  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,300}max-width:\s*1320px/, 'navbar must share the sibling 1320px measure');
+  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,300}margin-left:\s*auto/, 'navbar is centred with the main column');
+  assert.match(wide, /\.navbar > \.container-fluid[\s\S]{0,300}padding-left:\s*0 !important/, 'brand sits on the column edge like HLS/SRT');
   assert.match(wide, /\.navbar, nav\.navbar, header \{\s*padding-left:0 !important/, '3-part selector needed to beat line 96');
 });
 
