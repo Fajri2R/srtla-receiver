@@ -21,6 +21,18 @@ test('nav button labels collapse to icons below 768px without relying on font-si
     'the .btn-mgmt-text span must be display:none inside the 768px block');
 });
 
+test('phone header matches the SLS pattern: one row plus a status dot', () => {
+  const block = mediaBlock(560);
+  assert.ok(block, '560px block must exist');
+  // One row, not two: the badge is a grid item in the controls row.
+  assert.match(block, /grid-template-areas:\s*"logo actions badge"/,
+    'phone grid must keep logo, actions, and badge on one row');
+  assert.match(block, /\.header-badge\s*\{[^}]*width:\s*26px;\s*height:\s*26px/s,
+    'the badge must collapse to the 26px status dot like SLS');
+  assert.match(block, /\.header-badge > span\s*\{[^}]*clip:\s*rect\(0,\s*0,\s*0,\s*0\)/s,
+    'the badge text must stay in the accessibility tree, only visually hidden');
+});
+
 test('every icon-only header control keeps an accessible name', () => {
   for (const id of ['btn-refresh', 'btn-mgmt', 'btn-srt-monitor', 'btn-theme', 'lang-toggle']) {
     const tag = new RegExp(`<(?:button|a)[^>]*id="${id}"[^>]*>`).exec(html)?.[0] ?? '';
@@ -50,8 +62,9 @@ test('phone header controls share one size and an even gap', () => {
   const block = mediaBlock(768);
   assert.match(block, /\.header-actions\s*\{[^}]*gap:\s*8px/,
     'the icon row needs a consistent 8px rhythm');
-  assert.match(block, /\.header\s+\.header-actions\s*>\s*\.nav-action\s*\{[^}]*height:\s*38px/,
-    'every icon control must be 38px tall so the row reads as one group');
+  // 36px now matches the SLS and SRT mobile icon rhythm.
+  assert.match(block, /\.header\s+\.header-actions\s*>\s*\.nav-action\s*\{[^}]*height:\s*36px/,
+    'every icon control must be 36px tall so the row reads as one group');
   assert.match(block, /\.header\s+\.header-actions\s*>\s*\.nav-action\s*\{[^}]*justify-content:\s*center/,
     'icons must center inside their square');
 });

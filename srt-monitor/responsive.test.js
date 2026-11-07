@@ -31,6 +31,32 @@ function phoneRules() {
 
 // Narrow phones must not inherit desktop control sizing. Anything below 32px
 // is not reliably tappable and 28px buttons force cramped single-row toolbars.
+test('desktop header controls share the 32px SLS chip height and language width', () => {
+  const nav = ruleBlock('.header .nav-action');
+  assert.match(nav, /height:\s*32px/, 'desktop nav action height matches SLS');
+  assert.match(nav, /min-height:\s*0/, 'the generic 44px card-action floor must not inflate desktop navbar controls');
+  const lang = ruleBlock('#lang-toggle');
+  assert.match(lang, /min-width:\s*38px/, 'language button must match the 38px SLS/HLS width');
+  const theme = ruleBlock('.theme-btn');
+  assert.match(theme, /width:\s*32px[\s\S]*height:\s*32px/, 'theme chip stays 32px square');
+});
+
+test('phone header matches SLS with one 56px row and a compact status dot', () => {
+  const block = phoneRules();
+  assert.match(block, /grid-template-areas:\s*"brand \. mgmt hls history lang theme live"/,
+    'all controls and the status badge must stay on the first row');
+  assert.match(block, /\.live\s*\{[^}]*width:\s*26px;[^}]*height:\s*26px/s,
+    'phone live state collapses to a 26px status dot');
+  assert.match(block, /\.live > span\s*\{[^}]*clip:\s*rect\(0,\s*0,\s*0,\s*0\)/s,
+    'status text remains available to assistive tech');
+  // The stream selector is the one control SLS has no equivalent for, so it
+  // keeps a real second row instead of being squeezed or hidden.
+  assert.match(block, /"selector selector selector selector selector selector selector selector"/,
+    'stream selector keeps its own row so it stays tappable');
+  assert.match(block, /\.selector\s*\{[^}]*min-height:\s*44px/s,
+    'the selector row still meets the 44px touch floor');
+});
+
 test('narrow viewports raise action tap targets to at least 38px', () => {
   const block = phoneRules();
   assert.match(block, /\.hist-actions \.action[^{]*\{[^}]*min-height:\s*(3[89]|4[0-4])px/,

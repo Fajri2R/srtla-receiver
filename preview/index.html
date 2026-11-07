@@ -1196,10 +1196,10 @@
       .header-actions { order: 2; }
       .header-badge { order: 3; flex: 0 0 auto; height: 28px; }
       .header .header-actions > .nav-action {
-        flex: 0 0 38px;
-        width: 38px;
-        min-width: 38px;
-        height: 38px;
+        flex: 0 0 36px;
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
         padding: 0;
         gap: 0;
         align-items: center;
@@ -1221,27 +1221,43 @@
     }
 
     @media (max-width: 560px) {
-      /* Two-row header grid: controls on the first row, status pill below.
-         The badge previously used flex:1 1 100%, which inflated a small
-         "hls: ready" chip into a full-width bar. As a grid item with
-         justify-self it sizes to its own content. */
+      /* One header row, mirroring SLS: logo, icon cluster, then a 26px status
+         dot. The badge used to drop to a second row as a wide pill, so this
+         page carried a 93px bar where its sibling carried 56px. */
       .header-inner {
         display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-areas: "logo actions" "badge badge";
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas: "logo actions badge";
         align-items: center;
+        gap: 8px;
       }
       .logo { grid-area: logo; }
-      .header-actions { grid-area: actions; justify-content: flex-end; gap: 8px; flex-wrap: nowrap; }
+      .header-actions { grid-area: actions; justify-content: flex-end; gap: 6px; flex-wrap: nowrap; }
       .header-badge {
         grid-area: badge;
         flex: 0 0 auto;
-        justify-self: start;
+        justify-self: end;
+        width: 26px;
+        min-width: 26px;
         height: 26px;
-        padding: 0 10px;
-        font-size: 9.5px;
-        gap: 6px;
+        padding: 0;
+        gap: 0;
+        border-radius: 50%;
+        justify-content: center;
       }
+      /* Keep the state name for screen readers; only the pixels go away. */
+      .header-badge > span {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+      .header-badge .pulse-dot { width: 7px; height: 7px; }
     }
 
     /* Ashveil touch-target rule: the compact 38px header keeps its visual rhythm,

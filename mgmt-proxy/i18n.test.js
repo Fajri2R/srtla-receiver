@@ -54,6 +54,26 @@ test('custom injector copy uses translation hooks instead of fixed mixed-languag
   }
 });
 
+test('navbar shortcut buttons show product names, not "Open <product>"', () => {
+  // Visible label keys stay short; the verb stays in tooltip/aria only.
+  assert.ok(src.includes("'nav.hls': 'HLS Manager'"), 'short en label nav.hls');
+  assert.ok(src.includes("'nav.srt': 'SRT Monitor'"), 'short en label nav.srt');
+  assert.ok(src.includes("'nav.hls': 'HLS Manager'".replace('HLS Manager','')) === false || true);
+  for (const lang of ['id', 'en']) {
+    for (const key of ['nav.hls', 'nav.srt']) {
+      assert.ok(!new RegExp(`'${key}':\s*'[^']*(?:Open|Buka)\s`).test(src), `${key} in ${lang} must not say Open/Buka in the visible label`);
+    }
+  }
+  assert.match(src, /<span class="btn-text" data-i18n="nav\.hls">/,
+    'HLS button label must bind nav.hls, not nav.openHls');
+  assert.match(src, /<span class="btn-text" data-i18n="nav\.srt">/,
+    'SRT button label must bind nav.srt, not nav.openSrt');
+  assert.match(src, /setAttribute\('data-i18n-tooltip',\s*'nav\.(?:openHls|openSrt)'\)/,
+    'tooltip keeps the explicit Open/Buka verb');
+  assert.match(src, /setAttribute\('data-i18n-aria',\s*'nav\.(?:openHls|openSrt)'\)/,
+    'accessible name keeps the explicit Open/Buka verb');
+});
+
 test('vendor copy translation is exact, idempotent, and re-render safe', () => {
   assert.match(src, /var VENDOR_TEXT_KEYS\s*=\s*\{/);
   assert.match(src, /function translateVendorUi\(/);

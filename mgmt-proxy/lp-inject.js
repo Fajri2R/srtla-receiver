@@ -37,6 +37,8 @@
       'nav.themeTooltip': 'Toggle dark/light mode',
       'nav.openHls': 'Open HLS Manager',
       'nav.openSrt': 'Open SRT Monitor',
+      'nav.hls': 'HLS Manager',
+      'nav.srt': 'SRT Monitor',
       'nav.langId': 'Switch language to Indonesian',
       'nav.langEn': 'Switch language to English',
       'nav.primary': 'Primary',
@@ -130,6 +132,8 @@
       'nav.themeTooltip': 'Ganti mode gelap/terang',
       'nav.openHls': 'Buka HLS Manager',
       'nav.openSrt': 'Buka SRT Monitor',
+      'nav.hls': 'HLS Manager',
+      'nav.srt': 'SRT Monitor',
       'nav.langId': 'Ganti bahasa ke Indonesia',
       'nav.langEn': 'Ganti bahasa ke Inggris',
       'nav.primary': 'Utama',
@@ -910,7 +914,7 @@
       srtBtn.rel = 'noopener';
       srtBtn.setAttribute('data-i18n-tooltip', 'nav.openSrt');
       srtBtn.setAttribute('data-i18n-aria', 'nav.openSrt');
-      srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text" data-i18n="nav.openSrt">SRT Monitor</span>';
+      srtBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="btn-text" data-i18n="nav.srt">SRT Monitor</span>';
 
       // 2. HLS Manager Button
       var hlsBtn = document.createElement('a');
@@ -920,7 +924,7 @@
       hlsBtn.rel = 'noopener';
       hlsBtn.setAttribute('data-i18n-tooltip', 'nav.openHls');
       hlsBtn.setAttribute('data-i18n-aria', 'nav.openHls');
-      hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text" data-i18n="nav.openHls">HLS Manager</span>';
+      hlsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="btn-text" data-i18n="nav.hls">HLS Manager</span>';
 
       // 3. Live Status Badge
       var liveBadge = document.createElement('div');

@@ -440,6 +440,7 @@
        transparent chip at rest and a neutral charcoal hover. The green
        accent stays reserved for in-page chart actions. */
     .header .nav-action {
+      min-height: 0;
       height: 32px;
       background: transparent;
       border: 1px solid var(--border-default);
@@ -461,6 +462,13 @@
       background: #ffffff;
       border-color: #a9b8af;
       color: #18231d;
+    }
+
+    #lang-toggle {
+      min-width: 38px;
+      padding: 0 8px;
+      justify-content: center;
+      text-align: center;
     }
 
     [data-tooltip] { position: relative; }
@@ -654,11 +662,10 @@
          three rows with uneven gaps. */
       .header-inner {
         display: grid;
-        grid-template-columns: auto 1fr repeat(5, auto);
+        grid-template-columns: auto 1fr repeat(5, auto) auto;
         grid-template-areas:
-          "brand . mgmt hls history lang theme"
-          "live live live live live live live"
-          "selector selector selector selector selector selector selector";
+          "brand . mgmt hls history lang theme live"
+          "selector selector selector selector selector selector selector selector";
         align-items: center;
         justify-content: space-between;
         gap: 8px 6px;
@@ -702,14 +709,28 @@
       }
       .live {
         grid-area: live;
-        justify-self: start;
+        justify-self: end;
+        width: 26px;
+        min-width: 26px;
         height: 26px;
-        padding: 0 10px;
-        font-size: 9.5px;
-        gap: 6px;
+        padding: 0;
+        border-radius: 50%;
+        justify-content: center;
+        gap: 0;
       }
-      .selector { grid-area: selector; width: 100%; margin: 0; }
-      select { width: 100%; max-width: none; height: 36px; }
+      .live > span {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+      .selector { grid-area: selector; width: 100%; min-height: 44px; margin: 0; }
+      select { width: 100%; max-width: none; min-height: 44px; height: 44px; }
       /* Keep the back affordance visible and full-row on phones so it is the
          first thing a thumb reaches when leaving the archive. */
       .hist-actions #hist-back { width: 100%; justify-content: center; }
