@@ -784,7 +784,8 @@ html[data-theme="light"] .mgmt-theme-btn:focus-visible { background:#ffffff !imp
   font:600 10px var(--mono) !important; letter-spacing:.09em !important;
   color:var(--accent-soft) !important; flex:0 0 38px !important;
 }
-html[data-theme="light"] .mgmt-lang-btn { color:var(--accent) !important; }
+/* #138a5c on #f9fbf9 is only 4.19:1, so the light label uses the darker step. */
+html[data-theme="light"] .mgmt-lang-btn { color:var(--accent-soft) !important; }
 @media (max-width: 991.98px) {
   /* Keep the compact header but stay on the same 36px rhythm as the other
      controls; 30px here was overriding the phone block and leaving the theme

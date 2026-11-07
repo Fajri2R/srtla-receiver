@@ -331,3 +331,9 @@ test('empty state is vertically centred instead of hanging at the top', () => {
   assert.match(css, /#root \.container\.py-4\s*\{[^}]*justify-content:\s*center|#root \.container\.py-4\s*\{[^}]*align-items:\s*center/,
     'content must be centred, not top-aligned');
 });
+
+test('light language toggle uses AA accent text rather than the 4.19:1 base accent', () => {
+  const rule = /html\[data-theme="light"\] \.mgmt-lang-btn\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  assert.match(rule, /color:\s*var\(--accent-soft\)/,
+    'light EN/ID label must use the darker --accent-soft token');
+});

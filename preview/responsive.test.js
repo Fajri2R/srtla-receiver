@@ -158,3 +158,18 @@ test('page has a single h1 inside main for screen-reader navigation', () => {
   assert.match(html, /<main[^>]*>[\s\S]{0,300}<h1[^>]*class="sr-only"[^>]*data-i18n="page.title"/,
     'main needs one translated screen-reader-only h1');
 });
+
+test('light-mode accent text meets AA on the light surface', () => {
+  // #138a5c on #fbfcfa is 4.24:1 — under AA for the 22px stat number.
+  const light = /:root\[data-theme="light"\]\s*\{([\s\S]*?)\n    \}/.exec(html)?.[1] ?? '';
+  assert.match(light, /--accent-text:\s*#[0-9a-f]{6}/i, 'light theme needs a darker accent-text token');
+  const hex = /--accent-text:\s*#([0-9a-f]{6})/i.exec(light)[1];
+  const lum = (h) => {
+    const ch = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+      .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  };
+  const r = (Math.max(lum(hex), lum('fbfcfa')) + 0.05) / (Math.min(lum(hex), lum('fbfcfa')) + 0.05);
+  assert.ok(r >= 4.5, `accent-text #${hex} on #fbfcfa is only ${r.toFixed(2)}:1`);
+  assert.match(html, /\.stat-value\.green\s*\{\s*color:\s*var\(--accent-text/);
+});

@@ -55,6 +55,7 @@
       --border-accent:  rgba(52,211,153,0.34);
 
       --accent:         #34d399;
+      --accent-text:    #34d399;
       --accent-light:   #6ee7b7;
       --accent-dim:     #12392f;
       --accent-glow:    rgba(52,211,153,0.14);
@@ -123,6 +124,8 @@
       --border-accent:  rgba(19,138,92,0.34);
 
       --accent:         #138a5c;
+      /* #138a5c is only 4.24:1 on #fbfcfa; accent text needs the darker step. */
+      --accent-text:    #11754f;
       --accent-light:   #0b6b47;
       --accent-dim:     #d8efe4;
       --accent-glow:    rgba(19,138,92,0.10);
@@ -576,7 +579,7 @@
       color: var(--text);
       letter-spacing: -.01em;
     }
-    .stat-value.green { color: var(--accent); }
+    .stat-value.green { color: var(--accent-text); }
     .stat-sub {
       font-size: 10.5px;
       color: var(--faint);
