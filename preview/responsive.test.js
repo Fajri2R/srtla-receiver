@@ -12,6 +12,23 @@ function mediaBlock(maxWidth) {
   return re.exec(style)?.[1] ?? '';
 }
 
+test('navbar follows the shared Ashveil size contract at desktop, tablet and phone', () => {
+  assert.match(style, /\.header-inner\s*\{[^}]*max-width:\s*1320px[^}]*height:\s*60px/s,
+    'desktop uses the 1320px by 60px navbar shell');
+  assert.match(style, /\.logo-icon\s*\{[^}]*width:\s*44px[^}]*height:\s*20px/s,
+    'desktop mark is 44x20');
+  assert.match(style, /\.logo-text b\s*\{[^}]*font-size:\s*13\.5px/s, 'wordmark is 13.5px');
+  assert.match(style, /\.logo-sub\s*\{[^}]*font-size:\s*9px/s, 'brand sub is 9px');
+  assert.match(style, /\.header \.nav-action\s*\{[^}]*font-size:\s*10px[^}]*height:\s*32px/s,
+    'desktop chips are 32px tall with 10px mono labels');
+  assert.match(style, /\.header-badge\s*\{[^}]*font-size:\s*10\.5px[^}]*height:\s*30px/s,
+    'desktop status is the shared 30px pill');
+  const phone = mediaBlock(600);
+  assert.match(phone, /\.header[^}]*height:\s*56px/, 'phone bar is 56px');
+  assert.match(phone, /\.logo-text[^}]*display:\s*none/, 'phone lockup is mark-only');
+  assert.match(phone, /\.logo-icon[^}]*width:\s*32px[^}]*height:\s*16px/s, 'phone mark is 32x16');
+});
+
 test('nav button labels collapse to icons below 768px without relying on font-size:0', () => {
   const block = mediaBlock(768);
   assert.ok(block, 'mobile media block must exist');
@@ -22,7 +39,7 @@ test('nav button labels collapse to icons below 768px without relying on font-si
 });
 
 test('phone header matches the SLS pattern: one row plus a status dot', () => {
-  const block = mediaBlock(560);
+  const block = mediaBlock(600);
   assert.ok(block, '560px block must exist');
   // One row, not two: the badge is a grid item in the controls row.
   assert.match(block, /grid-template-areas:\s*"logo actions badge"/,
@@ -38,7 +55,7 @@ test('language then theme are the two rightmost navbar controls', () => {
   const ids = [...actions.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual(ids, ['btn-refresh', 'btn-mgmt', 'btn-srt-monitor', 'lang-toggle', 'btn-theme'],
     'HLS order must mirror SRT: shortcuts first, then language, then theme');
-  const block = mediaBlock(560);
+  const block = mediaBlock(600);
   assert.match(block, /grid-template-areas:\s*"logo actions badge"/,
     'the reordered actions stay in the single phone row');
 });
@@ -80,7 +97,7 @@ test('phone header controls share one size and an even gap', () => {
 });
 
 test('the HLS status pill stays compact instead of stretching to the row width', () => {
-  const block = mediaBlock(560);
+  const block = mediaBlock(600);
   assert.match(block, /\.header-badge[^{]*\{[^}]*justify-self:\s*(start|center|end)/,
     'the badge must size to its content via the grid track, not flex-grow');
   assert.ok(!/\.header-badge\s*\{[^}]*flex:\s*1\s+1\s+100%/.test(style),

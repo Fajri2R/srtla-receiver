@@ -41,11 +41,16 @@ test('the derived rate is persisted so history shows the same signal', () => {
   assert.match(store, /'droppedRate'/, 'droppedRate must be a persisted metric');
 });
 
-test('header wraps before the extra History and metric controls overflow it', () => {
-  // The History toggle added a fourth nav chip; at ~900px the single-row
-  // header runs ~43px past the viewport. The wrap breakpoint must sit above
-  // that, so the smallest full-width header (four chips + status) always fits.
-  const m = html.match(/@media\(max-width:\s*(\d+)px\)\s*\{\s*\.header-inner/);
-  assert.ok(m, 'header wrap media query must exist');
-  assert.ok(Number(m[1]) >= 1000, `wrap breakpoint ${m[1]}px is below the overflow point`);
+test('tablet header collapses chip labels instead of wrapping to a second row', () => {
+  // The History toggle added a fourth nav chip, so a full-label bar overflows
+  // below ~1120px. Instead of growing into a second row (which made SRT 109px
+  // tall where SLS/HLS stayed 60px), labels collapse to icons and the bar keeps
+  // the shared 60px single-row shell.
+  const m = /@media\(max-width:\s*(\d+)px\)\s*\{([\s\S]*?)@media/.exec(html);
+  assert.ok(m, 'tablet breakpoint must exist');
+  assert.ok(Number(m[1]) >= 1000, `collapse breakpoint ${m[1]}px is below the overflow point`);
+  const inner = /\.header-inner\s*\{([^}]*)\}/.exec(m[2])?.[1] ?? '';
+  assert.match(inner, /flex-wrap:\s*nowrap/, 'bar must stay on one row');
+  assert.match(inner, /height:\s*60px/, 'bar keeps the shared 60px shell');
+  assert.match(m[2], /\.btn-text[^}]*display:\s*none/, 'chip labels collapse to icons so four chips fit');
 });

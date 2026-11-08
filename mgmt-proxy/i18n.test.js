@@ -238,6 +238,22 @@ test('touch layouts expose 44px hit areas on injected controls', () => {
     'primary buttons and nav links must reach 44px on touch');
 });
 
+test('brand actions keep Reset and Save aligned in a dedicated button cluster', () => {
+  // Reset and Save must sit together inside a dedicated cluster, not intermingled
+  // with the dynamic status message which pushed them into different rows/heights.
+  assert.match(src, /<div class="lp-brand-actions">[\s\S]{0,120}?<span class="lp-brand-msg"[\s\S]{0,200}?<div class="lp-brand-buttons">[\s\S]{0,200}?lp-brand-reset"[\s\S]{0,300}?lp-brand-save"/,
+    'Reset and Save must live in a dedicated button group after the message');
+  // Visual alignment and hierarchy in CSS:
+  assert.match(css, /\.lp-brand-buttons\s*\{[^}]*display:\s*flex[^}]*gap:\s*(8|10)px/s,
+    'buttons must sit in an aligned flex row');
+  const btnRule = /\.lp-brand-btn\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  assert.match(btnRule, /height:\s*36px/, 'both buttons share one 36px height');
+  assert.match(btnRule, /align-items:\s*center/, 'button labels are vertically centred');
+  assert.match(btnRule, /display:\s*inline-flex/, 'buttons share the same box model');
+  assert.match(css, /\.lp-brand-reset\s*\{[^}]*border:\s*1px solid/s,
+    'reset button uses a clear outline, not a muddy disabled-looking background');
+});
+
 test('settings modal controls reach a 44px touch target', () => {
   const coarse = /@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
   assert.ok(coarse, 'expected a coarse-pointer block');
@@ -313,10 +329,12 @@ test('brand mark is a real link, not a dead href="#"', () => {
 });
 
 test('phone header keeps brand, controls and status on one row', () => {
-  const phone = /@media\s*\(max-width:\s*(414|479)px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[2] ?? '';
-  assert.ok(phone, 'expected a <=414px header rule');
-  assert.match(phone, /grid-template-areas/, 'the header must place items by area, not wrap');
-  assert.match(phone, /\.live-status[^{]*\{[^}]*(width:\s*2[0-9]px|min-width:\s*2[0-9]px)/,
+  const phone = /@media\s*\(max-width:\s*600px\)\s*\{([\s\S]*?)\n\}/g;
+  const blocks = [...css.matchAll(phone)].map(m => m[1]).join('\n');
+  assert.ok(blocks, 'expected a <=600px header rule');
+  const phoneCss = blocks;
+  assert.match(phoneCss, /grid-template-areas/, 'the header must place items by area, not wrap');
+  assert.match(phoneCss, /\.live-status[^{]*\{[^}]*(width:\s*2[0-9]px|min-width:\s*2[0-9]px)/,
     'the status chip must compact to a dot so it fits the first row');
 });
 
@@ -345,9 +363,9 @@ test('live preview overlay is a real dialog with trapped, restorable focus', () 
     'openPreview must move focus into the dialog');
 });
 
-test('secondary labels stay legible at >=10.5px', () => {
+test('data labels stay legible while the shared brand sub uses its 9px lockup', () => {
   const pick = (sel) => new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([\\s\\S]*?)\\n\\}').exec(css)?.[1] ?? '';
-  for (const sel of ['.mgmt-brand-sub', '.live-status', '.stat-label']) {
+  for (const sel of ['.stat-label']) {
     const block = pick(sel);
     assert.ok(block, 'expected a rule for ' + sel);
     const size = parseFloat(
@@ -357,6 +375,8 @@ test('secondary labels stay legible at >=10.5px', () => {
     );
     assert.ok(size >= 10.5, sel + ' renders ' + size + 'px, below the 10.5px floor');
   }
+  assert.match(pick('.mgmt-brand-sub'), /font-size:\s*9px/, 'brand sub follows the shared 9px Ashveil lockup');
+  assert.match(pick('.live-status'), /font:\s*10px var\(--mono\)/, 'status follows the shared 10px mono chip');
 });
 
 test('empty state is vertically centred instead of hanging at the top', () => {
@@ -390,9 +410,29 @@ test('identity line is name, player-count chip, then a leader rule', () => {
 });
 
 test('publisher row stacks on phones', () => {
-  const phone = /@media \(max-width:\s*560px\)[\s\S]{0,3000}/.exec(css)?.[0] ?? '';
+  const phone = /@media \(max-width:\s*600px\)[\s\S]{0,20000}/.exec(css)?.[0] ?? '';
   assert.match(phone, /\.card > \.card-body > \.d-flex\.justify-content-between\s*\{\s*grid-template-columns:\s*1fr/,
     'identity and controls must stack on a phone');
+});
+
+test('navbar lockup and chips follow the shared HLS/SRT contract', () => {
+  // One lockup across the estate: 44x20 mark, 13.5px wordmark, 9px mono sub.
+  assert.match(css, /\.mgmt-brand-icon\s*\{[^}]*width:44px[^}]*height:20px/s, 'desktop mark is 44x20');
+  assert.match(css, /\.mgmt-brand-text\s*\{[^}]*font-size:13\.5px/s, 'wordmark matches HLS/SRT 13.5px');
+  assert.match(css, /\.mgmt-brand-sub\s*\{[^}]*font-size:9px/s, 'brand sub matches HLS/SRT 9px');
+  // Desktop chips: 32px tall, 10px mono, uppercase like the siblings.
+  assert.match(css, /\.mgmt-nav-btn, button\[data-mgmt-settings\]\s*\{[^}]*height:32px[^}]*font-family:var\(--mono\)[^}]*font-size:10px[^}]*text-transform:uppercase/s,
+    'desktop chips share the 32px mono contract');
+  // Status chip: 30px tall pill with 10px mono, same as HLS.
+  assert.match(css, /\.live-status\s*\{[^}]*height:30px[^}]*border-radius:999px[^}]*font:10px var\(--mono\)/s,
+    'status chip matches the sibling pill');
+  // The bar never grows past one 60px row on tablet, 56px on phones.
+  assert.match(css, /@media \(max-width: 991\.98px\)\s*\{[^@]*?height:60px[^@]*?min-height:60px/s,
+    'tablet bar keeps the shared single 60px row');
+  assert.match(css, /@media \(max-width: 600px\)[\s\S]{0,5000}?min-height:56px/s,
+    'phone bar switches to the shared 56px row');
+  assert.match(css, /@media \(max-width: 600px\)[\s\S]{0,4000}?\.mgmt-brand-icon[^{]*\{[^}]*height:16px/,
+    'phone mark collapses to 32x16 like HLS/SRT');
 });
 
 test('desktop shell matches the 1320px column used by HLS and SRT', () => {

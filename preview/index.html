@@ -208,6 +208,8 @@
        HEADER
     ============================================================ */
     .header {
+      box-sizing: border-box;
+      height: 60px;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -300,7 +302,7 @@
       border: 1px solid var(--border);
       border-radius: 999px;
       padding: 0 11px;
-      height: 32px;
+      height: 30px;
       line-height: 1;
       white-space: nowrap;
     }
@@ -327,8 +329,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       padding: 0;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1184,17 +1186,27 @@
       .streams-grid { grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); }
     }
 
+    @media (min-width: 601px) and (max-width: 991px) {
+      /* Brand lockup and status pill take their tablet size together with
+         SLS/SRT, so all three read identically between 992 and 601. */
+      .logo-icon { width: 34px; height: 18px; flex: 0 0 34px; }
+      .logo-text b { font-size: 11.5px; letter-spacing: .28em; }
+      .logo-sub { font-size: 8px; letter-spacing: .2em; }
+      .header-badge { height: 28px; }
+      .header .nav-action { height: 36px !important; min-width: 36px !important; }
+      .header #lang-toggle { min-width: 38px !important; }
+    }
+
     @media (max-width: 768px) {
       .header { padding: 0 14px; }
-      .header-inner { height: auto; min-height: 56px; padding: 8px 0; flex-wrap: wrap; gap: 8px; }
+      .header-inner { height: 60px; min-height: 60px; padding: 0; flex-wrap: nowrap; gap: 8px; }
       .header-actions { gap: 8px; flex-wrap: nowrap; }
       .header-spacer { display: none; }
       .logo { flex: 1 1 auto; min-width: 0; order: 1; }
-      .logo-icon { width: 34px; height: 16px; flex: 0 0 34px; }
-      .logo-text b { font-size: 12px; letter-spacing: .28em; }
-      .logo-sub { font-size: 8px; letter-spacing: .2em; }
+      .logo-text b { font-size: 11.5px; letter-spacing: .28em; }
       .header-actions { order: 2; }
       .header-badge { order: 3; flex: 0 0 auto; height: 28px; }
+      .logo-icon { width: 34px; height: 18px; flex: 0 0 34px; }
       .header .header-actions > .nav-action {
         flex: 0 0 36px;
         width: 36px;
@@ -1220,7 +1232,8 @@
       .streams-grid { grid-template-columns: 1fr; }
     }
 
-    @media (max-width: 560px) {
+    @media (max-width: 600px) {
+      .header { min-height: 56px; height: 56px; }
       /* One header row, mirroring SLS: logo, icon cluster, then a 26px status
          dot. The badge used to drop to a second row as a wide pill, so this
          page carried a 93px bar where its sibling carried 56px. */
@@ -1230,9 +1243,17 @@
         grid-template-areas: "logo actions badge";
         align-items: center;
         gap: 8px;
+        height: 56px;
       }
       .logo { grid-area: logo; }
+      .logo-text { display: none !important; }
+      .logo-icon { width: 32px !important; height: 16px !important; flex: 0 0 32px !important; }
       .header-actions { grid-area: actions; justify-content: flex-end; gap: 6px; flex-wrap: nowrap; }
+      .header .nav-action, .header .btn-theme, .header .btn-lang {
+        width: 36px !important; min-width: 36px !important; height: 36px !important;
+        flex: 0 0 36px !important; padding: 0 !important;
+      }
+      .header #lang-toggle { flex-basis: 38px !important; width: 38px !important; min-width: 38px !important; }
       .header-badge {
         grid-area: badge;
         flex: 0 0 auto;
@@ -1272,7 +1293,7 @@
     }
 
     @media (max-width: 480px) {
-      .header { padding: 0 12px; }
+      .header { padding: 0 14px; }
       /* Long translated eyebrows ("preview langsung · output hls · receiver
          srtla") overrun the padding at 320px, so let them wrap instead. */
       .eyebrow { font-size: 9px; letter-spacing: .1em; white-space: normal; line-height: 1.5; }

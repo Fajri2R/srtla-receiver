@@ -163,6 +163,8 @@
        HEADER
     ============================================================ */
     .header {
+      box-sizing: border-box;
+      height: 60px;
       position: sticky; top: 0; z-index: 100;
       background: var(--bg-overlay);
       backdrop-filter: blur(16px) saturate(120%);
@@ -181,7 +183,7 @@
 
     /* A 32x16px brand anchor is below the 24px WCAG floor and far below the
        44px touch row the rest of the header keeps. */
-    @media (max-width: 650px) {
+    @media (max-width: 600px) {
       .brand { position: relative; min-height: 44px; display: inline-flex; align-items: center; }
       .brand::after { content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
         width: max(100%, 44px); height: 44px; }
@@ -191,6 +193,7 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      min-height: 44px;
       font-size: 13.5px;
       font-weight: 600;
       letter-spacing: .34em;
@@ -239,13 +242,16 @@
       display: block;
     }
 
-    .selector { display: flex; align-items: center; gap: 7px; color: var(--faint); font-size: 12px; }
-    .selector label {
-      font-family: var(--mono); font-size: 9.5px;
-      letter-spacing: .16em; text-transform: uppercase;
+    .main-selector {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 9px; margin: 0 0 14px auto;
+    }
+    .main-selector label {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
     }
     select {
-      max-width: 260px; padding: 0 28px 0 10px; height: 32px; line-height: 1;
+      min-width: 200px; max-width: 320px; padding: 0 28px 0 11px; height: 32px; line-height: 1;
       border: 1px solid var(--border-default);
       border-radius: var(--radius-sm);
       background: var(--bg-surface); color: var(--text-primary);
@@ -261,7 +267,7 @@
       display: flex;
       align-items: center;
       gap: 7px;
-      height: 32px;
+      height: 30px;
       padding: 0 11px;
       border-radius: 999px;
       color: var(--text-secondary);
@@ -629,21 +635,13 @@
        theme + status. Below 1120px that row no longer fits, so wrap it there
        rather than letting the status badge push past the viewport. */
     @media(max-width: 1120px) {
-      .header-inner { flex-wrap: wrap; height: auto; min-height: 56px; padding: 10px 0; gap: 8px 10px; justify-content: flex-start; }
-      .header-controls { display: contents !important; }
-      .brand { order: 1; flex: 1 1 auto; }
-      .live { order: 2; flex: 0 0 auto; }
-      .theme-btn { order: 2; }
-      .selector { order: 3; width: 100%; margin: 0; }
-      select { width: 100%; max-width: none; }
+      /* Keep the header on one clean 60px row on tablets, matching SLS/HLS.
+         Labels collapse to icons; stream selection lives on the page body. */
+      .header-inner { flex-wrap: nowrap; height: 60px; min-height: 60px; padding: 0; gap: 8px; justify-content: space-between; }
       .action-fs-main { display: none !important; }
-      #btn-hls, #btn-mgmt { order: 2; padding: 0 9px; }
-      #btn-hls .btn-text, #btn-mgmt .btn-text { display: none; }
-      /* History / language controls stay reachable: icon-only from 1000px down,
-         and the language pill shrinks rather than pushing the status badge. */
-      #btn-history { order: 2; padding: 0 9px; }
-      #btn-history .btn-text { display: none; }
-      #lang-toggle { order: 2; min-width: 34px; padding: 0 6px; }
+      #btn-hls, #btn-mgmt, #btn-history { padding: 0 9px; }
+      #btn-hls .btn-text, #btn-mgmt .btn-text, #btn-history .btn-text { display: none; }
+      #lang-toggle { min-width: 38px; padding: 0 8px; }
 
       /* Two charts still fit side by side here, but the header row (name +
          live value + action buttons) no longer does. Let it wrap instead of
@@ -654,37 +652,31 @@
       .actions { order: 3; width: 100%; margin-left: 0; margin-top: 6px; flex-wrap: wrap; }
     }
 
-    @media(max-width: 650px) {
-      .header { padding: 0 12px; }
-      /* One predictable header: brand + icon group, then the status pill, then
-         the full-width stream selector. Previously every control carried its
-         own order value and mixed 35/38/32px widths, so they scattered over
-         three rows with uneven gaps. */
+    @media(max-width: 600px) {
+      .header { padding: 0 14px; min-height: 56px; height: 56px; }
+      /* One predictable header: brand + icon group + 26px status dot.
+         56px high, mirroring SLS and HLS. Stream selector sits on the page body. */
       .header-inner {
         display: grid;
         grid-template-columns: auto 1fr repeat(5, auto) auto;
-        grid-template-areas:
-          "brand . mgmt hls history lang theme live"
-          "selector selector selector selector selector selector selector selector";
+        grid-template-areas: "brand . mgmt hls history lang theme live";
         align-items: center;
-        justify-content: space-between;
         gap: 8px 6px;
-        padding: 10px 0;
-        height: auto;
-        min-height: 0;
+        padding: 0;
+        height: 56px;
+        min-height: 56px;
       }
       .brand { grid-area: brand; min-width: 0; }
-      .brand-icon { width: 32px; height: 15px; flex: 0 0 32px; }
-      .brand-text b { font-size: 11.5px; letter-spacing: .26em; }
-      .brand-sub { font-size: 7.5px; letter-spacing: .18em; }
-      /* Flatten the wrapper so the pill and selector can span the full header
-         width instead of being boxed into the icon cluster's column. */
+      .brand-text { display: none !important; }
+      .brand-icon { width: 32px !important; height: 16px !important; flex: 0 0 32px !important; }
       .header-controls { display: contents !important; }
       #btn-mgmt { grid-area: mgmt; }
       #btn-hls { grid-area: hls; }
       #btn-history { grid-area: history; }
       #lang-toggle { grid-area: lang; }
       #theme-btn { grid-area: theme; }
+      .header .nav-action,
+      .header .theme-btn,
       .header-controls > .action,
       .header-controls > .theme-btn {
         flex: 0 0 36px;
@@ -696,7 +688,7 @@
         justify-content: center;
         align-items: center;
       }
-      .theme-btn { width: 36px; height: 36px; }
+      .theme-btn { width: 36px; height: 36px; font-size: 10px; }
       #lang-toggle {
         flex: 0 0 40px;
         width: 40px;
@@ -707,12 +699,14 @@
         justify-content: center;
         text-align: center;
       }
+      .header .header-controls > .live,
+      .header .live,
       .live {
         grid-area: live;
         justify-self: end;
-        width: 26px;
-        min-width: 26px;
-        height: 26px;
+        width: 26px !important;
+        min-width: 26px !important;
+        height: 26px !important;
         padding: 0;
         border-radius: 50%;
         justify-content: center;
@@ -729,8 +723,8 @@
         white-space: nowrap !important;
         border: 0 !important;
       }
-      .selector { grid-area: selector; width: 100%; min-height: 44px; margin: 0; }
-      select { width: 100%; max-width: none; min-height: 44px; height: 44px; }
+      .main-selector { width: 100%; margin: 0 0 16px; justify-content: flex-start; }
+      .main-selector select { width: 100%; max-width: none; min-height: 44px; height: 44px; }
       /* Keep the back affordance visible and full-row on phones so it is the
          first thing a thumb reaches when leaving the archive. */
       .hist-actions #hist-back { width: 100%; justify-content: center; }
@@ -885,7 +879,7 @@
     .hist-filter-btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft-dim, rgba(52,211,153,.12)); }
     .hist-filter-btn[data-filter="warning"][aria-pressed="true"] { color: var(--yellow); border-color: var(--yellow); background: rgba(229,189,98,.14); }
     .hist-filter-btn[data-filter="critical"][aria-pressed="true"] { color: var(--red); border-color: var(--red); background: rgba(232,139,139,.14); }
-    @media (pointer: coarse), (max-width: 650px) { .hist-filter-btn { min-height: 44px; padding: 4px 16px; } }
+    @media (pointer: coarse), (max-width: 600px) { .hist-filter-btn { min-height: 44px; padding: 4px 16px; } }
     .hist-incident {
       display: grid; grid-template-columns: 52px 62px minmax(0, 1fr); gap: 8px;
       align-items: baseline; font: 9.5px var(--mono); color: var(--text-secondary);
@@ -922,7 +916,7 @@
       .brand-icon { width: 32px; height: 16px; }
     }
 
-    @media (max-width: 650px) {
+    @media (max-width: 600px) {
       /* Narrow-width must imply the same touch minimums as coarse-pointer
          devices, or buttons fall below 32px on desktop-width devtools emulation
          and on phones that still report a fine pointer. */
@@ -944,7 +938,7 @@
 
     /* Ashveil touch targets: the 36px visual rhythm stays, but each icon grows a
        transparent 44x44 ::after so a thumb cannot miss between them. */
-    @media (max-width: 650px), (pointer: coarse) {
+    @media (max-width: 600px), (pointer: coarse) {
       #btn-mgmt, #btn-hls, #btn-history, #lang-toggle, #theme-btn { position: relative; }
       #btn-mgmt::after, #btn-hls::after, #btn-history::after,
       #lang-toggle::after, #theme-btn::after {
@@ -958,7 +952,17 @@
       .hist-layout { grid-template-columns: 1fr; }
       .hist-list { max-height: none; }
     }
-    @media (max-width: 650px) {
+    @media (min-width: 601px) and (max-width: 991px) {
+      /* Tablet lockup and status pill, aligned with SLS and HLS. */
+      .brand-icon { width: 34px; height: 18px; flex: 0 0 34px; }
+      .brand-text b { font-size: 11.5px; letter-spacing: .28em; }
+      .brand-sub { font-size: 8px; letter-spacing: .2em; }
+      .live { height: 28px; }
+      .header .nav-action, .header .theme-btn { height: 36px !important; min-width: 36px !important; }
+      .header #lang-toggle { min-width: 38px !important; }
+    }
+
+    @media (max-width: 900px) {
       .hist-head { align-items: stretch; }
       .hist-actions { justify-content: flex-start; }
       .hist-detail-actions { width: 100%; }
@@ -985,10 +989,6 @@
     <div class="header-inner">
       <a class="brand" href="/" aria-label="ASHVEIL SRT Monitor"><span class="brand-icon"><img src="/ashveil-veil.png?v=20261105c" alt="ASHVEIL"></span><span class="brand-text"><b>ASHVEIL</b><em class="brand-sub">SRT MONITOR</em></span></a>
       <div class="header-controls">
-        <div class="selector">
-          <label>Stream</label>
-          <select id="stream" aria-label="Stream" data-i18n-aria="nav.stream"></select>
-        </div>
         <a class="action nav-action" id="btn-mgmt" href="#" target="_blank" aria-label="Open Management UI" data-i18n-title="nav.manageTip" data-tooltip="Open Management UI" data-i18n-tooltip="nav.manageTip" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -1022,6 +1022,10 @@
     </div>
   </header>
   <main class="main">
+    <div class="selector main-selector">
+      <label for="stream">Stream</label>
+      <select id="stream" aria-label="Stream" data-i18n-aria="nav.stream"></select>
+    </div>
     <div class="eyebrow" data-i18n="eyebrow.live">live telemetry &middot; srt ingest &middot; per-stream metrics</div>
     <h1 class="title">
       <span data-i18n="title.metrics">Metrics</span> <code id="stream-name">-</code>

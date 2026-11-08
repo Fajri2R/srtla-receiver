@@ -94,6 +94,7 @@ body::after {
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 .navbar, nav.navbar, header {
+  box-sizing:border-box !important;
   height:60px !important; min-height:60px !important; padding:0 20px !important;
   background:rgba(15,17,16,.88) !important;
   -webkit-backdrop-filter:blur(16px) saturate(120%) !important;
@@ -104,7 +105,7 @@ body::after {
 }
 .navbar > .container-fluid {
   display:flex !important; align-items:center !important;
-  max-width:1180px !important; width:100% !important; height:100% !important;
+  max-width:1320px !important; width:100% !important; height:100% !important;
   margin:0 auto !important; padding:0 !important; flex-wrap:nowrap !important; gap:12px;
 }
 .navbar .ms-auto { display:flex !important; flex-flow:row nowrap !important; align-items:center !important; gap:8px; margin-left:auto !important; }
@@ -127,24 +128,26 @@ body::after {
 .mgmt-brand-text {
   display:inline-flex !important; flex-direction:column !important; align-items:flex-start !important;
   gap:0 !important; line-height:1.1 !important; white-space:nowrap;
-  color:var(--brand-ivory) !important; font-size:12.5px !important;
+  color:var(--brand-ivory) !important; font-size:13.5px !important;
   font-weight:600 !important; letter-spacing:.34em !important;
 }
 .mgmt-brand-sub {
   display:block !important; padding:0 !important; margin-top:3px !important;
   border:0 !important; font-style:normal !important;
-  font-family:var(--mono) !important; font-size:10.5px !important;
+  font-family:var(--mono) !important; font-size:9px !important;
   font-weight:400 !important; letter-spacing:.24em !important;
   color:var(--faint) !important; text-transform:uppercase;
 }
 
 /* header controls */
 .mgmt-nav-btn, button[data-mgmt-settings] {
-  display:inline-flex !important; align-items:center !important; justify-content:center; gap:6px;
+  display:inline-flex !important; align-items:center !important; justify-content:center; gap:7px;
   height:32px !important; padding:0 10px !important;
   background:transparent !important; border:1px solid var(--border) !important;
   border-radius:8px !important; color:var(--muted) !important;
-  font-size:11.5px !important; font-weight:500 !important; letter-spacing:.01em;
+  font-family:var(--mono) !important;
+  font-size:10px !important; font-weight:500 !important; letter-spacing:.1em;
+  text-transform:uppercase; line-height:1;
   text-decoration:none !important; box-shadow:none !important; cursor:pointer;
   transition:background .16s, color .16s, border-color .16s !important;
 }
@@ -181,10 +184,10 @@ body::after {
 /* live status chip */
 .live-status {
   display:inline-flex !important; align-items:center; gap:7px;
-  height:30px !important; padding:0 10px !important; margin:0 !important;
+  height:30px !important; padding:0 11px !important; margin:0 !important;
   background:var(--surface) !important; border:1px solid var(--border) !important;
-  border-radius:5px !important; color:var(--muted) !important;
-  font:10.5px var(--mono) !important; letter-spacing:.07em; text-transform:uppercase;
+  border-radius:999px !important; color:var(--muted) !important;
+  font:10px var(--mono) !important; font-weight:500; letter-spacing:.08em; text-transform:uppercase;
   white-space:nowrap !important; cursor:default;
 }
 .live-status .dot {
@@ -619,10 +622,10 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
-  .navbar, nav.navbar, header { height:auto !important; min-height:56px !important; padding:8px 14px !important; }
+  .navbar, nav.navbar, header { height:60px !important; min-height:60px !important; padding:0 14px !important; }
   .navbar > .container-fluid { flex-wrap:wrap !important; gap:8px !important; }
   .mgmt-brand-text { font-size:11.5px !important; letter-spacing:.28em !important; }
-  .mgmt-brand-sub { font-size:10.5px !important; letter-spacing:.2em !important; }
+  .mgmt-brand-sub { font-size:8px !important; letter-spacing:.2em !important; }
   .mgmt-brand-icon, .mgmt-brand-icon img { width:34px !important; height:18px !important; flex-basis:34px !important; }
   .navbar .ms-auto { order:3; width:100% !important; display:contents !important; }
   /* 30px here made the HLS/SRT links look shrunken next to the 36px theme and
@@ -636,7 +639,7 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
   .navbar .ms-auto > .mgmt-theme-btn { order:5 !important; }
   .navbar .ms-auto > .live-status { order:6 !important; }
   .mgmt-nav-btn .btn-text, .mgmt-settings-label { display:none !important; }
-  .live-status { height:28px !important; padding:0 8px !important; font-size:10.5px !important; }
+  .live-status { height:28px !important; padding:0 8px !important; font-size:10px !important; }
 }
 @media (max-width: 600px) {
   .container.py-4 { padding:22px 14px 36px !important; }
@@ -662,7 +665,7 @@ html { scrollbar-width:thin; scrollbar-color:#3a423d #101211; }
     align-items:center !important;
   }
   .mgmt-brand-text { display:none !important; }
-  .mgmt-brand-icon, .mgmt-brand-icon img { width:32px !important; height:17px !important; flex-basis:32px !important; }
+  .mgmt-brand-icon, .mgmt-brand-icon img { width:32px !important; height:16px !important; flex-basis:32px !important; }
   /* Keep the flattening from the 992px block so the pill can take its own row,
      but make the four icons one unbreakable, right-aligned cluster. */
   .navbar .ms-auto { display:contents !important; }
@@ -866,8 +869,8 @@ html[data-theme="light"] .mgmt-lang-btn { color:var(--accent-soft) !important; }
   .mgmt-theme-btn { width:36px !important; min-width:36px !important; height:36px !important; flex:0 0 36px !important; }
   .mgmt-lang-btn { width:40px !important; min-width:40px !important; height:36px !important; flex-basis:40px !important; padding:0 !important; justify-content:center !important; text-align:center !important; }
 }
-@media (max-width: 560px) {
-  .navbar, nav.navbar, header { height:auto !important; min-height:56px !important; }
+@media (max-width: 600px) {
+  .navbar, nav.navbar, header { height:56px !important; min-height:56px !important; }
   .navbar .ms-auto { flex-wrap:wrap !important; }
   .mgmt-lang-btn { display:inline-flex !important; }
 
@@ -944,19 +947,34 @@ html[data-theme="light"] .lp-brand-file-button { background:#eef2ee; border-colo
 html[data-theme="light"] .lp-brand-file-control:hover .lp-brand-file-button { border-color:#138a5c; color:#138a5c; }
 html[data-theme="light"] .lp-brand-file-name.has-file { color:#18231d; }
 .lp-brand-hint { font-size:10.5px; line-height:1.5; font-style:normal; color:var(--hint,#6d776f); }
-.lp-brand-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:13px; }
-.lp-brand-msg { flex:1 1 180px; min-width:0; font-size:11px; line-height:1.4; color:var(--faint,#7c8681); }
+.lp-brand-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:14px; }
+/* Reset and Save live in one cluster so a growing status message can never
+   push one of them onto a second row or shift its baseline. */
+.lp-brand-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:14px; width:100%; box-sizing:border-box; }
+.lp-brand-buttons { display:flex; align-items:center; gap:10px; flex:0 0 auto; margin-left:auto; }
+.lp-brand-msg { flex:1 1 200px; min-width:0; font-size:11px; line-height:1.4; color:var(--faint,#7c8681); }
 .lp-brand-msg[data-state="saved"] { color:var(--accent-strong,#6ee7b7); }
 .lp-brand-msg[data-state="error"] { color:var(--danger,#e88b8b); }
 .lp-brand-btn {
-  padding:7px 13px; border-radius:7px; cursor:pointer; white-space:nowrap;
-  font-family:var(--font-mono,"JetBrains Mono",monospace); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--fg,#f4f4ec); background:var(--chip,rgba(255,255,255,.05)); border:1px solid var(--border,#2b302e);
+  display:inline-flex; align-items:center; justify-content:center;
+  height:36px; min-height:36px; padding:0 14px; box-sizing:border-box;
+  border-radius:7px; cursor:pointer; white-space:nowrap; line-height:1;
+  font-family:var(--font-mono,"JetBrains Mono",monospace); font-size:10.5px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text,#f4f4ec); background:transparent; border:1px solid var(--border-strong,#49554e);
   transition:background .15s, border-color .15s, color .15s;
 }
+.lp-brand-btn:focus-visible { outline:2px solid var(--accent,#34d399); outline-offset:2px; }
+/* Reset is a quiet but clearly readable secondary action: outlined with
+   WCAG AA contrast, not a faint disabled-looking control. */
+.lp-brand-reset { color:var(--text,#f4f4ec); background:transparent; border:1px solid var(--border-strong,#49554e); }
+.lp-brand-reset:hover, .lp-brand-reset:focus-visible {
+  background:var(--surface-2,rgba(255,255,255,.08));
+  border-color:var(--muted,#c4c8c4); color:var(--text,#f4f4ec); outline:none;
+}
 .lp-brand-btn:hover { border-color:var(--border-strong,#3b443f); background:var(--chip-2,rgba(255,255,255,.08)); }
-.lp-brand-save { color:#08231a; background:var(--accent,#34d399); border-color:var(--accent,#34d399); font-weight:600; }
-.lp-brand-save:hover { background:var(--accent-strong,#6ee7b7); border-color:var(--accent-strong,#6ee7b7); color:#08231a; }
+.lp-brand-save { color:#08231a; background:var(--accent,#34d399); border:1px solid var(--accent,#34d399); font-weight:600; }
+.lp-brand-save:hover, .lp-brand-save:focus-visible { background:var(--accent-strong,#6ee7b7); border-color:var(--accent-strong,#6ee7b7); color:#08231a; outline:none; }
 .lp-brand-preview {
   display:flex; align-items:center; gap:11px; margin-top:13px; padding:10px 12px;
   border:1px dashed var(--border,#2b302e); border-radius:8px; background:var(--bg,#101211);
@@ -981,9 +999,12 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
 
 @media (max-width: 560px) {
   .lp-brand-panel { padding:12px; }
-  .lp-brand-actions { gap:7px; }
+  /* Message takes the full width, then the two actions share one even row so
+     neither button wraps under the other at 320px. */
+  .lp-brand-actions { gap:8px; }
   .lp-brand-msg { flex:1 1 100%; }
-  .lp-brand-btn { flex:1 1 auto; text-align:center; }
+  .lp-brand-buttons { width:100%; margin-left:0; gap:8px; }
+  .lp-brand-btn { flex:1 1 0; min-width:0; padding:0 10px; text-align:center; }
 }
 
 /* Preserve the dense desktop toolbar while providing Ashveil's 44px minimum
@@ -1036,7 +1057,7 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
 /* At 320-414px a 152px status sentence forced an 87px two-row header. Keep all
    controls on one grid row and collapse the status to its live dot; the full
    translated state remains in role=status / aria-label. */
-@media (max-width: 479px) {
+@media (max-width: 600px) {
   .navbar, nav.navbar, header { min-height:56px !important; height:56px !important; }
   .navbar > .container-fluid {
     display:grid !important;
@@ -1046,6 +1067,7 @@ html[data-theme="light"] .lp-brand-msg[data-state="error"] { color:#a53f3a; }
     align-items:center !important; flex-wrap:nowrap !important;
   }
   .mgmt-brand { grid-area:brand; width:32px !important; min-width:32px !important; height:44px !important; }
+  .mgmt-brand-icon, .mgmt-brand-icon img { width:32px !important; height:16px !important; flex-basis:32px !important; }
   .mgmt-nav-tools { grid-area:tools; width:max-content; margin-left:auto !important; }
   button[data-mgmt-settings] { grid-area:settings; order:0 !important; }
   .navbar .ms-auto > .mgmt-lang-btn { grid-area:lang; order:0 !important; }

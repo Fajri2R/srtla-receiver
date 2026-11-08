@@ -24,13 +24,27 @@ function mediaBlocks(query) {
 }
 
 function phoneRules() {
-  const blocks = mediaBlocks(650);
-  assert.ok(blocks.length > 0, 'expected at least one max-width:650px block');
+  const blocks = mediaBlocks(600);
+  assert.ok(blocks.length > 0, 'expected at least one max-width:600px block');
   return blocks.join('\n');
 }
 
 // Narrow phones must not inherit desktop control sizing. Anything below 32px
 // is not reliably tappable and 28px buttons force cramped single-row toolbars.
+test('stream selector belongs to the telemetry page, never to global navigation', () => {
+  const header = /<header class="header">([\s\S]*?)<\/header>/.exec(html)?.[1] ?? '';
+  const main = /<main class="main">([\s\S]*?)<section class="stats"/.exec(html)?.[1] ?? '';
+  assert.ok(!/class="selector/.test(header), 'stream selector must not inflate the global navbar');
+  assert.match(main, /class="selector main-selector"[\s\S]*?id="stream"/,
+    'stream selector stays visible at the top of its telemetry page');
+  const phone = /@media\(max-width:\s*600px\)\s*\{([\s\S]*?)\n    \}/.exec(html)?.[1] ?? '';
+  const inner = /\.header-inner\s*\{([^}]*)\}/.exec(phone)?.[1] ?? '';
+  assert.match(inner, /grid-template-areas:\s*"brand \. mgmt hls history lang theme live"/,
+    'phone navbar keeps brand, actions, and status on one row');
+  assert.match(inner, /height:\s*56px/, 'phone navbar is 56px like SLS/HLS');
+  assert.match(inner, /min-height:\s*56px/, 'phone navbar cannot grow past one row');
+});
+
 test('desktop header controls share the 32px SLS chip height and language width', () => {
   const nav = ruleBlock('.header .nav-action');
   assert.match(nav, /height:\s*32px/, 'desktop nav action height matches SLS');
@@ -45,16 +59,17 @@ test('phone header matches SLS with one 56px row and a compact status dot', () =
   const block = phoneRules();
   assert.match(block, /grid-template-areas:\s*"brand \. mgmt hls history lang theme live"/,
     'all controls and the status badge must stay on the first row');
-  assert.match(block, /\.live\s*\{[^}]*width:\s*26px;[^}]*height:\s*26px/s,
+  assert.match(block, /\.live\s*\{[^}]*width:\s*26px[^}]*height:\s*26px/s,
     'phone live state collapses to a 26px status dot');
   assert.match(block, /\.live > span\s*\{[^}]*clip:\s*rect\(0,\s*0,\s*0,\s*0\)/s,
     'status text remains available to assistive tech');
   // The stream selector is the one control SLS has no equivalent for, so it
   // keeps a real second row instead of being squeezed or hidden.
-  assert.match(block, /"selector selector selector selector selector selector selector selector"/,
-    'stream selector keeps its own row so it stays tappable');
-  assert.match(block, /\.selector\s*\{[^}]*min-height:\s*44px/s,
-    'the selector row still meets the 44px touch floor');
+  // The selector left the bar entirely, so the phone header is a single row.
+  assert.match(block, /grid-template-areas:\s*"brand \. mgmt hls history lang theme live"/,
+    'stream selector must not add a second navbar row');
+  assert.match(html, /\.main-selector\s*\{[^}]*margin:\s*0 0 16px/s,
+    'selector keeps a tappable home at the top of the page body');
 });
 
 test('narrow viewports raise action tap targets to at least 38px', () => {
@@ -119,14 +134,14 @@ test('phone header controls keep a uniform 36-38px touch target and centered lab
 });
 
 test('SRT status badge on narrow screens does not blow out the header into 4 rows', () => {
-  const narrow = mediaBlocks(650).join('\n');
+  const narrow = mediaBlocks(600).join('\n');
   assert.match(narrow, /\.live\s*\{[^}]*height:\s*2[68]px/,
     'live status pill on phones must stay compact');
 });
 
 
 test('mobile icon controls expose a 44px touch hit area', () => {
-  const touch = /@media\s*\(max-width:\s*650px\),\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\s*\}/.exec(html)?.[1] ?? '';
+  const touch = /@media\s*\(max-width:\s*600px\),\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\s*\}/.exec(html)?.[1] ?? '';
   assert.ok(touch, 'expected a mobile/coarse-pointer touch block');
   assert.match(touch, /width:\s*44px;\s*height:\s*44px/, 'touch hit area must be 44x44');
   for (const sel of ['#btn-mgmt', '#btn-hls', '#btn-history', '#lang-toggle', '#theme-btn']) {
@@ -173,7 +188,7 @@ test('incident markers are deduped per minute and never outshine the data', () =
 test('severity filter chips meet a 44px touch target on phones', () => {
   assert.match(html, /\.hist-filter-btn\s*\{[^}]*min-height:\s*28px/,
     'desktop keeps the compact chip height');
-  assert.match(html, /@media \(pointer: coarse\), \(max-width: 650px\)\s*\{\s*\.hist-filter-btn\s*\{[^}]*min-height:\s*44px/,
+  assert.match(html, /@media \(pointer: coarse\), \(max-width: 600px\)\s*\{\s*\.hist-filter-btn\s*\{[^}]*min-height:\s*44px/,
     'phone/coarse layouts must expand chips to 44px');
 });
 
