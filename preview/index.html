@@ -2028,6 +2028,59 @@ function updateCard(card, publisher) {
 ================================================================ */
 const MAX_SIMULTANEOUS_PREVIEWS = 4;
 
+function watchForStall(id, hls, videoEl) {
+  let stallTimer = null;
+  let lastRecovery = 0;
+  const controller = new AbortController();
+  hls.__stallAbort = controller;
+
+  function clearStall() {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = null;
+  }
+
+  function resumeAtLiveEdge() {
+    if (hlsInstances[id] !== hls || !videoEl.isConnected || videoEl.paused) return;
+    const now = Date.now();
+    if (now - lastRecovery < 8000) return;
+    lastRecovery = now;
+    const live = hls.liveSyncPosition;
+    if (Number.isFinite(live) && live > videoEl.currentTime + 2) {
+      videoEl.currentTime = live;
+    }
+    hls.startLoad();
+    videoEl.play().catch(() => {});
+  }
+
+  function scheduleRecovery() {
+    clearStall();
+    if (videoEl.paused) return;
+    stallTimer = setTimeout(resumeAtLiveEdge, 3500);
+  }
+
+  videoEl.addEventListener('waiting', scheduleRecovery, { signal: controller.signal });
+  videoEl.addEventListener('stalled', scheduleRecovery, { signal: controller.signal });
+  videoEl.addEventListener('playing', clearStall, { signal: controller.signal });
+  videoEl.addEventListener('canplay', clearStall, { signal: controller.signal });
+  let lastTick = Date.now();
+  let lastTime = videoEl.currentTime;
+  const watchdog = setInterval(() => {
+    if (hlsInstances[id] !== hls) { clearInterval(watchdog); return; }
+    if (videoEl.paused || videoEl.seeking) { lastTime = videoEl.currentTime; lastTick = Date.now(); return; }
+    const moved = Math.abs(videoEl.currentTime - lastTime) > 0.05;
+    if (moved) { lastTime = videoEl.currentTime; lastTick = Date.now(); return; }
+    if (Date.now() - lastTick > 6000) resumeAtLiveEdge();
+  }, 2000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && hlsInstances[id] === hls && !videoEl.paused) {
+      const live = hls.liveSyncPosition;
+      if (Number.isFinite(live) && live > videoEl.currentTime + 6) resumeAtLiveEdge();
+    }
+  }, { signal: controller.signal });
+  hls.__stallCleanup = () => { clearStall(); clearInterval(watchdog); };
+}
+
 function startPreview(id, retryAttempt = 0) {
   // ✅ FIX #13: Warn and block if too many streams playing simultaneously
   if (!playingStreams.has(id) && playingStreams.size >= MAX_SIMULTANEOUS_PREVIEWS) {
@@ -2047,24 +2100,36 @@ function startPreview(id, retryAttempt = 0) {
   overlay.innerHTML = `<div class="overlay-spinner"></div><span class="overlay-text">Connecting…</span>`;
   overlay.classList.remove('hidden');
 
-  if (hlsInstances[id]) { hlsInstances[id].destroy(); delete hlsInstances[id]; }
+  if (hlsInstances[id]) {
+    hlsInstances[id].__stallCleanup?.();
+    hlsInstances[id].__stallAbort?.abort();
+    hlsInstances[id].destroy();
+    delete hlsInstances[id];
+  }
 
   if (Hls.isSupported()) {
     // ✅ FIX #3: Correct HLS.js config for standard HLS (not LL-HLS)
     const hls = new Hls({
       lowLatencyMode: false,
       enableWorker: true,
-      backBufferLength: 30,
-      maxBufferLength: 10,
-      liveSyncDurationCount: 3,
+      backBufferLength: 15,
+      maxBufferLength: 30,
+      maxMaxBufferLength: 60,
+      liveSyncDurationCount: 2,
       liveMaxLatencyDurationCount: 6,
-      manifestLoadingMaxRetry: 4,
-      manifestLoadingRetryDelay: 1500,
+      maxLiveSyncPlaybackRate: 1.5,
+      fragLoadingMaxRetry: 8,
+      fragLoadingRetryDelay: 500,
+      fragLoadingMaxRetryTimeout: 8000,
+      manifestLoadingMaxRetry: 8,
+      manifestLoadingRetryDelay: 1000,
+      levelLoadingMaxRetry: 8,
     });
     hlsInstances[id] = hls;
 
     hls.loadSource(hlsUrl);
     hls.attachMedia(videoEl);
+    watchForStall(id, hls, videoEl);
 
    hls.on(Hls.Events.MANIFEST_PARSED, () => {
      overlay.classList.add('hidden');
@@ -2131,7 +2196,10 @@ function startPreview(id, retryAttempt = 0) {
 
 function stopPreview(id) {
   if (hlsInstances[id]) {
-    hlsInstances[id].destroy();
+    const inst = hlsInstances[id];
+    try { inst.__stallCleanup?.(); } catch {}
+    try { inst.__stallAbort?.abort(); } catch {}
+    inst.destroy();
     delete hlsInstances[id];
   }
   const eid     = CSS.escape(id);

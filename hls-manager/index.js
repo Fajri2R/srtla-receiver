@@ -10,18 +10,25 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync, o
 import { join }              from "path";
 import { createServer }      from "http";
 import { handleBrandRoutes } from "./brand-routes.js";
+import {
+  buildFfmpegArgs,
+  purgeOnExit,
+  DEFAULT_HLS_TIME,
+  DEFAULT_HLS_LIST_SIZE,
+  DEFAULT_OFFLINE_GRACE_SECONDS,
+} from "./playback-tuning.js";
 
 // Config
 const SRT_HOST      = process.env.SRT_HOST      || "receiver";
 const SRT_PORT      = process.env.SRT_PORT      || "4000";
 const HLS_PATH      = process.env.HLS_PATH      || "/hls";
-const HLS_TIME      = process.env.HLS_TIME      || "2";
-const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || "5";
+const HLS_TIME      = process.env.HLS_TIME      || String(DEFAULT_HLS_TIME);
+const HLS_LIST_SIZE = process.env.HLS_LIST_SIZE || String(DEFAULT_HLS_LIST_SIZE);
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL || "5", 10) * 1000;
 const HEALTH_PORT   = parseInt(process.env.HEALTH_PORT   || "9090", 10);
 const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || "10", 10);
 const ALLOW_TRANSCODE = process.env.HLS_ALLOW_TRANSCODE === "true"; // Default: false, bypass transcode for HEVC/Opus
-const OFFLINE_GRACE_MS = Math.max(parseInt(process.env.HLS_OFFLINE_GRACE_SECONDS || "15", 10), 0) * 1000;
+const OFFLINE_GRACE_MS = Math.max(parseInt(process.env.HLS_OFFLINE_GRACE_SECONDS || String(DEFAULT_OFFLINE_GRACE_SECONDS), 10), 0) * 1000;
 const HEVC_PREVIEW_WIDTH = parseInt(process.env.HLS_HEVC_MAX_WIDTH || "1280", 10);
 const SRT_LATENCY   = process.env.SRT_LATENCY   || "200";
 const SLS_BASE_URL  = process.env.SLS_STATS_URL
@@ -295,17 +302,15 @@ async function startStream(streamId, playerKey, retryCount = 0) {
 
   log("info", `PLAY [${streamId}]${retryCount > 0 ? ` retry#${retryCount}` : ""} (v:${!codecs.h264?"h264-transcode":"copy"} a:${(codecs.opus||!codecs.aac)?"aac-transcode":"copy"})`);
 
-  const args = [
-    "-hide_banner", "-loglevel", "warning",
-    "-fflags", "+nobuffer+genpts", "-flags", "low_delay",
-    "-progress", "pipe:3", "-stats_period", "1", "-nostats",
-    "-i", srtUrl,
-    ...vArgs, ...aArgs,
-    "-f", "hls",
-    "-hls_time", HLS_TIME, "-hls_list_size", HLS_LIST_SIZE,
-    "-hls_flags", "delete_segments+append_list+independent_segments",
-    "-hls_segment_filename", segPat, m3u8,
-  ];
+  const args = buildFfmpegArgs({
+    srtUrl,
+    segPat,
+    m3u8,
+    hlsTime: HLS_TIME,
+    hlsListSize: HLS_LIST_SIZE,
+    videoArgs: vArgs,
+    audioArgs: aArgs,
+  });
   const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe", "pipe"] });
 
   const addStreamLog = (m, level) => {
@@ -346,10 +351,13 @@ async function startStream(streamId, playerKey, retryCount = 0) {
     log("info", `STOP [${streamId}] code=${code} sig=${signal}`);
     const e = activeStreams.get(streamId);
     if (!e || e.proc !== proc) return;
-    try { rmSync(e.dir, { recursive: true, force: true }); } catch {}
     activeStreams.delete(streamId);
     const ours = signal === "SIGTERM" || signal === "SIGKILL";
-    if (!isShuttingDown && !ours && code !== 0 && retryCount < MAX_RETRIES) {
+    const willRetry = !isShuttingDown && !ours && code !== 0 && retryCount < MAX_RETRIES;
+    if (purgeOnExit({ explicitStop: ours, willRetry })) {
+      try { rmSync(e.dir, { recursive: true, force: true }); } catch {}
+    }
+    if (willRetry) {
       const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
       log("info", `  retry in ${(delay/1000).toFixed(0)}s (${retryCount+1}/${MAX_RETRIES})`);
       setTimeout(() => {
